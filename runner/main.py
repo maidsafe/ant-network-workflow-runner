@@ -37,7 +37,12 @@ def main():
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
-    subparsers.add_parser("ls", help="List all workflow runs")
+    ls_parser = subparsers.add_parser("ls", help="List all workflow runs")
+    ls_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show detailed information for each workflow run"
+    )
     
     stop_parser = subparsers.add_parser("stop-nodes", help="Stop testnet nodes")
     stop_parser.add_argument(
@@ -65,7 +70,7 @@ def main():
         config = load_yaml_config(args.path)
         cmd.stop_nodes(config, args.branch)
     elif args.command == "ls":
-        cmd.list_runs()
+        cmd.list_runs(show_details=args.details)
     elif args.command == "upgrade-node-man":
         config = load_yaml_config(args.path)
         cmd.upgrade_node_manager(config, args.branch)

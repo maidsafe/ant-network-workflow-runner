@@ -16,13 +16,12 @@ STOP_NODES_WORKFLOW_ID = 126356854
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 
 def get_github_token() -> str:
-    """Get GitHub token from environment variable."""
     token = os.getenv("WORKFLOW_RUNNER_PAT")
     if not token:
         raise ValueError("WORKFLOW_RUNNER_PAT environment variable is not set")
     return token
 
-def list_runs() -> None:
+def list_runs(show_details: bool = False) -> None:
     """List all recorded workflow runs."""
     try:
         runs = list_workflow_runs()
@@ -30,19 +29,37 @@ def list_runs() -> None:
             print("No workflow runs found.")
             return
             
-        for run in runs:
-            workflow_name, branch_name, network_name, triggered_at, inputs = run
-            timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S UTC")
-            inputs_dict = json.loads(inputs)
+        runs.sort(key=lambda x: x[3])
+        
+        print("\n" + "=" * 61)
+        print(" " * 18 + "W O R K F L O W   R U N S" + " " * 18)
+        print("=" * 61 + "\n")
+        
+        if show_details:
+            for run in runs:
+                workflow_name, branch_name, network_name, triggered_at, inputs = run
+                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
+                inputs_dict = json.loads(inputs)
+                
+                print(f"Workflow: {workflow_name}")
+                print(f"Triggered: {timestamp}")
+                print(f"Network: {network_name}")
+                print(f"Branch: {branch_name}")
+                print("Inputs:")
+                for key, value in inputs_dict.items():
+                    print(f"  {key}: {value}")
+                print("-" * 50)
+        else:
+            print(f"{'Triggered':<20} {'Workflow':<25} {'Network':<15}")
+            print("-" * 60)
             
-            print(f"Workflow: {workflow_name}")
-            print(f"Branch: {branch_name}")
-            print(f"Network: {network_name}")
-            print(f"Triggered: {timestamp}")
-            print("Inputs:")
-            for key, value in inputs_dict.items():
-                print(f"  {key}: {value}")
-            print("-" * 50)
+            for run in runs:
+                workflow_name, _, network_name, triggered_at, _ = run
+                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
+                print(f"{timestamp:<20} {workflow_name:<25} {network_name:<15}")
+        
+        print("\nAll times are in UTC")
+                
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve workflow runs: {e}")
         sys.exit(1)
