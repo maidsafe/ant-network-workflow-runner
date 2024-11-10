@@ -12,9 +12,10 @@ from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerW
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
+
+DESTROY_NETWORK_WORKFLOW_ID = 63357826
 STOP_NODES_WORKFLOW_ID = 126356854
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
-DESTROY_NETWORK_WORKFLOW_ID = 63357826
 
 def get_github_token() -> str:
     token = os.getenv("WORKFLOW_RUNNER_PAT")
@@ -66,102 +67,65 @@ def list_runs(show_details: bool = False) -> None:
         sys.exit(1)
 
 def stop_nodes(config: Dict, branch_name: str) -> None:
-    """
-    Execute the stop-nodes command using the provided configuration.
-    Creates and runs a StopNodesWorkflowRun instance to trigger the GitHub Actions workflow.
-    """
-    try:
-        if "network-name" not in config:
-            raise KeyError("network-name")
-            
-        workflow = StopNodesWorkflowRun(
-            owner=REPO_OWNER,
-            repo=REPO_NAME,
-            id=STOP_NODES_WORKFLOW_ID,
-            personal_access_token=get_github_token(),
-            branch_name=branch_name,
-            network_name=config["network-name"],
-            ansible_forks=config.get("ansible-forks"),
-            custom_inventory=config.get("custom-inventory"),
-            delay=config.get("delay"),
-            interval=config.get("interval"),
-            node_type=NodeType(config["node-type"]) if "node-type" in config else None,
-            testnet_deploy_args=config.get("testnet-deploy-args")
-        )
+    if "network-name" not in config:
+        raise KeyError("network-name")
         
-        print(f"Dispatching the {workflow.name} workflow...")
-        workflow.run()
-        print("Workflow was dispatched with the following inputs:")
-        for key, value in workflow.get_workflow_inputs().items():
-            print(f"  {key}: {value}")
-    except KeyError as e:
-        print(f"Error: Missing required configuration field: {e}")
-        sys.exit(1)
-    except requests.exceptions.RequestException as e:
-        print(f"Error: Failed to trigger workflow: {e}")
-        sys.exit(1)
-    except ValueError as e:
-        print(f"Error: Invalid configuration value: {e}")
-        sys.exit(1)
+    workflow = StopNodesWorkflowRun(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=STOP_NODES_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        delay=config.get("delay"),
+        interval=config.get("interval"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        testnet_deploy_args=config.get("testnet-deploy-args")
+    )
+    _execute_workflow(workflow)
 
 def upgrade_node_manager(config: Dict, branch_name: str) -> None:
-    """
-    Execute the upgrade-node-man command using the provided configuration.
-    Creates and runs an UpgradeNodeManagerWorkflow instance to trigger the GitHub Actions workflow.
-    """
-    try:
-        if "network-name" not in config:
-            raise KeyError("network-name")
-        if "version" not in config:
-            raise KeyError("version")
-            
-        workflow = UpgradeNodeManagerWorkflow(
-            owner=REPO_OWNER,
-            repo=REPO_NAME,
-            id=UPGRADE_NODE_MANAGER_WORKFLOW_ID,
-            personal_access_token=get_github_token(),
-            branch_name=branch_name,
-            network_name=config["network-name"],
-            version=config["version"],
-            custom_inventory=config.get("custom-inventory"),
-            node_type=NodeType(config["node-type"]) if "node-type" in config else None,
-            testnet_deploy_args=config.get("testnet-deploy-args")
-        )
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "version" not in config:
+        raise KeyError("version")
         
-        print(f"Dispatching the {workflow.name} workflow...")
-        workflow.run()
-        print("Workflow was dispatched with the following inputs:")
-        for key, value in workflow.get_workflow_inputs().items():
-            print(f"  {key}: {value}")
-    except KeyError as e:
-        print(f"Error: Missing required configuration field: {e}")
-        sys.exit(1)
-    except requests.exceptions.RequestException as e:
-        print(f"Error: Failed to trigger workflow: {e}")
-        sys.exit(1)
-    except ValueError as e:
-        print(f"Error: Invalid configuration value: {e}")
-        sys.exit(1)
+    workflow = UpgradeNodeManagerWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=UPGRADE_NODE_MANAGER_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        version=config["version"],
+        custom_inventory=config.get("custom-inventory"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        testnet_deploy_args=config.get("testnet-deploy-args")
+    )
+    _execute_workflow(workflow)
 
 def destroy_network(config: Dict, branch_name: str) -> None:
+    if "network-name" not in config:
+        raise KeyError("network-name")
+        
+    workflow = DestroyNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=DESTROY_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        testnet_deploy_args=config.get("testnet-deploy-args")
+    )
+    _execute_workflow(workflow)
+
+def _execute_workflow(workflow) -> None:
     """
-    Execute the destroy-network command using the provided configuration.
-    Creates and runs a DestroyNetworkWorkflow instance to trigger the GitHub Actions workflow.
+    Common function to execute a workflow and handle its output and errors.
     """
     try:
-        if "network-name" not in config:
-            raise KeyError("network-name")
-            
-        workflow = DestroyNetworkWorkflow(
-            owner=REPO_OWNER,
-            repo=REPO_NAME,
-            id=DESTROY_NETWORK_WORKFLOW_ID,
-            personal_access_token=get_github_token(),
-            branch_name=branch_name,
-            network_name=config["network-name"],
-            testnet_deploy_args=config.get("testnet-deploy-args")
-        )
-        
         print(f"Dispatching the {workflow.name} workflow...")
         workflow.run()
         print("Workflow was dispatched with the following inputs:")
@@ -170,9 +134,9 @@ def destroy_network(config: Dict, branch_name: str) -> None:
     except KeyError as e:
         print(f"Error: Missing required configuration field: {e}")
         sys.exit(1)
-    except requests.exceptions.RequestException as e:
-        print(f"Error: Failed to trigger workflow: {e}")
-        sys.exit(1)
     except ValueError as e:
         print(f"Error: Invalid configuration value: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
