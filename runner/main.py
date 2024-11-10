@@ -58,6 +58,13 @@ def main():
         help="Path to the inputs file"
     )
 
+    destroy_parser = subparsers.add_parser("destroy-network", help="Destroy a testnet network")
+    destroy_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -74,6 +81,9 @@ def main():
     elif args.command == "upgrade-node-man":
         config = load_yaml_config(args.path)
         cmd.upgrade_node_manager(config, args.branch)
+    elif args.command == "destroy-network":
+        config = load_yaml_config(args.path)
+        cmd.destroy_network(config, args.branch)
     else:
         parser.print_help()
         sys.exit(1)

@@ -1,8 +1,5 @@
 # required
 network-name: DEV-02
-version: 0.11.2
 # optional
-node-type: generic
-custom-inventory: ["DEV-02-node-1", "DEV-02-node-2"]
 # A --version argument can also be used to run testnet-deploy with a specific version
 testnet-deploy-args: --branch experimental-feature --repo-owner maidsafe

@@ -1,7 +1,10 @@
+# required
 network-name: DEV-02
+# optional
 ansible-forks: 1
 delay: 30
 custom-inventory: ["DEV-02-node-1", "DEV-02-node-2"]
 interval: 60000
 node-type: bootstrap
-testnet-deploy-args: --some-arg value
+# A --version argument can also be used to run testnet-deploy with a specific version
+testnet-deploy-args: --branch experimental-feature --repo-owner maidsafe
