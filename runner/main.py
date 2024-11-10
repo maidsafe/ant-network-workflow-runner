@@ -11,6 +11,7 @@ import requests
 import yaml
 
 from runner.workflows import NodeType, StopNodesWorkflowRun
+from runner.db import list_workflow_runs
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -74,6 +75,31 @@ def load_yaml_config(file_path: str) -> Dict:
         print(f"Error parsing YAML file: {e}")
         sys.exit(1)
 
+def list_runs() -> None:
+    """List all recorded workflow runs."""
+    try:
+        runs = list_workflow_runs()
+        if not runs:
+            print("No workflow runs found.")
+            return
+            
+        for run in runs:
+            workflow_name, branch_name, network_name, triggered_at, inputs = run
+            timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S UTC")
+            inputs_dict = json.loads(inputs)
+            
+            print(f"Workflow: {workflow_name}")
+            print(f"Branch: {branch_name}")
+            print(f"Network: {network_name}")
+            print(f"Triggered: {timestamp}")
+            print("Inputs:")
+            for key, value in inputs_dict.items():
+                print(f"  {key}: {value}")
+            print("-" * 50)
+    except sqlite3.Error as e:
+        print(f"Error: Failed to retrieve workflow runs: {e}")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(
         description="CLI tool to stop testnet nodes via GitHub Actions"
@@ -92,6 +118,8 @@ def main():
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
+    subparsers.add_parser("ls", help="List all workflow runs")
+    
     stop_parser = subparsers.add_parser("stop-nodes", help="Stop testnet nodes")
     stop_parser.add_argument(
         "--path",
@@ -100,14 +128,18 @@ def main():
     )
 
     args = parser.parse_args()
+    
     if args.debug:
         logging.basicConfig(
             level=logging.DEBUG,
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
+    
     if args.command == "stop-nodes":
         config = load_yaml_config(args.path)
         stop_nodes(config, args.branch)
+    elif args.command == "ls":
+        list_runs()
     else:
         parser.print_help()
         sys.exit(1)

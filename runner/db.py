@@ -29,6 +29,7 @@ def init_db() -> None:
         conn.close()
 
 def record_workflow_run(
+        workflow_name: str, branch_name: str, network_name: str, inputs: Dict[str, Any]) -> None:
     """
     Record a workflow run in the database.
     
@@ -56,5 +57,26 @@ def record_workflow_run(
             )
         )
         conn.commit()
+    finally:
+        conn.close()
+
+def list_workflow_runs() -> list:
+    """
+    Retrieve all workflow runs from the database.
+    
+    Returns:
+        List of tuples containing workflow run information
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT workflow_name, branch_name, network_name, triggered_at, inputs
+            FROM workflow_runs
+            ORDER BY triggered_at DESC
+        """)
+        return cursor.fetchall()
     finally:
         conn.close()
