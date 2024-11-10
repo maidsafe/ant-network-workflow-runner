@@ -2,7 +2,7 @@ import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 DB_PATH = Path.home() / ".local" / "share" / "safe" / "workflow_runs.db"
 
@@ -20,7 +20,8 @@ def init_db() -> None:
                 branch_name TEXT NOT NULL,
                 network_name TEXT NOT NULL,
                 triggered_at TIMESTAMP NOT NULL,
-                inputs JSON NOT NULL
+                inputs JSON NOT NULL,
+                run_id INTEGER NOT NULL
             )
         """)
         conn.commit()
@@ -28,7 +29,8 @@ def init_db() -> None:
         conn.close()
 
 def record_workflow_run(
-        workflow_name: str, branch_name: str, network_name: str, inputs: Dict[str, Any]) -> None:
+        workflow_name: str, branch_name: str, network_name: str, 
+        inputs: Dict[str, Any], run_id: int) -> None:
     """
     Record a workflow run in the database.
     
@@ -36,6 +38,7 @@ def record_workflow_run(
         workflow_name: Name of the workflow being executed
         network_name: Name of the network being operated on
         inputs: Dictionary containing all workflow inputs
+        run_id: ID of the workflow run
     """
     init_db()
     
@@ -44,15 +47,17 @@ def record_workflow_run(
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO workflow_runs (workflow_name, branch_name, network_name, triggered_at, inputs)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO workflow_runs 
+            (workflow_name, branch_name, network_name, triggered_at, inputs, run_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_name,
                 branch_name,
                 network_name,
                 datetime.utcnow().isoformat(),
-                json.dumps(inputs)
+                json.dumps(inputs),
+                run_id
             )
         )
         conn.commit()
@@ -65,6 +70,7 @@ def list_workflow_runs() -> list:
     
     Returns:
         List of tuples containing workflow run information
+        (workflow_name, branch_name, network_name, triggered_at, inputs, run_id)
     """
     init_db()
     
@@ -72,7 +78,7 @@ def list_workflow_runs() -> list:
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT workflow_name, branch_name, network_name, triggered_at, inputs
+            SELECT workflow_name, branch_name, network_name, triggered_at, inputs, run_id
             FROM workflow_runs
             ORDER BY triggered_at DESC
         """)

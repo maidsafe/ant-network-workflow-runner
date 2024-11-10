@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict
 
 import requests
+from rich import print as rprint
 
 from runner.db import list_workflow_runs
 from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerWorkflow, DestroyNetworkWorkflow
@@ -39,14 +40,15 @@ def list_runs(show_details: bool = False) -> None:
         
         if show_details:
             for run in runs:
-                workflow_name, branch_name, network_name, triggered_at, inputs = run
+                workflow_name, branch_name, network_name, triggered_at, inputs, run_id = run
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 inputs_dict = json.loads(inputs)
                 
-                print(f"Workflow: {workflow_name}")
+                rprint(f"Workflow: [green]{workflow_name}[/green]")
                 print(f"Triggered: {timestamp}")
                 print(f"Network: {network_name}")
                 print(f"Branch: {branch_name}")
+                print(f"URL: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
                 print("Inputs:")
                 for key, value in inputs_dict.items():
                     print(f"  {key}: {value}")
@@ -56,9 +58,9 @@ def list_runs(show_details: bool = False) -> None:
             print("-" * 60)
             
             for run in runs:
-                workflow_name, _, network_name, triggered_at, _ = run
+                workflow_name, _, network_name, triggered_at, _, _ = run
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                print(f"{timestamp:<20} {workflow_name:<25} {network_name:<15}")
+                rprint(f"{timestamp:<20} [green]{workflow_name:<25}[/green] {network_name:<15}")
         
         print("\nAll times are in UTC")
                 
@@ -66,9 +68,21 @@ def list_runs(show_details: bool = False) -> None:
         print(f"Error: Failed to retrieve workflow runs: {e}")
         sys.exit(1)
 
+def _print_workflow_banner() -> None:
+    """Print a banner for the workflow command."""
+    banner_text = "R U N  W O R K F L O W"
+    total_width = 61
+    padding = (total_width - len(banner_text)) // 2
+    
+    print("=" * total_width)
+    print(" " * padding + banner_text + " " * (total_width - padding - len(banner_text)))
+    print("=" * total_width + "\n")
+
 def stop_nodes(config: Dict, branch_name: str) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
+    
+    _print_workflow_banner()
         
     workflow = StopNodesWorkflowRun(
         owner=REPO_OWNER,
@@ -91,6 +105,8 @@ def upgrade_node_manager(config: Dict, branch_name: str) -> None:
         raise KeyError("network-name")
     if "version" not in config:
         raise KeyError("version")
+    
+    _print_workflow_banner()
         
     workflow = UpgradeNodeManagerWorkflow(
         owner=REPO_OWNER,
@@ -109,6 +125,8 @@ def upgrade_node_manager(config: Dict, branch_name: str) -> None:
 def destroy_network(config: Dict, branch_name: str) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
+    
+    _print_workflow_banner()
         
     workflow = DestroyNetworkWorkflow(
         owner=REPO_OWNER,
@@ -126,7 +144,7 @@ def _execute_workflow(workflow) -> None:
     Common function to execute a workflow and handle its output and errors.
     """
     try:
-        print(f"Dispatching the {workflow.name} workflow...")
+        rprint(f"Dispatching the [green]{workflow.name}[/green] workflow...")
         workflow.run()
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():

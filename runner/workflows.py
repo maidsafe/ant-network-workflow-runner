@@ -1,8 +1,10 @@
 import logging
+import time
 from enum import Enum
 from typing import List, Optional, Dict, Any
 
 import requests
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from runner.db import record_workflow_run
 
@@ -44,17 +46,57 @@ class WorkflowRun:
         
         return requests.post(url, headers=headers, json=data)
 
+    def _get_workflow_run_id(self) -> int:
+        """Get the ID of the most recently triggered workflow run."""
+        url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/workflows/{self.id}/runs"
+        
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self.personal_access_token}",
+        }
+        
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        workflow_runs = response.json().get("workflow_runs", [])
+        
+        for run in workflow_runs:
+            if run["status"] != "completed":
+                return run["id"]
+        
+        raise RuntimeError("Could not find workflow run ID for recently triggered workflow")
+
+    def _display_spinner(self, seconds: int) -> None:
+        """Display a spinner in the terminal for the specified number of seconds."""
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Waiting for workflow run to be available...", total=None)
+            time.sleep(seconds)
+
     def run(self) -> None:
         """Trigger the workflow run and record it in the database."""
         response = self._trigger_workflow()
         response.raise_for_status()
         
+        self._display_spinner(2)
+        
+        run_id = self._get_workflow_run_id()
+        
         record_workflow_run(
             workflow_name=self.name,
             branch_name=self.branch_name,
             network_name=self.network_name,
-            inputs=self.get_workflow_inputs()
+            inputs=self.get_workflow_inputs(),
+            run_id=run_id
         )
+        
+        print()
+        print("Workflow run:")
+        print(f"https://github.com/{self.owner}/{self.repo}/actions/runs/{run_id}")
+        print()
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get workflow-specific inputs. Should be overridden by subclasses."""
