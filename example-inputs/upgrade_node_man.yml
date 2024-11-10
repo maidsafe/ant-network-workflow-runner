@@ -1,0 +1,5 @@
+network-name: DEV-02
+version: 0.11.2
+node-type: generic
+custom-inventory: ["DEV-02-node-1", "DEV-02-node-2"]
+testnet-deploy-args: --some-arg value

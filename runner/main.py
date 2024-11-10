@@ -10,12 +10,13 @@ from typing import Dict
 import requests
 import yaml
 
-from runner.workflows import NodeType, StopNodesWorkflowRun
+from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerWorkflow
 from runner.db import list_workflow_runs
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 STOP_NODES_WORKFLOW_ID = 126356854
+UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 
 def get_github_token() -> str:
     """Get GitHub token from environment variable."""
@@ -44,6 +45,45 @@ def stop_nodes(config: Dict, branch_name: str) -> None:
             custom_inventory=config.get("custom-inventory"),
             delay=config.get("delay"),
             interval=config.get("interval"),
+            node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+            testnet_deploy_args=config.get("testnet-deploy-args")
+        )
+        
+        print(f"Dispatching the {workflow.name} workflow...")
+        workflow.run()
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except KeyError as e:
+        print(f"Error: Missing required configuration field: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: Invalid configuration value: {e}")
+        sys.exit(1)
+
+def upgrade_node_manager(config: Dict, branch_name: str) -> None:
+    """
+    Execute the upgrade-node-man command using the provided configuration.
+    Creates and runs an UpgradeNodeManagerWorkflow instance to trigger the GitHub Actions workflow.
+    """
+    try:
+        if "network-name" not in config:
+            raise KeyError("network-name")
+        if "version" not in config:
+            raise KeyError("version")
+            
+        workflow = UpgradeNodeManagerWorkflow(
+            owner=REPO_OWNER,
+            repo=REPO_NAME,
+            id=UPGRADE_NODE_MANAGER_WORKFLOW_ID,
+            personal_access_token=get_github_token(),
+            branch_name=branch_name,
+            network_name=config["network-name"],
+            version=config["version"],
+            custom_inventory=config.get("custom-inventory"),
             node_type=NodeType(config["node-type"]) if "node-type" in config else None,
             testnet_deploy_args=config.get("testnet-deploy-args")
         )
@@ -127,6 +167,13 @@ def main():
         help="Path to the inputs file"
     )
 
+    upgrade_parser = subparsers.add_parser("upgrade-node-man", help="Upgrade node manager version")
+    upgrade_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -140,6 +187,9 @@ def main():
         stop_nodes(config, args.branch)
     elif args.command == "ls":
         list_runs()
+    elif args.command == "upgrade-node-man":
+        config = load_yaml_config(args.path)
+        upgrade_node_manager(config, args.branch)
     else:
         parser.print_help()
         sys.exit(1)
