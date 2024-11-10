@@ -1,11 +1,11 @@
 import argparse
-import os
-import sys
-from typing import Dict
 import json
-from datetime import datetime
-import sqlite3
 import logging
+import os
+import sqlite3
+import sys
+from datetime import datetime
+from typing import Dict
 
 import requests
 import yaml

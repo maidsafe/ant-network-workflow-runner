@@ -3,7 +3,6 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-import os
 
 DB_PATH = Path.home() / ".local" / "share" / "safe" / "workflow_runs.db"
 

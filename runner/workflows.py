@@ -1,8 +1,10 @@
+import logging
 from enum import Enum
 from typing import List, Optional, Dict, Any
+
 import requests
+
 from runner.db import record_workflow_run
-import logging
 
 class NodeType(Enum):
     BOOTSTRAP = "bootstrap"
