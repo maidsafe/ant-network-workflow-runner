@@ -80,6 +80,11 @@ def main():
     )
     
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging"
+    )
+    parser.add_argument(
         "--branch",
         default="main",
         help="GitHub branch name (default: main)"
@@ -95,6 +100,11 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.debug:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
     if args.command == "stop-nodes":
         config = load_yaml_config(args.path)
         stop_nodes(config, args.branch)

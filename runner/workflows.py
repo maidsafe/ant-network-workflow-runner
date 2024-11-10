@@ -2,6 +2,7 @@ from enum import Enum
 from typing import List, Optional, Dict, Any
 import requests
 from runner.db import record_workflow_run
+import logging
 
 class NodeType(Enum):
     BOOTSTRAP = "bootstrap"
@@ -36,8 +37,8 @@ class WorkflowRun:
             "inputs": self.get_workflow_inputs()
         }
 
-        print("Request URL:", url)
-        print("Request payload:", data)
+        logging.debug("Request URL: %s", url)
+        logging.debug("Request payload: %s", data)
         
         return requests.post(url, headers=headers, json=data)
 
