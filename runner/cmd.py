@@ -9,7 +9,7 @@ import requests
 from rich import print as rprint
 
 from runner.db import list_workflow_runs
-from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerWorkflow, DestroyNetworkWorkflow
+from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerWorkflow, DestroyNetworkWorkflow, StopTelegrafWorkflow
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -17,6 +17,7 @@ REPO_NAME = "sn-testnet-workflows"
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 STOP_NODES_WORKFLOW_ID = 126356854
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
+STOP_TELEGRAF_WORKFLOW_ID = 109718824
 
 def get_github_token() -> str:
     token = os.getenv("WORKFLOW_RUNNER_PAT")
@@ -135,6 +136,27 @@ def destroy_network(config: Dict, branch_name: str) -> None:
         personal_access_token=get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
+        testnet_deploy_args=config.get("testnet-deploy-args")
+    )
+    _execute_workflow(workflow)
+
+def stop_telegraf(config: Dict, branch_name: str) -> None:
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+        
+    workflow = StopTelegrafWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=STOP_TELEGRAF_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        delay=config.get("delay"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=config.get("testnet-deploy-args")
     )
     _execute_workflow(workflow)

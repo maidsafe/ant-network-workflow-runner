@@ -65,6 +65,13 @@ def main():
         help="Path to the inputs file"
     )
 
+    stop_telegraf_parser = subparsers.add_parser("stop-telegraf", help="Stop telegraf on testnet nodes")
+    stop_telegraf_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -84,6 +91,9 @@ def main():
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
         cmd.destroy_network(config, args.branch)
+    elif args.command == "stop-telegraf":
+        config = load_yaml_config(args.path)
+        cmd.stop_telegraf(config, args.branch)
     else:
         parser.print_help()
         sys.exit(1)
