@@ -6,6 +6,7 @@ from typing import Dict
 import yaml
 
 from runner import cmd
+from runner.workflows import confirm_workflow_dispatch
 
 def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
@@ -50,12 +51,22 @@ def main():
         required=True,
         help="Path to the inputs file"
     )
+    stop_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
 
     upgrade_parser = subparsers.add_parser("upgrade-node-man", help="Upgrade node manager version")
     upgrade_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
+    )
+    upgrade_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
     )
 
     destroy_parser = subparsers.add_parser("destroy-network", help="Destroy a testnet network")
@@ -64,12 +75,22 @@ def main():
         required=True,
         help="Path to the inputs file"
     )
+    destroy_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
 
     stop_telegraf_parser = subparsers.add_parser("stop-telegraf", help="Stop telegraf on testnet nodes")
     stop_telegraf_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
+    )
+    stop_telegraf_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
     )
 
     args = parser.parse_args()
@@ -82,18 +103,18 @@ def main():
     
     if args.command == "stop-nodes":
         config = load_yaml_config(args.path)
-        cmd.stop_nodes(config, args.branch)
+        cmd.stop_nodes(config, args.branch, args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
     elif args.command == "upgrade-node-man":
         config = load_yaml_config(args.path)
-        cmd.upgrade_node_manager(config, args.branch)
+        cmd.upgrade_node_manager(config, args.branch, args.force)
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
-        cmd.destroy_network(config, args.branch)
+        cmd.destroy_network(config, args.branch, args.force)
     elif args.command == "stop-telegraf":
         config = load_yaml_config(args.path)
-        cmd.stop_telegraf(config, args.branch)
+        cmd.stop_telegraf(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

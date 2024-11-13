@@ -79,7 +79,7 @@ def _print_workflow_banner() -> None:
     print(" " * padding + banner_text + " " * (total_width - padding - len(banner_text)))
     print("=" * total_width + "\n")
 
-def stop_nodes(config: Dict, branch_name: str) -> None:
+def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -99,9 +99,9 @@ def stop_nodes(config: Dict, branch_name: str) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=config.get("testnet-deploy-args")
     )
-    _execute_workflow(workflow)
+    _execute_workflow(workflow, force)
 
-def upgrade_node_manager(config: Dict, branch_name: str) -> None:
+def upgrade_node_manager(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     if "version" not in config:
@@ -121,9 +121,9 @@ def upgrade_node_manager(config: Dict, branch_name: str) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=config.get("testnet-deploy-args")
     )
-    _execute_workflow(workflow)
+    _execute_workflow(workflow, force)
 
-def destroy_network(config: Dict, branch_name: str) -> None:
+def destroy_network(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -138,9 +138,9 @@ def destroy_network(config: Dict, branch_name: str) -> None:
         network_name=config["network-name"],
         testnet_deploy_args=config.get("testnet-deploy-args")
     )
-    _execute_workflow(workflow)
+    _execute_workflow(workflow, force)
 
-def stop_telegraf(config: Dict, branch_name: str) -> None:
+def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -159,15 +159,18 @@ def stop_telegraf(config: Dict, branch_name: str) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=config.get("testnet-deploy-args")
     )
-    _execute_workflow(workflow)
+    _execute_workflow(workflow, force)
 
-def _execute_workflow(workflow) -> None:
+def _execute_workflow(workflow, force: bool = False) -> None:
     """
     Common function to execute a workflow and handle its output and errors.
+    
+    Args:
+        workflow: The workflow instance to execute
+        force: If True, skip confirmation prompt
     """
     try:
-        rprint(f"Dispatching the [green]{workflow.name}[/green] workflow...")
-        workflow.run()
+        workflow.run(force=force)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")

@@ -1,9 +1,12 @@
+import json
 import logging
+import sys
 import time
 from enum import Enum
 from typing import List, Optional, Dict, Any
 
 import requests
+from rich import print as rprint
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from runner.db import record_workflow_run
@@ -16,6 +19,24 @@ class NodeType(Enum):
     
     def __str__(self) -> str:
         return self.value
+
+def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> bool:
+    """
+    Display workflow information and prompt for confirmation.
+    
+    Args:
+        workflow_name: Name of the workflow to be dispatched
+        inputs: Dictionary of workflow inputs
+    
+    Returns:
+        bool: True if user confirms, False otherwise
+    """
+    rprint(f"Dispatching the [green]{workflow_name}[/green] workflow with the following inputs:")
+    print(json.dumps(inputs, indent=2))
+    print("\nProceed? [y/N]: ", end="")
+    
+    response = input().lower()
+    return response in ['y', 'yes']
 
 class WorkflowRun:
     def __init__(self, owner: str, repo: str, id: int, 
@@ -76,8 +97,21 @@ class WorkflowRun:
             task = progress.add_task("Waiting for workflow run to be available...", total=None)
             time.sleep(seconds)
 
-    def run(self) -> None:
-        """Trigger the workflow run and record it in the database."""
+    def run(self, force: bool = False) -> None:
+        """
+        Trigger the workflow run and record it in the database.
+        
+        Args:
+            force: If True, skip confirmation prompt
+        """
+        inputs = self.get_workflow_inputs()
+        
+        if not force:
+            if not confirm_workflow_dispatch(self.name, inputs):
+                sys.exit(0)
+        else:
+            rprint(f"Dispatching the [green]{self.name}[/green] workflow...")
+        
         response = self._trigger_workflow()
         response.raise_for_status()
         
@@ -89,7 +123,7 @@ class WorkflowRun:
             workflow_name=self.name,
             branch_name=self.branch_name,
             network_name=self.network_name,
-            inputs=self.get_workflow_inputs(),
+            inputs=inputs,
             run_id=run_id
         )
         
@@ -106,8 +140,10 @@ class StopNodesWorkflowRun(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int, 
                  personal_access_token: str, branch_name: str,
                  network_name: str, ansible_forks: Optional[int] = None, 
-                 custom_inventory: Optional[List[str]] = None, delay: Optional[int] = None, 
-                 interval: Optional[int] = None, node_type: Optional[NodeType] = None,
+                 custom_inventory: Optional[List[str]] = None,
+                 delay: Optional[int] = None, 
+                 interval: Optional[int] = None,
+                 node_type: Optional[NodeType] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Nodes")
         self.network_name = network_name
@@ -192,7 +228,8 @@ class StopTelegrafWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int, 
                  personal_access_token: str, branch_name: str,
                  network_name: str, ansible_forks: Optional[int] = None, 
-                 custom_inventory: Optional[List[str]] = None, delay: Optional[int] = None,
+                 custom_inventory: Optional[List[str]] = None,
+                 delay: Optional[int] = None,
                  node_type: Optional[NodeType] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Telegraf")
