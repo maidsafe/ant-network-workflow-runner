@@ -1,21 +1,31 @@
-# Inputs for running the `Upgrade Node Manager` workflow.
-# This workflow uses the `testnet-deploy upgrade-node-manager` command to upgrade the node manager
-# to a specified version.
+# Inputs for running the `Upgrade Network` workflow.
+# This workflow uses the `testnet-deploy upgrade` command to upgrade nodes to a specified version.
 
 # Required
 network-name: DEV-02
-# The version of `safenode-manager` to upgrade to.
-version: 0.11.2
+# The version of `safenode` to upgrade to.
+version: 0.112.3
 
 # Optional
 # Remove any you don't want to use.
 
+# Forks can be set to 1 to force Ansible to run against one machine at a time. This allows a
+# controlled stop against several machines. Otherwise, forks will default to 50.
+ansible-forks: 1
+# Applies a delay before issuing the upgrade command. This is useful if one node is running on each
+# machine. Without it, Ansible would just upgrade the node and immediately move to the next machine
+# Units are in seconds.
+delay: 30
+# Applies an interval between each node being upgraded. To slowly upgrade nodes over several machines,
+# set `ansible-forks` to 1 and then apply a large value here, like one or two minutes. Units are
+# in milliseconds.
+interval: 60000
 # Run the command only against certain types of nodes. Valid values are `boostrap`,`generic`,
 # `genesis`, or `private`.
 # The `custom-inventory` input takes precedence over this input.
 # If you want to run against all nodes, remove this input.
 node-type: generic
-# Run only against certain nodes within the inventory.
+# Run the upgrade only against certain nodes in the inventory.
 # If this input is used, the `node-type` input will be ignored.
 # If you want to run against all nodes, remove this input.
 custom-inventory:

@@ -9,15 +9,23 @@ import requests
 from rich import print as rprint
 
 from runner.db import list_workflow_runs
-from runner.workflows import NodeType, StopNodesWorkflowRun, UpgradeNodeManagerWorkflow, DestroyNetworkWorkflow, StopTelegrafWorkflow
+from runner.workflows import (
+    NodeType,
+    StopNodesWorkflowRun,
+    UpgradeNodeManagerWorkflow,
+    DestroyNetworkWorkflow,
+    StopTelegrafWorkflow,
+    UpgradeNetworkWorkflow,
+)
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 STOP_NODES_WORKFLOW_ID = 126356854
-UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
+UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
+UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 
 def get_github_token() -> str:
     token = os.getenv("WORKFLOW_RUNNER_PAT")
@@ -154,6 +162,34 @@ def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
         ansible_forks=config.get("ansible-forks"),
         custom_inventory=config.get("custom-inventory"),
         delay=config.get("delay"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def upgrade_network(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Trigger the upgrade network workflow."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "version" not in config:
+        raise KeyError("version")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = UpgradeNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=UPGRADE_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        version=config["version"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        delay=config.get("delay"),
+        interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )

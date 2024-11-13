@@ -93,6 +93,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    upgrade_network_parser = subparsers.add_parser("upgrade-network", help="Upgrade network nodes")
+    upgrade_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -115,6 +127,9 @@ def main():
     elif args.command == "stop-telegraf":
         config = load_yaml_config(args.path)
         cmd.stop_telegraf(config, args.branch, args.force)
+    elif args.command == "upgrade-network":
+        config = load_yaml_config(args.path)
+        cmd.upgrade_network(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)
