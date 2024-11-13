@@ -170,7 +170,7 @@ class StopNodesWorkflowRun(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
-        if self.testnet_deploy_args is not None:
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
@@ -200,7 +200,7 @@ class UpgradeNodeManagerWorkflow(WorkflowRun):
             inputs["custom-inventory"] = ",".join(self.custom_inventory)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
-        if self.testnet_deploy_args is not None:
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
@@ -219,7 +219,7 @@ class DestroyNetworkWorkflow(WorkflowRun):
             "network-name": self.network_name,
         }
         
-        if self.testnet_deploy_args is not None:
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
@@ -254,7 +254,7 @@ class StopTelegrafWorkflow(WorkflowRun):
             inputs["delay"] = str(self.delay)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
-        if self.testnet_deploy_args is not None:
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
@@ -296,7 +296,7 @@ class UpgradeNetworkWorkflow(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
-        if self.testnet_deploy_args is not None:
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
