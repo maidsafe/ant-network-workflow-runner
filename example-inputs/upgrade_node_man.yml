@@ -1,8 +1,32 @@
-# required
+# Inputs for running the `Upgrade Node Manager` workflow.
+# This workflow uses the `testnet-deploy upgrade-node-manager` command to upgrade the node manager
+# to a specified version.
+
+# Required
 network-name: DEV-02
+# The version of the node manager to upgrade to.
 version: 0.11.2
-# optional
+
+# Optional
+# Remove any you don't want to use.
+
+# Run the command only against certain types of nodes. Valid values are `boostrap`,`generic`,
+# `genesis`, or `private`.
+# The `custom-inventory` input takes precedence over this input.
+# If you want to run against all nodes, remove this input.
 node-type: generic
-custom-inventory: ["DEV-02-node-1", "DEV-02-node-2"]
-# A --version argument can also be used to run testnet-deploy with a specific version
-testnet-deploy-args: --branch experimental-feature --repo-owner maidsafe
+# Run only against certain nodes within the inventory.
+# If this input is used, the `node-type` input will be ignored.
+# If you want to run against all nodes, remove this input.
+custom-inventory:
+  - DEV-02-node-1
+  - DEV-02-node-2
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0

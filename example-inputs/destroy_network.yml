@@ -1,5 +1,19 @@
-# required
+# Inputs for running the `Destroy Network` workflow.
+# This workflow uses the `testnet-deploy clean` command completely remove a network.
+
+# Required
 network-name: DEV-02
-# optional
-# A --version argument can also be used to run testnet-deploy with a specific version
-testnet-deploy-args: --branch experimental-feature --repo-owner maidsafe
+
+# Optional
+# Remove any you don't want to use.
+
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0

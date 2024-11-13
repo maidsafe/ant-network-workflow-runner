@@ -69,21 +69,13 @@ def list_runs(show_details: bool = False) -> None:
         print(f"Error: Failed to retrieve workflow runs: {e}")
         sys.exit(1)
 
-def _print_workflow_banner() -> None:
-    """Print a banner for the workflow command."""
-    banner_text = "R U N  W O R K F L O W"
-    total_width = 61
-    padding = (total_width - len(banner_text)) // 2
-    
-    print("=" * total_width)
-    print(" " * padding + banner_text + " " * (total_width - padding - len(banner_text)))
-    print("=" * total_width + "\n")
-
 def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
     _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
         
     workflow = StopNodesWorkflowRun(
         owner=REPO_OWNER,
@@ -97,7 +89,7 @@ def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
         delay=config.get("delay"),
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
-        testnet_deploy_args=config.get("testnet-deploy-args")
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
@@ -108,6 +100,8 @@ def upgrade_node_manager(config: Dict, branch_name: str, force: bool = False) ->
         raise KeyError("version")
     
     _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
         
     workflow = UpgradeNodeManagerWorkflow(
         owner=REPO_OWNER,
@@ -119,7 +113,7 @@ def upgrade_node_manager(config: Dict, branch_name: str, force: bool = False) ->
         version=config["version"],
         custom_inventory=config.get("custom-inventory"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
-        testnet_deploy_args=config.get("testnet-deploy-args")
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
@@ -128,6 +122,8 @@ def destroy_network(config: Dict, branch_name: str, force: bool = False) -> None
         raise KeyError("network-name")
     
     _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
         
     workflow = DestroyNetworkWorkflow(
         owner=REPO_OWNER,
@@ -136,7 +132,7 @@ def destroy_network(config: Dict, branch_name: str, force: bool = False) -> None
         personal_access_token=get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
-        testnet_deploy_args=config.get("testnet-deploy-args")
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
@@ -145,6 +141,8 @@ def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
         raise KeyError("network-name")
     
     _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
         
     workflow = StopTelegrafWorkflow(
         owner=REPO_OWNER,
@@ -157,7 +155,7 @@ def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
         custom_inventory=config.get("custom-inventory"),
         delay=config.get("delay"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
-        testnet_deploy_args=config.get("testnet-deploy-args")
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
@@ -183,3 +181,43 @@ def _execute_workflow(workflow, force: bool = False) -> None:
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
+
+def _print_workflow_banner() -> None:
+    """Print a banner for the workflow command."""
+    banner_text = "R U N  W O R K F L O W"
+    total_width = 61
+    padding = (total_width - len(banner_text)) // 2
+    
+    print("=" * total_width)
+    print(" " * padding + banner_text + " " * (total_width - padding - len(banner_text)))
+    print("=" * total_width + "\n")
+
+def _build_testnet_deploy_args(config: Dict) -> str:
+    """
+    Build testnet-deploy-args string from config inputs.
+    
+    Args:
+        config: Dictionary containing workflow configuration
+        
+    Returns:
+        str: The constructed testnet-deploy-args string
+        
+    Raises:
+        ValueError: If invalid combination of testnet-deploy inputs are provided
+    """
+    version = config.get("testnet-deploy-version")
+    branch = config.get("testnet-deploy-branch")
+    repo_owner = config.get("testnet-deploy-repo-owner")
+    
+    if version and (branch or repo_owner):
+        raise ValueError("Cannot specify both testnet-deploy-version and testnet-deploy-branch/repo-owner")
+        
+    if bool(branch) != bool(repo_owner):
+        raise ValueError("testnet-deploy-branch and testnet-deploy-repo-owner must be used together")
+        
+    if version:
+        return f"--version {version}"
+    elif branch and repo_owner:
+        return f"--branch {branch} --repo-owner {repo_owner}"
+    
+    return ""
