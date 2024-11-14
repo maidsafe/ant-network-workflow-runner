@@ -129,6 +129,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    upgrade_uploaders_parser = subparsers.add_parser("upgrade-uploaders", help="Upgrade the uploaders to the specified version of autonomi")
+    upgrade_uploaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_uploaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -160,6 +172,9 @@ def main():
     elif args.command == "update-peer":
         config = load_yaml_config(args.path)
         cmd.update_peer(config, args.branch, args.force)
+    elif args.command == "upgrade-uploaders":
+        config = load_yaml_config(args.path)
+        cmd.upgrade_uploaders(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

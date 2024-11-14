@@ -18,6 +18,7 @@ from runner.workflows import (
     StopTelegrafWorkflow,
     UpgradeNetworkWorkflow,
     UpdatePeerWorkflow,
+    UpgradeUploadersWorkflow,
 )
 
 REPO_OWNER = "maidsafe"
@@ -30,6 +31,7 @@ STOP_TELEGRAF_WORKFLOW_ID = 109718824
 UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
+UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
 
 def get_github_token() -> str:
     token = os.getenv("WORKFLOW_RUNNER_PAT")
@@ -241,6 +243,29 @@ def update_peer(config: Dict, branch_name: str, force: bool = False) -> None:
         peer=config["peer"],
         custom_inventory=config.get("custom-inventory"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None
+    )
+    _execute_workflow(workflow, force)
+
+def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Trigger the upgrade uploaders workflow."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "version" not in config:
+        raise KeyError("version")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = UpgradeUploadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=UPGRADE_UPLOADERS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        version=config["version"],
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
