@@ -105,6 +105,30 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    start_telegraf_parser = subparsers.add_parser("start-telegraf", help="Start telegraf on testnet nodes")
+    start_telegraf_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_telegraf_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    update_peer_parser = subparsers.add_parser("update-peer", help="Update peer multiaddr on testnet nodes")
+    update_peer_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    update_peer_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -130,6 +154,12 @@ def main():
     elif args.command == "upgrade-network":
         config = load_yaml_config(args.path)
         cmd.upgrade_network(config, args.branch, args.force)
+    elif args.command == "start-telegraf":
+        config = load_yaml_config(args.path)
+        cmd.start_telegraf(config, args.branch, args.force)
+    elif args.command == "update-peer":
+        config = load_yaml_config(args.path)
+        cmd.update_peer(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

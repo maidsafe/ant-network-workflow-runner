@@ -1,0 +1,23 @@
+# Inputs for running the `Update Peer` workflow.
+# This workflow updates the peer multiaddr for specified nodes.
+
+# Required
+network-name: DEV-02
+# The new peer multiaddr to set
+peer: /ip4/127.0.0.1/tcp/8080
+
+# Optional
+# Remove any you don't want to use.
+
+# Run the command only against certain types of nodes. Valid values are `bootstrap`,
+# `generic`, `genesis`, or `private`.
+# The `custom-inventory` input takes precedence over this input.
+# If you want to run against all nodes, remove this input.
+node-type: generic
+
+# Run only against certain nodes within the inventory.
+# If this input is used, the `node-type` input will be ignored.
+# If you want to run against all nodes, remove this input.
+custom-inventory:
+  - DEV-02-node-1
+  - DEV-02-node-2 

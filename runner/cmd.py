@@ -14,16 +14,20 @@ from runner.workflows import (
     StopNodesWorkflowRun,
     UpgradeNodeManagerWorkflow,
     DestroyNetworkWorkflow,
+    StartTelegrafWorkflow,
     StopTelegrafWorkflow,
     UpgradeNetworkWorkflow,
+    UpdatePeerWorkflow,
 )
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
+START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
+UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 
@@ -192,6 +196,51 @@ def upgrade_network(config: Dict, branch_name: str, force: bool = False) -> None
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def start_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartTelegrafWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_TELEGRAF_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        delay=config.get("delay"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def update_peer(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Trigger the update peer workflow."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "peer" not in config:
+        raise KeyError("peer")
+    
+    _print_workflow_banner()
+        
+    workflow = UpdatePeerWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=UPDATE_PEER_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        peer=config["peer"],
+        custom_inventory=config.get("custom-inventory"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None
     )
     _execute_workflow(workflow, force)
 
