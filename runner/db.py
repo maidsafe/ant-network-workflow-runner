@@ -173,3 +173,28 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         conn.commit()
     finally:
         conn.close()
+
+def list_deployments() -> list:
+    """
+    Retrieve all deployments from the database, joined with their workflow runs.
+    
+    Returns:
+        List of tuples containing deployment information joined with workflow run data
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                d.*,
+                w.triggered_at,
+                w.run_id
+            FROM deployments d
+            JOIN workflow_runs w ON d.workflow_run_id = w.run_id
+            ORDER BY w.triggered_at DESC
+        """)
+        return cursor.fetchall()
+    finally:
+        conn.close()

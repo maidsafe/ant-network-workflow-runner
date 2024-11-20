@@ -157,6 +157,16 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    deployment_ls_parser = subparsers.add_parser("deployment", help="Deployment related commands")
+    deployment_subparsers = deployment_ls_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
+    
+    deployment_ls_parser = deployment_subparsers.add_parser("ls", help="List all deployments")
+    deployment_ls_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show detailed information for each deployment"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -194,6 +204,12 @@ def main():
     elif args.command == "launch-network":
         config = load_yaml_config(args.path)
         cmd.launch_network(config, args.branch, args.force)
+    elif args.command == "deployment":
+        if args.deployment_command == "ls":
+            cmd.list_deployments(show_details=args.details)
+        else:
+            deployment_ls_parser.print_help()
+            sys.exit(1)
     else:
         parser.print_help()
         sys.exit(1)

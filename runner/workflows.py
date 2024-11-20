@@ -36,7 +36,7 @@ def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> boo
     print("\nProceed? [y/N]: ", end="")
     
     response = input().lower()
-    return response in ['y', 'yes']
+    return response in ["y", "yes"]
 
 class WorkflowRun:
     def __init__(self, owner: str, repo: str, id: int, 

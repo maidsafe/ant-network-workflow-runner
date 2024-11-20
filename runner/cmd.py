@@ -8,7 +8,7 @@ from typing import Dict
 import requests
 from rich import print as rprint
 
-from runner.db import list_workflow_runs, record_deployment
+from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
 from runner.workflows import (
     NodeType,
     StopNodesWorkflowRun,
@@ -37,45 +37,45 @@ UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
-        "bootstrap_node_count": 3,
-        "generic_node_count": 7,
-        "private_node_count": 1,
-        "downloader_count": 2,
+        "bootstrap_node_count": 1,
+        "generic_node_count": 25,
+        "private_node_count": 25,
+        "downloader_count": 0,
         "uploader_count": 1,
-        "bootstrap_vm_count": 3,
-        "generic_vm_count": 7,
+        "bootstrap_vm_count": 1,
+        "generic_vm_count": 10,
         "private_vm_count": 1,
         "uploader_vm_count": 1,
         "bootstrap_node_vm_size": "s-2vcpu-4gb",
-        "generic_node_vm_size": "s-2vcpu-4gb",
-        "private_node_vm_size": "s-2vcpu-4gb",
+        "generic_node_vm_size": "s-4vcpu-8gb",
+        "private_node_vm_size": "s-4vcpu-8gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "staging": {
-        "bootstrap_node_count": 5,
-        "generic_node_count": 15,
-        "private_node_count": 2,
-        "downloader_count": 3,
-        "uploader_count": 2,
-        "bootstrap_vm_count": 5,
-        "generic_vm_count": 15,
+        "bootstrap_node_count": 1,
+        "generic_node_count": 25,
+        "private_node_count": 25,
+        "downloader_count": 0,
+        "uploader_count": 1,
+        "bootstrap_vm_count": 2,
+        "generic_vm_count": 39,
         "private_vm_count": 1,
         "uploader_vm_count": 2,
-        "bootstrap_node_vm_size": "s-4vcpu-8gb",
+        "bootstrap_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
         "private_node_vm_size": "s-4vcpu-8gb",
-        "uploader_vm_size": "s-4vcpu-8gb"
+        "uploader_vm_size": "s-2vcpu-4gb"
     },
     "production": {
-        "bootstrap_node_count": 7,
-        "generic_node_count": 30,
-        "private_node_count": 3,
-        "downloader_count": 5,
-        "uploader_count": 3,
-        "bootstrap_vm_count": 7,
-        "generic_vm_count": 30,
-        "private_vm_count": 2,
-        "uploader_vm_count": 3,
+        "bootstrap_node_count": 1,
+        "generic_node_count": 25,
+        "private_node_count": 25,
+        "downloader_count": 0,
+        "uploader_count": 1,
+        "bootstrap_vm_count": 2,
+        "generic_vm_count": 39,
+        "private_vm_count": 1,
+        "uploader_vm_count": 2,
         "bootstrap_node_vm_size": "s-8vcpu-16gb",
         "generic_node_vm_size": "s-8vcpu-16gb",
         "private_node_vm_size": "s-8vcpu-16gb",
@@ -410,3 +410,79 @@ def _build_testnet_deploy_args(config: Dict) -> str:
         return f"--branch {branch} --repo-owner {repo_owner}"
     
     return ""
+
+def list_deployments(show_details: bool = False) -> None:
+    """List all recorded deployments."""
+    try:
+        deployments = db_list_deployments()
+        if not deployments:
+            print("No deployments found.")
+            return
+        
+        print("=" * 61)
+        print(" " * 18 + "D E P L O Y M E N T S" + " " * 18)
+        print("=" * 61)
+        
+        if show_details:
+            for deployment in deployments:
+                (_, _, name, autonomi_version, safenode_version, safenode_manager_version,
+                 branch, repo_owner, chunk_size, safenode_features, bootstrap_node_count,
+                 generic_node_count, private_node_count, _, uploader_count,
+                 bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
+                 bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
+                 uploader_vm_size, evm_network_type, _, triggered_at, run_id) = deployment
+                
+                print("-" * 61)
+                
+                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
+                rprint(f"Name: [green]{name}[/green]")
+                print(f"Deployed: {timestamp}")
+                print(f"EVM Type: {evm_network_type}")
+                print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
+
+                if autonomi_version:
+                    print(f"===============")
+                    print(f"Version Details")
+                    print(f"===============")
+                    print(f"Autonomi: {autonomi_version}")
+                    print(f"Safenode: {safenode_version}")
+                    print(f"Node Manager: {safenode_manager_version}")
+
+                if branch:
+                    print(f"=====================")
+                    print(f"Custom Branch Details")
+                    print(f"=====================")
+                    print(f"Branch: {branch}")
+                    print(f"Repo Owner: {repo_owner}")
+                    print(f"Link: https://github.com/{repo_owner}/safe_network/tree/{branch}")
+                    if chunk_size:
+                        print(f"Chunk Size: {chunk_size}")
+                    if safenode_features:
+                        print(f"Safenode Features: {safenode_features}")
+
+                print(f"==================")
+                print(f"Node Configuration")
+                print(f"==================")
+                print(f"Bootstrap nodes: {bootstrap_vm_count}x{bootstrap_node_count} [{bootstrap_node_vm_size}]")
+                print(f"Generic nodes: {generic_vm_count}x{generic_node_count} [{generic_node_vm_size}]")
+                print(f"Private nodes: {private_vm_count}x{private_node_count} [{private_node_vm_size}]")
+                print(f"Uploaders: {uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
+                print("-" * 61)
+        else:
+            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'EVM Type':<15}")
+            print("-" * 66)
+            
+            for deployment in deployments:
+                id = deployment[0]
+                name = deployment[2]
+                evm_network_type = deployment[23]
+                triggered_at = deployment[-2]
+                run_id = deployment[-1]
+                
+                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
+                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {evm_network_type:<15}")
+                print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
+                
+    except sqlite3.Error as e:
+        print(f"Error: Failed to retrieve deployments: {e}")
+        sys.exit(1)
