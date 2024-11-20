@@ -52,6 +52,8 @@ def init_db() -> None:
                 uploader_vm_size TEXT NOT NULL,
                 evm_network_type TEXT NOT NULL,
                 rewards_address TEXT NOT NULL,
+                max_log_files INTEGER,
+                max_archived_log_files INTEGER,
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
             )
         """)
@@ -139,35 +141,37 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 bootstrap_vm_count, generic_vm_count, private_vm_count,
                 uploader_vm_count, bootstrap_node_vm_size, generic_node_vm_size,
                 private_node_vm_size, uploader_vm_size, evm_network_type,
-                rewards_address
+                rewards_address, max_log_files, max_archived_log_files
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
-                config['network-name'],
-                config.get('autonomi-version'),
-                config.get('safenode-version'),
-                config.get('safenode-manager-version'),
-                config.get('branch'),
-                config.get('repo-owner'),
-                config.get('chunk-size'),
-                ','.join(config['safenode-features']) if config.get('safenode-features') else None,
-                config.get('bootstrap-node-count', defaults['bootstrap_node_count']),
-                config.get('generic-node-count', defaults['generic_node_count']),
-                config.get('private-node-count', defaults['private_node_count']),
-                config.get('downloader-count', defaults['downloader_count']),
-                config.get('uploader-count', defaults['uploader_count']),
-                config.get('bootstrap-vm-count', defaults['bootstrap_vm_count']),
-                config.get('generic-vm-count', defaults['generic_vm_count']),
-                config.get('private-vm-count', defaults['private_vm_count']),
-                config.get('uploader-vm-count', defaults['uploader_vm_count']),
-                config.get('bootstrap-node-vm-size', defaults['bootstrap_node_vm_size']),
-                config.get('node-vm-size', defaults['generic_node_vm_size']),
-                config.get('node-vm-size', defaults['private_node_vm_size']),
-                config.get('uploader-vm-size', defaults['uploader_vm_size']),
-                config.get('evm-network-type', 'custom'),
-                config['rewards-address']
+                config["network-name"],
+                config.get("autonomi-version"),
+                config.get("safenode-version"),
+                config.get("safenode-manager-version"),
+                config.get("branch"),
+                config.get("repo-owner"),
+                config.get("chunk-size"),
+                ",".join(config["safenode-features"]) if config.get("safenode-features") else None,
+                config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
+                config.get("generic-node-count", defaults["generic_node_count"]),
+                config.get("private-node-count", defaults["private_node_count"]),
+                config.get("downloader-count", defaults["downloader_count"]),
+                config.get("uploader-count", defaults["uploader_count"]),
+                config.get("bootstrap-vm-count", defaults["bootstrap_vm_count"]),
+                config.get("generic-vm-count", defaults["generic_vm_count"]),
+                config.get("private-vm-count", defaults["private_vm_count"]),
+                config.get("uploader-vm-count", defaults["uploader_vm_count"]),
+                config.get("bootstrap-node-vm-size", defaults["bootstrap_node_vm_size"]),
+                config.get("node-vm-size", defaults["generic_node_vm_size"]),
+                config.get("node-vm-size", defaults["private_node_vm_size"]),
+                config.get("uploader-vm-size", defaults["uploader_vm_size"]),
+                config.get("evm-network-type", "custom"),
+                config["rewards-address"],
+                config.get("max-log-files"),
+                config.get("max-archived-log-files")
             )
         )
         conn.commit()

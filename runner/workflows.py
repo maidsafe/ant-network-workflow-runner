@@ -468,7 +468,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "evm-network-type": "--evm-network-type",
             "evm-node-vm-size": "--evm-node-vm-size",
             "interval": "--interval",
-            "max-archived-log-values": "--max-archived-log-values",
+            "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
             "node-vm-size": "--node-vm-size",
             "public-rpc": "--public-rpc",

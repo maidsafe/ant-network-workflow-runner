@@ -430,7 +430,8 @@ def list_deployments(show_details: bool = False) -> None:
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
-                 uploader_vm_size, evm_network_type, _, triggered_at, run_id) = deployment
+                 uploader_vm_size, evm_network_type, _, max_log_files, max_archived_log_files,
+                 triggered_at, run_id) = deployment
                 
                 print("-" * 61)
                 
@@ -467,6 +468,16 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"Generic nodes: {generic_vm_count}x{generic_node_count} [{generic_node_vm_size}]")
                 print(f"Private nodes: {private_vm_count}x{private_node_count} [{private_node_vm_size}]")
                 print(f"Uploaders: {uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
+
+                if max_log_files or max_archived_log_files:
+                    print(f"==================")
+                    print(f"Misc Configuration")
+                    print(f"==================")
+                    if max_log_files:
+                        print(f"Max log files: {max_log_files}")
+                    if max_archived_log_files:
+                        print(f"Max archived log files: {max_archived_log_files}")
+
                 print("-" * 61)
         else:
             print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'EVM Type':<15}")

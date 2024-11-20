@@ -15,7 +15,7 @@ def load_yaml_config(file_path: str) -> Dict:
             config = yaml.safe_load(file)
         # Convert rewards-address back to hex string if it's an integer
         if "rewards-address" in config and isinstance(config["rewards-address"], int):
-            config["rewards-address"] = hex(config["rewards-address"])
+            config["rewards-address"] = f"0x{config['rewards-address']:040x}"
         return config
     except FileNotFoundError:
         print(f"Error: Config file not found at {file_path}")
