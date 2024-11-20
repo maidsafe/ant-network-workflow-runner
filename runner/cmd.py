@@ -438,7 +438,12 @@ def list_deployments(show_details: bool = False) -> None:
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
                 print(f"Deployed: {timestamp}")
-                print(f"EVM Type: {evm_network_type}")
+                evm_type_display = {
+                    "arbitrum-one": "Arbitrum One",
+                    "arbitrum-sepolia": "Arbitrum Sepolia", 
+                    "custom": "Custom/Anvil"
+                }.get(evm_network_type, evm_network_type)
+                print(f"EVM Type: {evm_type_display}")
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
 
                 if autonomi_version:
