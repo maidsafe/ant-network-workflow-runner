@@ -12,7 +12,11 @@ def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
     try:
         with open(file_path, "r") as file:
-            return yaml.safe_load(file)
+            config = yaml.safe_load(file)
+        # Convert rewards-address back to hex string if it's an integer
+        if "rewards-address" in config and isinstance(config["rewards-address"], int):
+            config["rewards-address"] = hex(config["rewards-address"])
+        return config
     except FileNotFoundError:
         print(f"Error: Config file not found at {file_path}")
         sys.exit(1)
@@ -141,6 +145,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    launch_network_parser = subparsers.add_parser("launch-network", help="Launch a new network")
+    launch_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    launch_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -175,6 +191,9 @@ def main():
     elif args.command == "upgrade-uploaders":
         config = load_yaml_config(args.path)
         cmd.upgrade_uploaders(config, args.branch, args.force)
+    elif args.command == "launch-network":
+        config = load_yaml_config(args.path)
+        cmd.launch_network(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

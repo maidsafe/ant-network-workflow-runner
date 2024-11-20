@@ -8,12 +8,13 @@ from typing import Dict
 import requests
 from rich import print as rprint
 
-from runner.db import list_workflow_runs
+from runner.db import list_workflow_runs, record_deployment
 from runner.workflows import (
     NodeType,
     StopNodesWorkflowRun,
     UpgradeNodeManagerWorkflow,
     DestroyNetworkWorkflow,
+    LaunchNetworkWorkflow,
     StartTelegrafWorkflow,
     StopTelegrafWorkflow,
     UpgradeNetworkWorkflow,
@@ -25,6 +26,7 @@ REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
+LAUNCH_NETWORK_WORKFLOW_ID = 58844793
 START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
@@ -32,6 +34,54 @@ UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
+
+ENVIRONMENT_DEFAULTS = {
+    "development": {
+        "bootstrap_node_count": 3,
+        "generic_node_count": 7,
+        "private_node_count": 1,
+        "downloader_count": 2,
+        "uploader_count": 1,
+        "bootstrap_vm_count": 3,
+        "generic_vm_count": 7,
+        "private_vm_count": 1,
+        "uploader_vm_count": 1,
+        "bootstrap_node_vm_size": "s-2vcpu-4gb",
+        "generic_node_vm_size": "s-2vcpu-4gb",
+        "private_node_vm_size": "s-2vcpu-4gb",
+        "uploader_vm_size": "s-2vcpu-4gb"
+    },
+    "staging": {
+        "bootstrap_node_count": 5,
+        "generic_node_count": 15,
+        "private_node_count": 2,
+        "downloader_count": 3,
+        "uploader_count": 2,
+        "bootstrap_vm_count": 5,
+        "generic_vm_count": 15,
+        "private_vm_count": 1,
+        "uploader_vm_count": 2,
+        "bootstrap_node_vm_size": "s-4vcpu-8gb",
+        "generic_node_vm_size": "s-4vcpu-8gb",
+        "private_node_vm_size": "s-4vcpu-8gb",
+        "uploader_vm_size": "s-4vcpu-8gb"
+    },
+    "production": {
+        "bootstrap_node_count": 7,
+        "generic_node_count": 30,
+        "private_node_count": 3,
+        "downloader_count": 5,
+        "uploader_count": 3,
+        "bootstrap_vm_count": 7,
+        "generic_vm_count": 30,
+        "private_vm_count": 2,
+        "uploader_vm_count": 3,
+        "bootstrap_node_vm_size": "s-8vcpu-16gb",
+        "generic_node_vm_size": "s-8vcpu-16gb",
+        "private_node_vm_size": "s-8vcpu-16gb",
+        "uploader_vm_size": "s-8vcpu-16gb"
+    }
+}
 
 def get_github_token() -> str:
     token = os.getenv("WORKFLOW_RUNNER_PAT")
@@ -268,6 +318,35 @@ def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False) -> No
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
+
+def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Launch a new network."""
+    _print_workflow_banner()
+    
+    workflow = LaunchNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=LAUNCH_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force)
+        
+        env_type = config.get("environment-type", "development")
+        defaults = ENVIRONMENT_DEFAULTS[env_type]
+        
+        record_deployment(workflow_run_id, config, defaults)
+        
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
 
 def _execute_workflow(workflow, force: bool = False) -> None:
     """

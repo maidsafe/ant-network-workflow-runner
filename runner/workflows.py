@@ -97,12 +97,15 @@ class WorkflowRun:
             task = progress.add_task("Waiting for workflow run to be available...", total=None)
             time.sleep(seconds)
 
-    def run(self, force: bool = False) -> None:
+    def run(self, force: bool = False) -> int:
         """
         Trigger the workflow run and record it in the database.
         
         Args:
             force: If True, skip confirmation prompt
+        
+        Returns:
+            int: The workflow run ID
         """
         inputs = self.get_workflow_inputs()
         
@@ -141,6 +144,8 @@ class WorkflowRun:
         print("Workflow run:")
         print(f"https://github.com/{self.owner}/{self.repo}/actions/runs/{run_id}")
         print()
+        
+        return run_id
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get workflow-specific inputs. Should be overridden by subclasses."""
@@ -392,4 +397,111 @@ class UpgradeUploadersWorkflow(WorkflowRun):
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
+        return inputs
+
+class LaunchNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, network_name: str,
+                 config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Launch Network")
+        self.network_name = network_name
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["network-name", "environment-type", "rewards-address"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        has_versions = any([
+            "safe-version" in self.config,
+            "safenode-version" in self.config,
+            "safenode-manager-version" in self.config
+        ])
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_versions and has_build_config:
+            raise ValueError("Cannot specify both binary versions and build configuration")
+            
+        if not has_versions and not has_build_config:
+            raise ValueError("Must specify either binary versions or build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the launch network workflow."""
+        inputs = {
+            "network-name": self.config["network-name"],
+            "environment-type": self.config["environment-type"],
+        }
+
+        if all(key in self.config for key in ["safe-version", "safenode-version", "safenode-manager-version"]):
+            inputs["bin-versions"] = f"{self.config['safe-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
+
+        node_counts = []
+        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
+                          "downloader-count", "uploader-count"]:
+            if count_type in self.config:
+                node_counts.append(str(self.config[count_type]))
+                
+        vm_counts = []
+        for count_type in ["bootstrap-vm-count", "generic-vm-count", "private-vm-count", 
+                          "uploader-vm-count"]:
+            if count_type in self.config:
+                vm_counts.append(str(self.config[count_type]))
+                
+        if node_counts and vm_counts:
+            inputs["node-vm-counts"] = f"({', '.join(node_counts)}), ({', '.join(vm_counts)})"
+
+        deploy_args = []
+        deploy_arg_mappings = {
+            "bootstrap-node-vm-size": "--bootstrap-node-vm-size",
+            "branch": "--branch",
+            "chunk-size": "--chunk-size",
+            "evm-network-type": "--evm-network-type",
+            "evm-node-vm-size": "--evm-node-vm-size",
+            "interval": "--interval",
+            "max-archived-log-values": "--max-archived-log-values",
+            "max-log-files": "--max-log-files",
+            "node-vm-size": "--node-vm-size",
+            "public-rpc": "--public-rpc",
+            "repo-owner": "--repo-owner",
+            "rewards-address": "--rewards-address",
+            "safenode-features": "--safenode-features",
+            "uploader-vm-size": "--uploader-vm-size"
+        }
+        
+        for config_key, arg_name in deploy_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        deploy_args.append(arg_name)
+                else:
+                    deploy_args.append(f"{arg_name} {value}")
+        
+        if deploy_args:
+            inputs["deploy-args"] = " ".join(deploy_args)
+
+        if "environment-vars" in self.config:
+            inputs["environment-vars"] = self.config["environment-vars"]
+
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in self.config:
+            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in self.config:
+            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in self.config:
+            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
+            
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+
         return inputs
