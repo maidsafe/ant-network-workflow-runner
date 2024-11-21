@@ -10,15 +10,16 @@ from rich import print as rprint
 
 from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
 from runner.workflows import (
-    NodeType,
-    StopNodesWorkflowRun,
-    UpgradeNodeManagerWorkflow,
     DestroyNetworkWorkflow,
+    KillDropletsWorkflow,
     LaunchNetworkWorkflow,
+    NodeType,
     StartTelegrafWorkflow,
+    StopNodesWorkflowRun,
     StopTelegrafWorkflow,
-    UpgradeNetworkWorkflow,
     UpdatePeerWorkflow,
+    UpgradeNetworkWorkflow,
+    UpgradeNodeManagerWorkflow,
     UpgradeUploadersWorkflow,
 )
 
@@ -26,6 +27,7 @@ REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
+KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
 START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
@@ -347,6 +349,24 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
+
+def kill_droplets(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Kill specified droplets."""
+    if "droplet-names" not in config:
+        raise KeyError("droplet-names")
+    
+    _print_workflow_banner()
+        
+    workflow = KillDropletsWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=KILL_DROPLETS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        droplet_names=config["droplet-names"]
+    )
+    _execute_workflow(workflow, force)
 
 def _execute_workflow(workflow, force: bool = False) -> None:
     """

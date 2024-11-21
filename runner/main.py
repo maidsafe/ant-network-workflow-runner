@@ -64,6 +64,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    kill_droplets_parser = subparsers.add_parser("kill-droplets", help="Kill specified droplets")
+    kill_droplets_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    kill_droplets_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     launch_network_parser = subparsers.add_parser("launch-network", help="Launch a new network")
     launch_network_parser.add_argument(
         "--path",
@@ -184,6 +196,9 @@ def main():
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
         cmd.destroy_network(config, args.branch, args.force)
+    elif args.command == "kill-droplets":
+        config = load_yaml_config(args.path)
+        cmd.kill_droplets(config, args.branch, args.force)
     elif args.command == "launch-network":
         config = load_yaml_config(args.path)
         cmd.launch_network(config, args.branch, args.force)

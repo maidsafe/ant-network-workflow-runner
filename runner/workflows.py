@@ -505,3 +505,17 @@ class LaunchNetworkWorkflow(WorkflowRun):
             inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
 
         return inputs
+
+class KillDropletsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, droplet_names: List[str]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Kill Droplets")
+        self.network_name = network_name
+        self.droplet_names = droplet_names
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the kill droplets workflow."""
+        return {
+            "droplet-names": ",".join(self.droplet_names)
+        }

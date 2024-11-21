@@ -1,0 +1,5 @@
+network-name: DEV-03
+droplet-names:
+  - DEV-02-node-1
+  - DEV-02-node-2
+  - DEV-02-bootstrap-node-1 
