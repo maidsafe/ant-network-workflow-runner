@@ -14,9 +14,9 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 #
 # If these are not specified, the latest versions will be used.
 # They are mutually exclusive with the build configuration below.
-safe-version: 0.1.0
-safenode-version: 0.93.9
-safenode-manager-version: 0.106.4
+autonomi-version: 0.1.5
+safenode-version: 0.112.5
+safenode-manager-version: 0.11.3
 
 #
 # Build configuration

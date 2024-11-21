@@ -416,7 +416,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
                 raise KeyError(field)
                 
         has_versions = any([
-            "safe-version" in self.config,
+            "autonomi-version" in self.config,
             "safenode-version" in self.config,
             "safenode-manager-version" in self.config
         ])
@@ -442,8 +442,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "environment-type": self.config["environment-type"],
         }
 
-        if all(key in self.config for key in ["safe-version", "safenode-version", "safenode-manager-version"]):
-            inputs["bin-versions"] = f"{self.config['safe-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
+        if all(key in self.config for key in ["autonomi-version", "safenode-version", "safenode-manager-version"]):
+            inputs["bin-versions"] = f"{self.config['autonomi-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
 
         node_counts = []
         for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
