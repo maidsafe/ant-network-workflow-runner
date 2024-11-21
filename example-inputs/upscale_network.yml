@@ -1,0 +1,46 @@
+# Required
+network-name: testnet-1
+
+# Optional
+# Remove any you don't want to use.
+
+# Desired node counts
+# Only supply inputs for the types you want to upscale, and remove the others.
+# Any other counts will remain the same.
+bootstrap-node-count: 10
+generic-node-count: 12
+private-node-count: 10
+downloader-count: 5
+uploader-count: 2
+
+# Desired VM counts
+# Only supply inputs for the types you want to upscale, and remove the others.
+# Any other counts will remain the same.
+bootstrap-vm-count: 10
+generic-vm-count: 12
+private-vm-count: 1
+uploader-vm-count: 2
+
+#
+# Binary versions
+#
+autonomi-version: 0.1.0
+safenode-version: 0.1.0
+safenode-manager-version: 0.1.0
+
+# Set to only run Terraform and not Ansible.
+infra-only: false
+
+# Set to run a plan for the Terraform changes, without applying them.
+# For production infrastructure, ALWAYS run with a plan first.
+plan: false
+
+# Interval to apply between starting each node, if nodes are being upscaled.
+# Units are milliseconds.
+interval: 200
+
+#
+# testnet-deploy options
+#
+testnet-deploy-branch: experimental
+testnet-deploy-repo-owner: maidsafe

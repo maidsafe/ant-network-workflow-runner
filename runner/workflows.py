@@ -519,3 +519,49 @@ class KillDropletsWorkflow(WorkflowRun):
         return {
             "droplet-names": ",".join(self.droplet_names)
         }
+
+class UpscaleNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, desired_counts: str,
+                 autonomi_version: Optional[str] = None,
+                 safenode_version: Optional[str] = None,
+                 safenode_manager_version: Optional[str] = None,
+                 infra_only: Optional[bool] = None,
+                 interval: Optional[int] = None,
+                 plan: Optional[bool] = None,
+                 testnet_deploy_repo_ref: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upscale Network")
+        self.network_name = network_name
+        self.desired_counts = desired_counts
+        self.autonomi_version = autonomi_version
+        self.safenode_version = safenode_version
+        self.safenode_manager_version = safenode_manager_version
+        self.infra_only = infra_only
+        self.interval = interval
+        self.plan = plan
+        self.testnet_deploy_repo_ref = testnet_deploy_repo_ref
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the upscale network workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "desired-counts": self.desired_counts
+        }
+        
+        if self.autonomi_version is not None:
+            inputs["autonomi-version"] = self.autonomi_version
+        if self.safenode_version is not None:
+            inputs["safenode-version"] = self.safenode_version
+        if self.safenode_manager_version is not None:
+            inputs["safenode-manager-version"] = self.safenode_manager_version
+        if self.infra_only is not None:
+            inputs["infra-only"] = str(self.infra_only).lower()
+        if self.interval is not None:
+            inputs["interval"] = str(self.interval)
+        if self.plan is not None:
+            inputs["plan"] = str(self.plan).lower()
+        if self.testnet_deploy_repo_ref is not None:
+            inputs["testnet-deploy-repo-ref"] = self.testnet_deploy_repo_ref
+            
+        return inputs

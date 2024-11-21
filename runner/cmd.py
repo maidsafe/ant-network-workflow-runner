@@ -21,6 +21,7 @@ from runner.workflows import (
     UpgradeNetworkWorkflow,
     UpgradeNodeManagerWorkflow,
     UpgradeUploadersWorkflow,
+    UpscaleNetworkWorkflow,
 )
 
 REPO_OWNER = "maidsafe"
@@ -36,6 +37,7 @@ UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
+UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
@@ -337,12 +339,9 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
     
     try:
         workflow_run_id = workflow.run(force=force)
-        
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        
         record_deployment(workflow_run_id, config, defaults)
-        
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -365,6 +364,56 @@ def kill_droplets(config: Dict, branch_name: str, force: bool = False) -> None:
         branch_name=branch_name,
         network_name=config["network-name"],
         droplet_names=config["droplet-names"]
+    )
+    _execute_workflow(workflow, force)
+
+def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Upscale an existing network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    node_counts = [
+        "bootstrap-node-count",
+        "generic-node-count", 
+        "private-node-count",
+        "downloader-count",
+        "uploader-count"
+    ]
+    
+    vm_counts = [
+        "bootstrap-vm-count",
+        "generic-vm-count",
+        "private-vm-count",
+        "uploader-vm-count"
+    ]
+    
+    node_count_values = [str(config.get(count, 0)) for count in node_counts]
+    vm_count_values = [str(config.get(count, 0)) for count in vm_counts]
+    desired_counts = f"({', '.join(node_count_values)}), ({', '.join(vm_count_values)})"
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_repo_ref = None
+    if "testnet-deploy-branch" in config and "testnet-deploy-repo-owner" in config:
+        testnet_deploy_repo_ref = f"{config['testnet-deploy-repo-owner']}/{config['testnet-deploy-branch']}"
+    elif bool(config.get("testnet-deploy-branch")) != bool(config.get("testnet-deploy-repo-owner")):
+        raise ValueError("testnet-deploy-branch and testnet-deploy-repo-owner must be used together")
+        
+    workflow = UpscaleNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=UPSCALE_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        desired_counts=desired_counts,
+        autonomi_version=config.get("autonomi-version"),
+        safenode_version=config.get("safenode-version"),
+        safenode_manager_version=config.get("safenode-manager-version"),
+        infra_only=config.get("infra-only"),
+        interval=config.get("interval"),
+        plan=config.get("plan"),
+        testnet_deploy_repo_ref=testnet_deploy_repo_ref
     )
     _execute_workflow(workflow, force)
 
@@ -518,7 +567,6 @@ def list_deployments(show_details: bool = False) -> None:
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {evm_network_type:<15}")
                 print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
-                
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve deployments: {e}")
         sys.exit(1)
