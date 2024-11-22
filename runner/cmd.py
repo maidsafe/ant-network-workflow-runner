@@ -10,6 +10,7 @@ from rich import print as rprint
 
 from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
 from runner.workflows import (
+    DepositFundsWorkflow,
     DestroyNetworkWorkflow,
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
@@ -27,6 +28,7 @@ from runner.workflows import (
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
+DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
@@ -414,6 +416,32 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         interval=config.get("interval"),
         plan=config.get("plan"),
         testnet_deploy_repo_ref=testnet_deploy_repo_ref
+    )
+    _execute_workflow(workflow, force)
+
+def deposit_funds(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Deposit funds to network nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "provider" not in config:
+        raise KeyError("provider")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = DepositFundsWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=DEPOSIT_FUNDS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        provider=config["provider"],
+        funding_wallet_secret_key=config.get("funding-wallet-secret-key"),
+        gas_to_transfer=config.get("gas-to-transfer"),
+        tokens_to_transfer=config.get("tokens-to-transfer"),
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 

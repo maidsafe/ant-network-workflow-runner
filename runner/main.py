@@ -52,6 +52,18 @@ def main():
         help="Show detailed information for each deployment"
     )
 
+    deposit_funds_parser = subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
+    deposit_funds_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    deposit_funds_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     destroy_parser = subparsers.add_parser("destroy-network", help="Destroy a testnet network")
     destroy_parser.add_argument(
         "--path",
@@ -205,6 +217,9 @@ def main():
         else:
             deployment_ls_parser.print_help()
             sys.exit(1)
+    elif args.command == "deposit-funds":
+        config = load_yaml_config(args.path)
+        cmd.deposit_funds(config, args.branch, args.force)
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
         cmd.destroy_network(config, args.branch, args.force)

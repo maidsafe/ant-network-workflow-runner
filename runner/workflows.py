@@ -565,3 +565,37 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             inputs["testnet-deploy-repo-ref"] = self.testnet_deploy_repo_ref
             
         return inputs
+
+class DepositFundsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, provider: str,
+                 funding_wallet_secret_key: Optional[str] = None,
+                 gas_to_transfer: Optional[str] = None,
+                 tokens_to_transfer: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Deposit Funds")
+        self.network_name = network_name
+        self.provider = provider
+        self.funding_wallet_secret_key = funding_wallet_secret_key
+        self.gas_to_transfer = gas_to_transfer
+        self.tokens_to_transfer = tokens_to_transfer
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the deposit funds workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "provider": self.provider
+        }
+        
+        if self.funding_wallet_secret_key is not None:
+            inputs["funding-wallet-secret-key"] = self.funding_wallet_secret_key
+        if self.gas_to_transfer is not None:
+            inputs["gas-to-transfer"] = self.gas_to_transfer
+        if self.tokens_to_transfer is not None:
+            inputs["tokens-to-transfer"] = self.tokens_to_transfer
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
