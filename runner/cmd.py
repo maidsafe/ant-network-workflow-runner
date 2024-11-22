@@ -15,6 +15,7 @@ from runner.workflows import (
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
     NodeType,
+    StartNodesWorkflow,
     StartTelegrafWorkflow,
     StopNodesWorkflowRun,
     StopTelegrafWorkflow,
@@ -32,6 +33,7 @@ DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
+START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
@@ -441,6 +443,30 @@ def deposit_funds(config: Dict, branch_name: str, force: bool = False) -> None:
         funding_wallet_secret_key=config.get("funding-wallet-secret-key"),
         gas_to_transfer=config.get("gas-to-transfer"),
         tokens_to_transfer=config.get("tokens-to-transfer"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def start_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Start nodes in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartNodesWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_NODES_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        interval=config.get("interval"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)

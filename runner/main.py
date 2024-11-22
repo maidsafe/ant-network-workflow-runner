@@ -107,6 +107,18 @@ def main():
         help="Show detailed information for each workflow run"
     )
 
+    start_nodes_parser = subparsers.add_parser("start-nodes", help="Start testnet nodes")
+    start_nodes_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_nodes_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     start_telegraf_parser = subparsers.add_parser("start-telegraf", help="Start telegraf on testnet nodes")
     start_telegraf_parser.add_argument(
         "--path",
@@ -231,6 +243,9 @@ def main():
         cmd.launch_network(config, args.branch, args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
+    elif args.command == "start-nodes":
+        config = load_yaml_config(args.path)
+        cmd.start_nodes(config, args.branch, args.force)
     elif args.command == "start-telegraf":
         config = load_yaml_config(args.path)
         cmd.start_telegraf(config, args.branch, args.force)
