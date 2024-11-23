@@ -556,10 +556,9 @@ def list_deployments(show_details: bool = False) -> None:
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
-                 uploader_vm_size, evm_network_type, _, max_log_files, max_archived_log_files,
-                 triggered_at, run_id) = deployment
-                
-                print("-" * 61)
+                 uploader_vm_size, evm_network_type, _, max_log_files,
+                 max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
+                 evm_rpc_url, triggered_at, run_id) = deployment
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
@@ -609,6 +608,17 @@ def list_deployments(show_details: bool = False) -> None:
                         print(f"Max log files: {max_log_files}")
                     if max_archived_log_files:
                         print(f"Max archived log files: {max_archived_log_files}")
+                    
+                if any([evm_data_payments_address, evm_payment_token_address, evm_rpc_url]):
+                    print(f"================")
+                    print(f"EVM Configuration")
+                    print(f"================")
+                    if evm_data_payments_address:
+                        print(f"Data Payments Address: {evm_data_payments_address}")
+                    if evm_payment_token_address:
+                        print(f"Payment Token Address: {evm_payment_token_address}")
+                    if evm_rpc_url:
+                        print(f"RPC URL: {evm_rpc_url}")
 
                 print("-" * 61)
         else:
