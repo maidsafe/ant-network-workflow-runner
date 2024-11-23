@@ -13,7 +13,10 @@ def load_yaml_config(file_path: str) -> Dict:
     try:
         with open(file_path, "r") as file:
             config = yaml.safe_load(file)
-        # Convert rewards-address back to hex string if it's an integer
+        if "evm-data-payments-address" in config and isinstance(config["evm-data-payments-address"], int):
+            config["evm-data-payments-address"] = f"0x{config['evm-data-payments-address']:040x}"
+        if "evm-payment-token-address" in config and isinstance(config["evm-payment-token-address"], int):
+            config["evm-payment-token-address"] = f"0x{config['evm-payment-token-address']:040x}"
         if "rewards-address" in config and isinstance(config["rewards-address"], int):
             config["rewards-address"] = f"0x{config['rewards-address']:040x}"
         return config

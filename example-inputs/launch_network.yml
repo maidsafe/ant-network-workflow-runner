@@ -77,10 +77,14 @@ environment-vars: LOG_LEVEL=debug,RUST_LOG=info
 #
 # EVM options
 #
-# Possible values for the EVM network type are `custom`, `arbitrum-one` or `arbitrum-sepolia`.
-# In the case of `custom`, Anvil will be used as the payment system. In this case, `testnet-deploy`
-# will spin up a VM that will run an Anvil node.
+# Possible values for the EVM network type are, `anvil`, `custom`, `arbitrum-one` or `arbitrum-sepolia`.
+# In the case of `custom`, you must specify the `evm-rpc-url`, the `evm-data-payments-address`,
+# and `evm-payment-token-address`. The custom network is mainly useful for providing overrides for the
+# token address.
 evm-network-type: custom
+evm-data-payments-address: <data-payments-address>
+evm-payment-token-address: <payment-token-address>
+evm-rpc-url: <rpc-url>
 
 #
 # testnet-deploy options

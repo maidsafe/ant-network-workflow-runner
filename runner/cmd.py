@@ -562,9 +562,10 @@ def list_deployments(show_details: bool = False) -> None:
                 rprint(f"Name: [green]{name}[/green]")
                 print(f"Deployed: {timestamp}")
                 evm_type_display = {
+                    "anvil": "Anvil",
                     "arbitrum-one": "Arbitrum One",
                     "arbitrum-sepolia": "Arbitrum Sepolia", 
-                    "custom": "Custom/Anvil"
+                    "custom": "Custom"
                 }.get(evm_network_type, evm_network_type)
                 print(f"EVM Type: {evm_type_display}")
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
