@@ -13,7 +13,10 @@ def load_yaml_config(file_path: str) -> Dict:
     try:
         with open(file_path, "r") as file:
             config = yaml.safe_load(file)
-        # Convert rewards-address back to hex string if it's an integer
+        if "evm-data-payments-address" in config and isinstance(config["evm-data-payments-address"], int):
+            config["evm-data-payments-address"] = f"0x{config['evm-data-payments-address']:040x}"
+        if "evm-payment-token-address" in config and isinstance(config["evm-payment-token-address"], int):
+            config["evm-payment-token-address"] = f"0x{config['evm-payment-token-address']:040x}"
         if "rewards-address" in config and isinstance(config["rewards-address"], int):
             config["rewards-address"] = f"0x{config['rewards-address']:040x}"
         return config
@@ -50,6 +53,18 @@ def main():
         "--details",
         action="store_true",
         help="Show detailed information for each deployment"
+    )
+
+    deposit_funds_parser = subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
+    deposit_funds_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    deposit_funds_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
     )
 
     destroy_parser = subparsers.add_parser("destroy-network", help="Destroy a testnet network")
@@ -93,6 +108,18 @@ def main():
         "--details",
         action="store_true",
         help="Show detailed information for each workflow run"
+    )
+
+    start_nodes_parser = subparsers.add_parser("start-nodes", help="Start testnet nodes")
+    start_nodes_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_nodes_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
     )
 
     start_telegraf_parser = subparsers.add_parser("start-telegraf", help="Start telegraf on testnet nodes")
@@ -205,6 +232,9 @@ def main():
         else:
             deployment_ls_parser.print_help()
             sys.exit(1)
+    elif args.command == "deposit-funds":
+        config = load_yaml_config(args.path)
+        cmd.deposit_funds(config, args.branch, args.force)
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
         cmd.destroy_network(config, args.branch, args.force)
@@ -216,6 +246,9 @@ def main():
         cmd.launch_network(config, args.branch, args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
+    elif args.command == "start-nodes":
+        config = load_yaml_config(args.path)
+        cmd.start_nodes(config, args.branch, args.force)
     elif args.command == "start-telegraf":
         config = load_yaml_config(args.path)
         cmd.start_telegraf(config, args.branch, args.force)

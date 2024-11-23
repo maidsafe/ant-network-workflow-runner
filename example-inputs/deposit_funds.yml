@@ -1,0 +1,20 @@
+# Required
+network-name: DEV-03
+provider: digital-ocean
+
+# Optional
+# Remove any you don't want to use
+
+# The secret key for the funding wallet (for Arbitrum/Sepolia networks)
+funding-wallet-secret-key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+# Amount of gas to transfer (default: 0.1 ETH)
+gas-to-transfer: "100000000000000000"
+
+# Amount of tokens to transfer (default: 1 token)
+tokens-to-transfer: "1000000000000000000"
+
+# testnet-deploy options
+testnet-deploy-branch: experimental
+testnet-deploy-user: maidsafe
+testnet-deploy-version: 0.1.65 

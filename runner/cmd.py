@@ -10,10 +10,12 @@ from rich import print as rprint
 
 from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
 from runner.workflows import (
+    DepositFundsWorkflow,
     DestroyNetworkWorkflow,
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
     NodeType,
+    StartNodesWorkflow,
     StartTelegrafWorkflow,
     StopNodesWorkflowRun,
     StopTelegrafWorkflow,
@@ -27,9 +29,11 @@ from runner.workflows import (
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
+DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
+START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
@@ -342,6 +346,9 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         record_deployment(workflow_run_id, config, defaults)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -414,6 +421,56 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         interval=config.get("interval"),
         plan=config.get("plan"),
         testnet_deploy_repo_ref=testnet_deploy_repo_ref
+    )
+    _execute_workflow(workflow, force)
+
+def deposit_funds(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Deposit funds to network nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "provider" not in config:
+        raise KeyError("provider")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = DepositFundsWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=DEPOSIT_FUNDS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        provider=config["provider"],
+        funding_wallet_secret_key=config.get("funding-wallet-secret-key"),
+        gas_to_transfer=config.get("gas-to-transfer"),
+        tokens_to_transfer=config.get("tokens-to-transfer"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def start_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Start nodes in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartNodesWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_NODES_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
+        interval=config.get("interval"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
 
@@ -499,18 +556,18 @@ def list_deployments(show_details: bool = False) -> None:
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
-                 uploader_vm_size, evm_network_type, _, max_log_files, max_archived_log_files,
-                 triggered_at, run_id) = deployment
-                
-                print("-" * 61)
+                 uploader_vm_size, evm_network_type, _, max_log_files,
+                 max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
+                 evm_rpc_url, triggered_at, run_id) = deployment
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
                 print(f"Deployed: {timestamp}")
                 evm_type_display = {
+                    "anvil": "Anvil",
                     "arbitrum-one": "Arbitrum One",
                     "arbitrum-sepolia": "Arbitrum Sepolia", 
-                    "custom": "Custom/Anvil"
+                    "custom": "Custom"
                 }.get(evm_network_type, evm_network_type)
                 print(f"EVM Type: {evm_type_display}")
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
@@ -551,6 +608,17 @@ def list_deployments(show_details: bool = False) -> None:
                         print(f"Max log files: {max_log_files}")
                     if max_archived_log_files:
                         print(f"Max archived log files: {max_archived_log_files}")
+                    
+                if any([evm_data_payments_address, evm_payment_token_address, evm_rpc_url]):
+                    print(f"================")
+                    print(f"EVM Configuration")
+                    print(f"================")
+                    if evm_data_payments_address:
+                        print(f"Data Payments Address: {evm_data_payments_address}")
+                    if evm_payment_token_address:
+                        print(f"Payment Token Address: {evm_payment_token_address}")
+                    if evm_rpc_url:
+                        print(f"RPC URL: {evm_rpc_url}")
 
                 print("-" * 61)
         else:

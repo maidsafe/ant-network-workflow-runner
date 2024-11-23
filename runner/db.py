@@ -54,6 +54,9 @@ def init_db() -> None:
                 rewards_address TEXT NOT NULL,
                 max_log_files INTEGER,
                 max_archived_log_files INTEGER,
+                evm_data_payments_address TEXT,
+                evm_payment_token_address TEXT,
+                evm_rpc_url TEXT,
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
             )
         """)
@@ -141,9 +144,10 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 bootstrap_vm_count, generic_vm_count, private_vm_count,
                 uploader_vm_count, bootstrap_node_vm_size, generic_node_vm_size,
                 private_node_vm_size, uploader_vm_size, evm_network_type,
-                rewards_address, max_log_files, max_archived_log_files
+                rewards_address, max_log_files, max_archived_log_files,
+                evm_data_payments_address, evm_payment_token_address, evm_rpc_url
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
@@ -171,7 +175,10 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("evm-network-type", "custom"),
                 config["rewards-address"],
                 config.get("max-log-files"),
-                config.get("max-archived-log-files")
+                config.get("max-archived-log-files"),
+                config.get("evm-data-payments-address"),
+                config.get("evm-payment-token-address"),
+                config.get("evm-rpc-url")
             )
         )
         conn.commit()
@@ -197,7 +204,7 @@ def list_deployments() -> list:
                 w.run_id
             FROM deployments d
             JOIN workflow_runs w ON d.workflow_run_id = w.run_id
-            ORDER BY w.triggered_at DESC
+            ORDER BY w.triggered_at ASC
         """)
         return cursor.fetchall()
     finally:
