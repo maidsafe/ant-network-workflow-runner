@@ -346,6 +346,9 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         record_deployment(workflow_run_id, config, defaults)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
