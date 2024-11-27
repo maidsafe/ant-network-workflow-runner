@@ -134,6 +134,11 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.cursor()
+        
+        safenode_features = config.get("safenode-features")
+        if isinstance(safenode_features, list):
+            safenode_features = ",".join(safenode_features)
+            
         cursor.execute(
             """
             INSERT INTO deployments (
@@ -147,7 +152,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 rewards_address, max_log_files, max_archived_log_files,
                 evm_data_payments_address, evm_payment_token_address, evm_rpc_url
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
@@ -158,7 +163,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("branch"),
                 config.get("repo-owner"),
                 config.get("chunk-size"),
-                ",".join(config["safenode-features"]) if config.get("safenode-features") else None,
+                safenode_features,
                 config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),

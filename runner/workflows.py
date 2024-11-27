@@ -477,7 +477,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "public-rpc": "--public-rpc",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",
-            "safenode-features": "--safenode-features",
             "uploader-vm-size": "--uploader-vm-size"
         }
         
@@ -489,6 +488,14 @@ class LaunchNetworkWorkflow(WorkflowRun):
                         deploy_args.append(arg_name)
                 else:
                     deploy_args.append(f"{arg_name} {value}")
+
+        if "safenode-features" in self.config:
+            features = self.config["safenode-features"]
+            if isinstance(features, list):
+                features_str = ",".join(features)
+                deploy_args.append(f"--safenode-features {features_str}")
+            else:
+                deploy_args.append(f"--safenode-features {features}")
         
         if deploy_args:
             inputs["deploy-args"] = " ".join(deploy_args)

@@ -27,7 +27,9 @@ branch: experimental
 repo-owner: maidsafe
 chunk-size: 4194304 # We are currently using 4MB chunks.
 # Features to enable on `safenode`
-safenode-features: feature1,feature2
+safenode-features:
+  - feature1
+  - feature2
 
 #
 # Node counts
