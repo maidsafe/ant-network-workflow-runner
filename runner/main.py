@@ -44,6 +44,28 @@ def main():
     )
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
+    comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
+    
+    new_comparison_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
+    new_comparison_parser.add_argument(
+        "--test-id",
+        type=int,
+        required=True,
+        help="ID of the test deployment"
+    )
+    new_comparison_parser.add_argument(
+        "--ref-id",
+        type=int,
+        required=True,
+        help="ID of the reference deployment"
+    )
+    new_comparison_parser.add_argument(
+        "--thread-link",
+        required=True,
+        help="Link to the comparison thread"
+    )
     
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
@@ -226,7 +248,13 @@ def main():
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
     
-    if args.command == "deployment":
+    if args.command == "comparisons":
+        if args.comparisons_command == "new":
+            cmd.create_comparison(args.test_id, args.ref_id, args.thread_link)
+        else:
+            comparisons_parser.print_help()
+            sys.exit(1)
+    elif args.command == "deployment":
         if args.deployment_command == "ls":
             cmd.list_deployments(show_details=args.details)
         else:

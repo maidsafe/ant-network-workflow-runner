@@ -8,7 +8,7 @@ from typing import Dict
 import requests
 from rich import print as rprint
 
-from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
+from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments, create_comparison as db_create_comparison, validate_comparison_deployment_ids
 from runner.workflows import (
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
@@ -551,7 +551,7 @@ def list_deployments(show_details: bool = False) -> None:
         
         if show_details:
             for deployment in deployments:
-                (_, _, name, autonomi_version, safenode_version, safenode_manager_version,
+                (id, _, name, autonomi_version, safenode_version, safenode_manager_version,
                  branch, repo_owner, chunk_size, safenode_features, bootstrap_node_count,
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
@@ -562,6 +562,7 @@ def list_deployments(show_details: bool = False) -> None:
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
+                print(f"ID: {id}")
                 print(f"Deployed: {timestamp}")
                 evm_type_display = {
                     "anvil": "Anvil",
@@ -613,9 +614,9 @@ def list_deployments(show_details: bool = False) -> None:
                         print(f"Max archived log files: {max_archived_log_files}")
                     
                 if any([evm_data_payments_address, evm_payment_token_address, evm_rpc_url]):
-                    print(f"================")
+                    print(f"=================")
                     print(f"EVM Configuration")
-                    print(f"================")
+                    print(f"=================")
                     if evm_data_payments_address:
                         print(f"Data Payments Address: {evm_data_payments_address}")
                     if evm_payment_token_address:
@@ -644,4 +645,20 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve deployments: {e}")
+        sys.exit(1)
+
+def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+    """Create a new comparison between two deployments."""
+    try:
+        validate_comparison_deployment_ids(test_id, ref_id)
+        db_create_comparison(test_id, ref_id, thread_link)
+        
+        print(f"Successfully created comparison between deployments {test_id} and {ref_id}")
+        print(f"Thread link: {thread_link}")
+        
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except sqlite3.Error as e:
+        print(f"Error: Failed to create comparison: {e}")
         sys.exit(1)

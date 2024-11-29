@@ -61,6 +61,20 @@ def init_db() -> None:
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
             )
         """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS comparisons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                ref_id INTEGER NOT NULL,
+                thread_link TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL,
+                report TEXT,
+                result_recorded_at TIMESTAMP,
+                FOREIGN KEY (test_id) REFERENCES deployments(id),
+                FOREIGN KEY (ref_id) REFERENCES deployments(id)
+            )
+        """)
         conn.commit()
     finally:
         conn.close()
@@ -215,5 +229,58 @@ def list_deployments() -> list:
             ORDER BY w.triggered_at ASC
         """)
         return cursor.fetchall()
+    finally:
+        conn.close()
+
+def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+    """
+    Create a new comparison record in the database.
+    
+    Args:
+        test_id: ID of the test deployment
+        ref_id: ID of the reference deployment
+        thread_link: Link to the comparison thread
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO comparisons 
+            (test_id, ref_id, thread_link, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                test_id,
+                ref_id,
+                thread_link,
+                datetime.utcnow().isoformat()
+            )
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def validate_comparison_deployment_ids(test_id: int, ref_id: int) -> None:
+    """
+    Validate that both deployment IDs exist in the database.
+    
+    Args:
+        test_id: ID of the test deployment
+        ref_id: ID of the reference deployment
+        
+    Raises:
+        ValueError: If one or both deployment IDs don't exist
+    """
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM deployments WHERE id IN (?, ?)", (test_id, ref_id))
+        count = cursor.fetchone()[0]
+        
+        if count != 2:
+            raise ValueError(f"One or both deployment IDs ({test_id}, {ref_id}) do not exist")
     finally:
         conn.close()
