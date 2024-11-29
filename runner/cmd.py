@@ -558,7 +558,7 @@ def list_deployments(show_details: bool = False) -> None:
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
                  uploader_vm_size, evm_network_type, _, max_log_files,
                  max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
-                 evm_rpc_url, triggered_at, run_id) = deployment
+                 evm_rpc_url, related_pr, triggered_at, run_id) = deployment
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
@@ -571,6 +571,9 @@ def list_deployments(show_details: bool = False) -> None:
                 }.get(evm_network_type, evm_network_type)
                 print(f"EVM Type: {evm_type_display}")
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
+                if related_pr:
+                    print(f"Related PR: #{related_pr}")
+                    print(f"Link: https://github.com/{REPO_OWNER}/safe_network/pull/{related_pr}")
 
                 if autonomi_version:
                     print(f"===============")
@@ -620,20 +623,24 @@ def list_deployments(show_details: bool = False) -> None:
                     if evm_rpc_url:
                         print(f"RPC URL: {evm_rpc_url}")
 
+
                 print("-" * 61)
         else:
-            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'EVM Type':<15}")
-            print("-" * 66)
+            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15}")
+            print("-" * 61)
             
             for deployment in deployments:
                 id = deployment[0]
                 name = deployment[2]
-                evm_network_type = deployment[23]
                 triggered_at = deployment[-2]
                 run_id = deployment[-1]
-                
+                related_pr = deployment[-3]
+                if related_pr:
+                    related_pr = f"#{related_pr}"
+                else:
+                    related_pr = "-"
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {evm_network_type:<15}")
+                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {related_pr:<15}")
                 print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve deployments: {e}")

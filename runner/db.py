@@ -57,6 +57,7 @@ def init_db() -> None:
                 evm_data_payments_address TEXT,
                 evm_payment_token_address TEXT,
                 evm_rpc_url TEXT,
+                related_pr INTEGER,
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
             )
         """)
@@ -150,9 +151,10 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 uploader_vm_count, bootstrap_node_vm_size, generic_node_vm_size,
                 private_node_vm_size, uploader_vm_size, evm_network_type,
                 rewards_address, max_log_files, max_archived_log_files,
-                evm_data_payments_address, evm_payment_token_address, evm_rpc_url
+                evm_data_payments_address, evm_payment_token_address, evm_rpc_url,
+                related_pr
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
@@ -183,7 +185,8 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("max-archived-log-files"),
                 config.get("evm-data-payments-address"),
                 config.get("evm-payment-token-address"),
-                config.get("evm-rpc-url")
+                config.get("evm-rpc-url"),
+                config.get("related-pr")
             )
         )
         conn.commit()

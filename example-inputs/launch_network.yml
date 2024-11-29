@@ -9,6 +9,9 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# Populate this if you want to link the deployment to a pull request.
+related-pr: 1234
+
 #
 # Binary versions
 #
