@@ -284,3 +284,30 @@ def validate_comparison_deployment_ids(test_id: int, ref_id: int) -> None:
             raise ValueError(f"One or both deployment IDs ({test_id}, {ref_id}) do not exist")
     finally:
         conn.close()
+
+def list_comparisons() -> list:
+    """
+    Retrieve all comparisons from the database, joined with deployment names.
+    
+    Returns:
+        List of tuples containing (test_name, ref_name, thread_link)
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                c.id,
+                test.name as test_name,
+                ref.name as ref_name,
+                c.thread_link
+            FROM comparisons c
+            JOIN deployments test ON c.test_id = test.id
+            JOIN deployments ref ON c.ref_id = ref.id
+            ORDER BY c.created_at ASC
+        """)
+        return cursor.fetchall()
+    finally:
+        conn.close()

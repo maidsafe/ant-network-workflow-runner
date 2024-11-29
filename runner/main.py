@@ -67,6 +67,8 @@ def main():
         help="Link to the comparison thread"
     )
     
+    comparisons_ls_parser = comparisons_subparsers.add_parser("ls", help="List all comparisons")
+    
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
     
@@ -251,6 +253,8 @@ def main():
     if args.command == "comparisons":
         if args.comparisons_command == "new":
             cmd.create_comparison(args.test_id, args.ref_id, args.thread_link)
+        elif args.comparisons_command == "ls":
+            cmd.list_comparisons()
         else:
             comparisons_parser.print_help()
             sys.exit(1)

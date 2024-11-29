@@ -8,7 +8,14 @@ from typing import Dict
 import requests
 from rich import print as rprint
 
-from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments, create_comparison as db_create_comparison, validate_comparison_deployment_ids
+from runner.db import (
+    create_comparison as db_create_comparison,
+    list_comparisons as db_list_comparisons,
+    list_deployments as db_list_deployments,
+    list_workflow_runs,
+    record_deployment,
+    validate_comparison_deployment_ids,
+)
 from runner.workflows import (
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
@@ -661,4 +668,27 @@ def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
         sys.exit(1)
     except sqlite3.Error as e:
         print(f"Error: Failed to create comparison: {e}")
+        sys.exit(1)
+
+def list_comparisons() -> None:
+    """List all recorded comparisons."""
+    try:
+        comparisons = db_list_comparisons()
+        if not comparisons:
+            print("No comparisons found.")
+            return
+            
+        print("=" * 61)
+        print(" " * 18 + "C O M P A R I S O N S" + " " * 18)
+        print("=" * 61)
+        
+        print(f"{'ID':<5} {'TEST':<7} {'REF':<7} {'Thread':<20}")
+        print("-" * 61)
+        
+        for comparison in comparisons:
+            id, test_name, ref_name, thread_link = comparison
+            rprint(f"{id:<5} {test_name:<7} {ref_name:<7} {thread_link}")
+            
+    except sqlite3.Error as e:
+        print(f"Error: Failed to retrieve comparisons: {e}")
         sys.exit(1)
