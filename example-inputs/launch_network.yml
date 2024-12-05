@@ -17,9 +17,9 @@ related-pr: 1234
 #
 # If these are not specified, the latest versions will be used.
 # They are mutually exclusive with the build configuration below.
-autonomi-version: 0.1.5
-safenode-version: 0.112.5
-safenode-manager-version: 0.11.3
+ant-version: 0.1.5
+antnode-version: 0.112.5
+antctl-version: 0.11.3
 
 #
 # Build configuration
@@ -30,7 +30,7 @@ branch: experimental
 repo-owner: maidsafe
 chunk-size: 4194304 # We are currently using 4MB chunks.
 # Features to enable on `safenode`
-safenode-features:
+antnode-features:
   - feature1
   - feature2
 

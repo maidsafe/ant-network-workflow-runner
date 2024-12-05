@@ -416,9 +416,9 @@ class LaunchNetworkWorkflow(WorkflowRun):
                 raise KeyError(field)
                 
         has_versions = any([
-            "autonomi-version" in self.config,
-            "safenode-version" in self.config,
-            "safenode-manager-version" in self.config
+            "ant-version" in self.config,
+            "antnode-version" in self.config,
+            "antctl-version" in self.config
         ])
         
         has_build_config = any([
@@ -442,8 +442,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "environment-type": self.config["environment-type"],
         }
 
-        if all(key in self.config for key in ["autonomi-version", "safenode-version", "safenode-manager-version"]):
-            inputs["bin-versions"] = f"{self.config['autonomi-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
+        if all(key in self.config for key in ["ant-version", "antnode-version", "antctl-version"]):
+            inputs["bin-versions"] = f"{self.config['ant-version']},{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
         for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
@@ -489,13 +489,13 @@ class LaunchNetworkWorkflow(WorkflowRun):
                 else:
                     deploy_args.append(f"{arg_name} {value}")
 
-        if "safenode-features" in self.config:
-            features = self.config["safenode-features"]
+        if "antnode-features" in self.config:
+            features = self.config["antnode-features"]
             if isinstance(features, list):
                 features_str = ",".join(features)
-                deploy_args.append(f"--safenode-features {features_str}")
+                deploy_args.append(f"--antnode-features {features_str}")
             else:
-                deploy_args.append(f"--safenode-features {features}")
+                deploy_args.append(f"--antnode-features {features}")
         
         if deploy_args:
             inputs["deploy-args"] = " ".join(deploy_args)
