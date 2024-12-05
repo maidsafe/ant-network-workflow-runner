@@ -8,7 +8,14 @@ from typing import Dict
 import requests
 from rich import print as rprint
 
-from runner.db import list_workflow_runs, record_deployment, list_deployments as db_list_deployments
+from runner.db import (
+    create_comparison as db_create_comparison,
+    list_comparisons as db_list_comparisons,
+    list_deployments as db_list_deployments,
+    list_workflow_runs,
+    record_deployment,
+    validate_comparison_deployment_ids,
+)
 from runner.workflows import (
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
@@ -551,17 +558,18 @@ def list_deployments(show_details: bool = False) -> None:
         
         if show_details:
             for deployment in deployments:
-                (_, _, name, autonomi_version, safenode_version, safenode_manager_version,
+                (id, _, name, autonomi_version, safenode_version, safenode_manager_version,
                  branch, repo_owner, chunk_size, safenode_features, bootstrap_node_count,
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
                  uploader_vm_size, evm_network_type, _, max_log_files,
                  max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
-                 evm_rpc_url, triggered_at, run_id) = deployment
+                 evm_rpc_url, related_pr, triggered_at, run_id) = deployment
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")
+                print(f"ID: {id}")
                 print(f"Deployed: {timestamp}")
                 evm_type_display = {
                     "anvil": "Anvil",
@@ -571,6 +579,9 @@ def list_deployments(show_details: bool = False) -> None:
                 }.get(evm_network_type, evm_network_type)
                 print(f"EVM Type: {evm_type_display}")
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
+                if related_pr:
+                    print(f"Related PR: #{related_pr}")
+                    print(f"Link: https://github.com/{REPO_OWNER}/safe_network/pull/{related_pr}")
 
                 if autonomi_version:
                     print(f"===============")
@@ -610,9 +621,9 @@ def list_deployments(show_details: bool = False) -> None:
                         print(f"Max archived log files: {max_archived_log_files}")
                     
                 if any([evm_data_payments_address, evm_payment_token_address, evm_rpc_url]):
-                    print(f"================")
+                    print(f"=================")
                     print(f"EVM Configuration")
-                    print(f"================")
+                    print(f"=================")
                     if evm_data_payments_address:
                         print(f"Data Payments Address: {evm_data_payments_address}")
                     if evm_payment_token_address:
@@ -620,21 +631,64 @@ def list_deployments(show_details: bool = False) -> None:
                     if evm_rpc_url:
                         print(f"RPC URL: {evm_rpc_url}")
 
+
                 print("-" * 61)
         else:
-            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'EVM Type':<15}")
-            print("-" * 66)
+            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15}")
+            print("-" * 61)
             
             for deployment in deployments:
                 id = deployment[0]
                 name = deployment[2]
-                evm_network_type = deployment[23]
                 triggered_at = deployment[-2]
                 run_id = deployment[-1]
-                
+                related_pr = deployment[-3]
+                if related_pr:
+                    related_pr = f"#{related_pr}"
+                else:
+                    related_pr = "-"
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {evm_network_type:<15}")
+                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {related_pr:<15}")
                 print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve deployments: {e}")
+        sys.exit(1)
+
+def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+    """Create a new comparison between two deployments."""
+    try:
+        validate_comparison_deployment_ids(test_id, ref_id)
+        db_create_comparison(test_id, ref_id, thread_link)
+        
+        print(f"Successfully created comparison between deployments {test_id} and {ref_id}")
+        print(f"Thread link: {thread_link}")
+        
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except sqlite3.Error as e:
+        print(f"Error: Failed to create comparison: {e}")
+        sys.exit(1)
+
+def list_comparisons() -> None:
+    """List all recorded comparisons."""
+    try:
+        comparisons = db_list_comparisons()
+        if not comparisons:
+            print("No comparisons found.")
+            return
+            
+        print("=" * 61)
+        print(" " * 18 + "C O M P A R I S O N S" + " " * 18)
+        print("=" * 61)
+        
+        print(f"{'ID':<5} {'TEST':<7} {'REF':<7} {'Thread':<20}")
+        print("-" * 61)
+        
+        for comparison in comparisons:
+            id, test_name, ref_name, thread_link = comparison
+            rprint(f"{id:<5} {test_name:<7} {ref_name:<7} {thread_link}")
+            
+    except sqlite3.Error as e:
+        print(f"Error: Failed to retrieve comparisons: {e}")
         sys.exit(1)

@@ -57,7 +57,22 @@ def init_db() -> None:
                 evm_data_payments_address TEXT,
                 evm_payment_token_address TEXT,
                 evm_rpc_url TEXT,
+                related_pr INTEGER,
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
+            )
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS comparisons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                ref_id INTEGER NOT NULL,
+                thread_link TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL,
+                report TEXT,
+                result_recorded_at TIMESTAMP,
+                FOREIGN KEY (test_id) REFERENCES deployments(id),
+                FOREIGN KEY (ref_id) REFERENCES deployments(id)
             )
         """)
         conn.commit()
@@ -134,6 +149,11 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.cursor()
+        
+        safenode_features = config.get("safenode-features")
+        if isinstance(safenode_features, list):
+            safenode_features = ",".join(safenode_features)
+            
         cursor.execute(
             """
             INSERT INTO deployments (
@@ -145,9 +165,10 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 uploader_vm_count, bootstrap_node_vm_size, generic_node_vm_size,
                 private_node_vm_size, uploader_vm_size, evm_network_type,
                 rewards_address, max_log_files, max_archived_log_files,
-                evm_data_payments_address, evm_payment_token_address, evm_rpc_url
+                evm_data_payments_address, evm_payment_token_address, evm_rpc_url,
+                related_pr
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
@@ -158,7 +179,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("branch"),
                 config.get("repo-owner"),
                 config.get("chunk-size"),
-                ",".join(config["safenode-features"]) if config.get("safenode-features") else None,
+                safenode_features,
                 config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),
@@ -178,7 +199,8 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("max-archived-log-files"),
                 config.get("evm-data-payments-address"),
                 config.get("evm-payment-token-address"),
-                config.get("evm-rpc-url")
+                config.get("evm-rpc-url"),
+                config.get("related-pr")
             )
         )
         conn.commit()
@@ -205,6 +227,86 @@ def list_deployments() -> list:
             FROM deployments d
             JOIN workflow_runs w ON d.workflow_run_id = w.run_id
             ORDER BY w.triggered_at ASC
+        """)
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+    """
+    Create a new comparison record in the database.
+    
+    Args:
+        test_id: ID of the test deployment
+        ref_id: ID of the reference deployment
+        thread_link: Link to the comparison thread
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO comparisons 
+            (test_id, ref_id, thread_link, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                test_id,
+                ref_id,
+                thread_link,
+                datetime.utcnow().isoformat()
+            )
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def validate_comparison_deployment_ids(test_id: int, ref_id: int) -> None:
+    """
+    Validate that both deployment IDs exist in the database.
+    
+    Args:
+        test_id: ID of the test deployment
+        ref_id: ID of the reference deployment
+        
+    Raises:
+        ValueError: If one or both deployment IDs don't exist
+    """
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM deployments WHERE id IN (?, ?)", (test_id, ref_id))
+        count = cursor.fetchone()[0]
+        
+        if count != 2:
+            raise ValueError(f"One or both deployment IDs ({test_id}, {ref_id}) do not exist")
+    finally:
+        conn.close()
+
+def list_comparisons() -> list:
+    """
+    Retrieve all comparisons from the database, joined with deployment names.
+    
+    Returns:
+        List of tuples containing (test_name, ref_name, thread_link)
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                c.id,
+                test.name as test_name,
+                ref.name as ref_name,
+                c.thread_link
+            FROM comparisons c
+            JOIN deployments test ON c.test_id = test.id
+            JOIN deployments ref ON c.ref_id = ref.id
+            ORDER BY c.created_at ASC
         """)
         return cursor.fetchall()
     finally:
