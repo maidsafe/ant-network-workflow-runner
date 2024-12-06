@@ -581,7 +581,7 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
                 if related_pr:
                     print(f"Related PR: #{related_pr}")
-                    print(f"Link: https://github.com/{REPO_OWNER}/safe_network/pull/{related_pr}")
+                    print(f"Link: https://github.com/{REPO_OWNER}/autonomi/pull/{related_pr}")
 
                 if autonomi_version:
                     print(f"===============")
