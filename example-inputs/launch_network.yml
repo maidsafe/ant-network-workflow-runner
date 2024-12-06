@@ -73,7 +73,7 @@ interval: 60000
 # Make the node manager RPC server public.
 public-rpc: true
 # Maximum number of archived log files `safenode` will keep.
-max-archived-log-values: 1
+max-archived-log-files: 1
 # Maximum number of log files `safenode` will keep.
 max-log-files: 1
 # Environment variables to set for `safenode` services.
