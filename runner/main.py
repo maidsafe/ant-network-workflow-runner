@@ -69,6 +69,14 @@ def main():
     
     comparisons_ls_parser = comparisons_subparsers.add_parser("ls", help="List all comparisons")
     
+    comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
+    comparisons_print_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison to print"
+    )
+    
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
     
@@ -255,6 +263,8 @@ def main():
             cmd.create_comparison(args.test_id, args.ref_id, args.thread_link)
         elif args.comparisons_command == "ls":
             cmd.list_comparisons()
+        elif args.comparisons_command == "print":
+            cmd.print_comparison(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)

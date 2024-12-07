@@ -2,9 +2,9 @@ import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
+from runner.models import Comparison, Deployment
 
-DB_PATH = Path.home() / ".local" / "share" / "safe" / "workflow_runs.db"
 DB_PATH = Path.home() / ".local" / "share" / "autonomi" / "workflow_runs.db"
 
 def init_db() -> None:
@@ -72,6 +72,8 @@ def init_db() -> None:
                 created_at TIMESTAMP NOT NULL,
                 report TEXT,
                 result_recorded_at TIMESTAMP,
+                started_at TIMESTAMP,
+                ended_at TIMESTAMP,
                 FOREIGN KEY (test_id) REFERENCES deployments(id),
                 FOREIGN KEY (ref_id) REFERENCES deployments(id)
             )
@@ -310,5 +312,115 @@ def list_comparisons() -> list:
             ORDER BY c.created_at ASC
         """)
         return cursor.fetchall()
+    finally:
+        conn.close()
+
+def get_deployment_by_id(cursor: sqlite3.Cursor, deployment_id: int) -> Deployment:
+    """
+    Retrieve a deployment by its ID.
+    
+    Args:
+        cursor: Database cursor
+        deployment_id: ID of the deployment to retrieve
+        
+    Returns:
+        Deployment: The deployment record
+        
+    Raises:
+        ValueError: If deployment with given ID is not found
+    """
+    cursor.execute("""
+        SELECT 
+            d.*,
+            w.triggered_at,
+            w.run_id
+        FROM deployments d
+        JOIN workflow_runs w ON d.workflow_run_id = w.run_id
+        WHERE d.id = ?
+    """, (deployment_id,))
+    
+    row = cursor.fetchone()
+    if not row:
+        raise ValueError(f"Deployment with ID {deployment_id} not found")
+        
+    return Deployment(
+        id=row[0],
+        name=row[2],
+        autonomi_version=row[3],
+        safenode_version=row[4],
+        safenode_manager_version=row[5],
+        branch=row[6],
+        repo_owner=row[7],
+        chunk_size=row[8],
+        safenode_features=row[9],
+        bootstrap_node_count=row[10],
+        generic_node_count=row[11],
+        private_node_count=row[12],
+        downloader_count=row[13],
+        uploader_count=row[14],
+        bootstrap_vm_count=row[15],
+        generic_vm_count=row[16],
+        private_vm_count=row[17],
+        uploader_vm_count=row[18],
+        bootstrap_node_vm_size=row[19],
+        generic_node_vm_size=row[20],
+        private_node_vm_size=row[21],
+        uploader_vm_size=row[22],
+        evm_network_type=row[23],
+        rewards_address=row[24],
+        max_log_files=row[25],
+        max_archived_log_files=row[26],
+        evm_data_payments_address=row[27],
+        evm_payment_token_address=row[28],
+        evm_rpc_url=row[29],
+        related_pr=row[30],
+        triggered_at=datetime.fromisoformat(row[31]),
+        run_id=row[32]
+    )
+
+def get_comparison(comparison_id: int) -> Comparison:
+    """
+    Retrieve a comparison and its associated deployments by ID.
+    
+    Args:
+        comparison_id: ID of the comparison to retrieve
+        
+    Returns:
+        Comparison: The comparison record
+        
+    Raises:
+        ValueError: If comparison with given ID is not found
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, test_id, ref_id, thread_link, created_at, report, result_recorded_at, 
+                   started_at, ended_at
+            FROM comparisons
+            WHERE id = ?
+        """, (comparison_id,))
+        
+        comp_row = cursor.fetchone()
+        if not comp_row:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+            
+        test_deployment = get_deployment_by_id(cursor, comp_row[1])
+        ref_deployment = get_deployment_by_id(cursor, comp_row[2])
+            
+        return Comparison(
+            id=comp_row[0],
+            test_deployment=test_deployment,
+            ref_deployment=ref_deployment,
+            thread_link=comp_row[3],
+            created_at=datetime.fromisoformat(comp_row[4]),
+            report=comp_row[5],
+            result_recorded_at=datetime.fromisoformat(comp_row[6]) if comp_row[6] else None,
+            started_at=datetime.fromisoformat(comp_row[7]) if comp_row[7] else None,
+            ended_at=datetime.fromisoformat(comp_row[8]) if comp_row[8] else None
+        )
     finally:
         conn.close()

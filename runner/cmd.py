@@ -3,7 +3,7 @@ import sqlite3
 import os
 import sys
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 
 import requests
 from rich import print as rprint
@@ -15,6 +15,7 @@ from runner.db import (
     list_workflow_runs,
     record_deployment,
     validate_comparison_deployment_ids,
+    get_comparison,
 )
 from runner.workflows import (
     DepositFundsWorkflow,
@@ -632,7 +633,6 @@ def list_deployments(show_details: bool = False) -> None:
                     if evm_rpc_url:
                         print(f"RPC URL: {evm_rpc_url}")
 
-
                 print("-" * 61)
         else:
             print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15}")
@@ -693,3 +693,110 @@ def list_comparisons() -> None:
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve comparisons: {e}")
         sys.exit(1)
+
+def print_deployment(deployment, label: str) -> None:
+    """
+    Print detailed information about a deployment.
+    
+    Args:
+        deployment: The Deployment object to print
+        label: Label to use for this deployment (e.g. "Test" or "Reference")
+    """
+    print(f"\n{label} Deployment")
+    print("-" * 61)
+    rprint(f"Name: [green]{deployment.name}[/green]")
+    print(f"ID: {deployment.id}")
+    print(f"Deployed: {deployment.triggered_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    if deployment.related_pr:
+        print(f"Related PR: #{deployment.related_pr}")
+        pr_title = get_pr_title(deployment.related_pr)
+        if pr_title:
+            print(f"PR Title: {pr_title}")
+        print(f"PR Link: https://github.com/maidsafe/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
+    
+    if deployment.autonomi_version:
+        print(f"\nVersion Details")
+        print("-" * 15)
+        print(f"Autonomi: {deployment.autonomi_version}")
+        print(f"Safenode: {deployment.safenode_version}")
+        print(f"Node Manager: {deployment.safenode_manager_version}")
+        
+    if deployment.branch:
+        print(f"\nCustom Branch Details")
+        print("-" * 20)
+        print(f"Branch: {deployment.branch}")
+        print(f"Repo Owner: {deployment.repo_owner}")
+        print(f"Link: https://github.com/{deployment.repo_owner}/{AUTONOMI_REPO_NAME}/tree/{deployment.branch}")
+        if deployment.chunk_size:
+            print(f"Chunk Size: {deployment.chunk_size}")
+        if deployment.safenode_features:
+            print(f"Safenode Features: {deployment.safenode_features}")
+            
+    print(f"\nNode Configuration")
+    print("-" * 18)
+    print(f"Bootstrap nodes: {deployment.bootstrap_vm_count}x{deployment.bootstrap_node_count} [{deployment.bootstrap_node_vm_size}]")
+    print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
+    print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+    print(f"Uploaders: {deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
+    
+    if deployment.max_log_files or deployment.max_archived_log_files:
+        print(f"\nMisc Configuration")
+        print("-" * 18)
+        if deployment.max_log_files:
+            print(f"Max log files: {deployment.max_log_files}")
+        if deployment.max_archived_log_files:
+            print(f"Max archived log files: {deployment.max_archived_log_files}")
+            
+    if any([deployment.evm_data_payments_address, 
+            deployment.evm_payment_token_address, 
+            deployment.evm_rpc_url]):
+        print(f"\nEVM Configuration")
+        print("-" * 17)
+        if deployment.evm_data_payments_address:
+            print(f"Data Payments Address: {deployment.evm_data_payments_address}")
+        if deployment.evm_payment_token_address:
+            print(f"Payment Token Address: {deployment.evm_payment_token_address}")
+        if deployment.evm_rpc_url:
+            print(f"RPC URL: {deployment.evm_rpc_url}")
+
+def print_comparison(comparison_id: int) -> None:
+    """Print detailed information about a specific comparison."""
+    comparison = get_comparison(comparison_id)
+    if not comparison:
+        print(f"Error: Comparison with ID {comparison_id} not found")
+        return
+        
+    print("=" * 61)
+    print(" " * 18 + "C O M P A R I S O N" + " " * 18)
+    print("=" * 61)
+    print(f"\nID: {comparison.id}")
+    print(f"Created: {comparison.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    if comparison.started_at:
+        print(f"Started: {comparison.started_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    if comparison.ended_at:
+        print(f"Ended: {comparison.ended_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Thread: {comparison.thread_link}")
+    
+    print_deployment(comparison.test_deployment, "Test")
+    print_deployment(comparison.ref_deployment, "Reference")
+
+def get_pr_title(pr_number: int) -> Optional[str]:
+    """
+    Fetch PR title from GitHub API.
+    
+    Args:
+        pr_number: The PR number to fetch the title for
+        
+    Returns:
+        Optional[str]: The PR title if found and accessible, None otherwise
+    """
+    url = f"https://api.github.com/repos/maidsafe/autonomi/pulls/{pr_number}"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()["title"]
+    except (requests.RequestException, KeyError):
+        return None
