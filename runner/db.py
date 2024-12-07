@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 DB_PATH = Path.home() / ".local" / "share" / "safe" / "workflow_runs.db"
+DB_PATH = Path.home() / ".local" / "share" / "autonomi" / "workflow_runs.db"
 
 def init_db() -> None:
     """Initialize the database and create the required tables if they don't exist."""
@@ -30,13 +31,13 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 workflow_run_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
-                autonomi_version TEXT,
-                safenode_version TEXT,
-                safenode_manager_version TEXT,
+                ant_version TEXT,
+                antnode_version TEXT,
+                antctl_version TEXT,
                 branch TEXT,
                 repo_owner TEXT,
                 chunk_size INTEGER,
-                safenode_features TEXT,
+                antnode_features TEXT,
                 bootstrap_node_count INTEGER NOT NULL,
                 generic_node_count INTEGER NOT NULL,
                 private_node_count INTEGER NOT NULL,
@@ -150,36 +151,36 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
     try:
         cursor = conn.cursor()
         
-        safenode_features = config.get("safenode-features")
-        if isinstance(safenode_features, list):
-            safenode_features = ",".join(safenode_features)
+        antnode_features = config.get("antnode-features")
+        if isinstance(antnode_features, list):
+            antnode_features = ",".join(antnode_features)
             
         cursor.execute(
             """
             INSERT INTO deployments (
-                workflow_run_id, name, autonomi_version, safenode_version,
-                safenode_manager_version, branch, repo_owner, chunk_size,
-                safenode_features, bootstrap_node_count, generic_node_count,
-                private_node_count, downloader_count, uploader_count,
-                bootstrap_vm_count, generic_vm_count, private_vm_count,
-                uploader_vm_count, bootstrap_node_vm_size, generic_node_vm_size,
-                private_node_vm_size, uploader_vm_size, evm_network_type,
-                rewards_address, max_log_files, max_archived_log_files,
-                evm_data_payments_address, evm_payment_token_address, evm_rpc_url,
-                related_pr
+                workflow_run_id, name, ant_version,
+                antnode_version, antctl_version, branch,
+                repo_owner, chunk_size, antnode_features,
+                bootstrap_node_count, generic_node_count, private_node_count,
+                downloader_count, uploader_count, bootstrap_vm_count,
+                generic_vm_count, private_vm_count, uploader_vm_count,
+                bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
+                uploader_vm_size, evm_network_type, rewards_address,
+                max_log_files, max_archived_log_files, evm_data_payments_address,
+                evm_payment_token_address, evm_rpc_url, related_pr
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
                 config["network-name"],
-                config.get("autonomi-version"),
-                config.get("safenode-version"),
-                config.get("safenode-manager-version"),
+                config.get("ant-version"),
+                config.get("antnode-version"),
+                config.get("antctl-version"),
                 config.get("branch"),
                 config.get("repo-owner"),
                 config.get("chunk-size"),
-                safenode_features,
+                antnode_features,
                 config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),

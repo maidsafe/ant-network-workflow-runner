@@ -35,6 +35,7 @@ from runner.workflows import (
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
+AUTONOMI_REPO_NAME = "autonomi"
 
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
@@ -558,8 +559,8 @@ def list_deployments(show_details: bool = False) -> None:
         
         if show_details:
             for deployment in deployments:
-                (id, _, name, autonomi_version, safenode_version, safenode_manager_version,
-                 branch, repo_owner, chunk_size, safenode_features, bootstrap_node_count,
+                (id, _, name, ant_version, antnode_version, antctl_version,
+                 branch, repo_owner, chunk_size, antnode_features, bootstrap_node_count,
                  generic_node_count, private_node_count, _, uploader_count,
                  bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
                  bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
@@ -581,15 +582,15 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
                 if related_pr:
                     print(f"Related PR: #{related_pr}")
-                    print(f"Link: https://github.com/{REPO_OWNER}/autonomi/pull/{related_pr}")
+                    print(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{related_pr}")
 
-                if autonomi_version:
+                if ant_version:
                     print(f"===============")
                     print(f"Version Details")
                     print(f"===============")
-                    print(f"Autonomi: {autonomi_version}")
-                    print(f"Safenode: {safenode_version}")
-                    print(f"Node Manager: {safenode_manager_version}")
+                    print(f"Ant: {ant_version}")
+                    print(f"Antnode: {antnode_version}")
+                    print(f"Antctl: {antctl_version}")
 
                 if branch:
                     print(f"=====================")
@@ -597,11 +598,11 @@ def list_deployments(show_details: bool = False) -> None:
                     print(f"=====================")
                     print(f"Branch: {branch}")
                     print(f"Repo Owner: {repo_owner}")
-                    print(f"Link: https://github.com/{repo_owner}/safe_network/tree/{branch}")
+                    print(f"Link: https://github.com/{repo_owner}/{AUTONOMI_REPO_NAME}/tree/{branch}")
                     if chunk_size:
                         print(f"Chunk Size: {chunk_size}")
-                    if safenode_features:
-                        print(f"Safenode Features: {safenode_features}")
+                    if antnode_features:
+                        print(f"Antnode Features: {antnode_features}")
 
                 print(f"==================")
                 print(f"Node Configuration")
