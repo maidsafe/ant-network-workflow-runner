@@ -140,7 +140,7 @@ def list_workflow_runs() -> list:
     finally:
         conn.close()
 
-def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Dict[str, Any]) -> None:
+def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Dict[str, Any], is_legacy: bool = False) -> None:
     """
     Record a deployment in the database.
     
@@ -148,14 +148,19 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         workflow_run_id: ID of the associated workflow run
         config: Dictionary containing deployment configuration
         defaults: Dictionary containing default values for the environment type
+        is_legacy: If True, use legacy field names for versions and features
     """
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.cursor()
         
-        antnode_features = config.get("antnode-features")
-        if isinstance(antnode_features, list):
-            antnode_features = ",".join(antnode_features)
+        ant_version = config.get("autonomi-version" if is_legacy else "ant-version")
+        antnode_version = config.get("safenode-version" if is_legacy else "antnode-version")
+        antctl_version = config.get("safenode-manager-version" if is_legacy else "antctl-version")
+        
+        features = config.get("safenode-features" if is_legacy else "antnode-features")
+        if isinstance(features, list):
+            features = ",".join(features)
             
         cursor.execute(
             """
@@ -176,13 +181,13 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
             (
                 workflow_run_id,
                 config["network-name"],
-                config.get("ant-version"),
-                config.get("antnode-version"),
-                config.get("antctl-version"),
+                ant_version,
+                antnode_version,
+                antctl_version,
                 config.get("branch"),
                 config.get("repo-owner"),
                 config.get("chunk-size"),
-                antnode_features,
+                features,
                 config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),

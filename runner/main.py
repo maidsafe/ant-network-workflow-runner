@@ -135,6 +135,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    launch_legacy_network_parser = subparsers.add_parser("launch-legacy-network", help="Launch a new legacy network")
+    launch_legacy_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    launch_legacy_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     ls_parser = subparsers.add_parser("ls", help="List all workflow runs")
     ls_parser.add_argument(
         "--details",
@@ -286,6 +298,9 @@ def main():
     elif args.command == "launch-network":
         config = load_yaml_config(args.path)
         cmd.launch_network(config, args.branch, args.force)
+    elif args.command == "launch-legacy-network":
+        config = load_yaml_config(args.path)
+        cmd.launch_legacy_network(config, "main", args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
     elif args.command == "start-nodes":

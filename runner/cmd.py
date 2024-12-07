@@ -22,6 +22,7 @@ from runner.workflows import (
     DestroyNetworkWorkflow,
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
+    LaunchLegacyNetworkWorkflow,
     NodeType,
     StartNodesWorkflow,
     StartTelegrafWorkflow,
@@ -482,6 +483,36 @@ def start_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
+
+def launch_legacy_network(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Launch a new legacy network."""
+    _print_workflow_banner()
+    
+    workflow = LaunchLegacyNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=LAUNCH_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force)
+        env_type = config.get("environment-type", "development")
+        defaults = ENVIRONMENT_DEFAULTS[env_type]
+        
+        record_deployment(workflow_run_id, config, defaults, is_legacy=True)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
 
 def _execute_workflow(workflow, force: bool = False) -> None:
     """
