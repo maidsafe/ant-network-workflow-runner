@@ -18,7 +18,7 @@ related-pr: 1234
 # If these are not specified, the latest versions will be used.
 # They are mutually exclusive with the build configuration below.
 ant-version: 0.1.5
-antnode-version: 0.112.5
+antnode-version: 0.112.6
 antctl-version: 0.11.3
 
 #
