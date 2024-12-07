@@ -81,11 +81,14 @@ class WorkflowRun:
         
         workflow_runs = response.json().get("workflow_runs", [])
         
-        for run in workflow_runs:
-            if run["status"] != "completed":
-                return run["id"]
+        active_runs = [run for run in workflow_runs if run["status"] != "completed"]
+        if not active_runs:
+            raise RuntimeError("Could not find workflow run ID for recently triggered workflow")
         
-        raise RuntimeError("Could not find workflow run ID for recently triggered workflow")
+        from datetime import datetime
+        active_runs.sort(key=lambda x: datetime.fromisoformat(x["created_at"].replace('Z', '+00:00')), reverse=True)
+        
+        return active_runs[0]["id"]
 
     def _display_spinner(self, seconds: int) -> None:
         """Display a spinner in the terminal for the specified number of seconds."""
