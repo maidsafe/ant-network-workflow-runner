@@ -68,12 +68,14 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 test_id INTEGER NOT NULL,
                 ref_id INTEGER NOT NULL,
-                thread_link TEXT NOT NULL,
+                thread_link TEXT,
                 created_at TIMESTAMP NOT NULL,
                 report TEXT,
                 result_recorded_at TIMESTAMP,
                 started_at TIMESTAMP,
                 ended_at TIMESTAMP,
+                ref_version TEXT,
+                test_version TEXT,
                 FOREIGN KEY (test_id) REFERENCES deployments(id),
                 FOREIGN KEY (ref_id) REFERENCES deployments(id)
             )
@@ -148,7 +150,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         workflow_run_id: ID of the associated workflow run
         config: Dictionary containing deployment configuration
         defaults: Dictionary containing default values for the environment type
-        is_legacy: If True, use legacy field names for versions and features
+        is_legacy: Whether the deployment is a legacy deployment
     """
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -157,7 +159,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         ant_version = config.get("autonomi-version" if is_legacy else "ant-version")
         antnode_version = config.get("safenode-version" if is_legacy else "antnode-version")
         antctl_version = config.get("safenode-manager-version" if is_legacy else "antctl-version")
-        
+
         features = config.get("safenode-features" if is_legacy else "antnode-features")
         if isinstance(features, list):
             features = ",".join(features)
@@ -240,14 +242,15 @@ def list_deployments() -> list:
     finally:
         conn.close()
 
-def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+def create_comparison(test_id: int, ref_id: int, ref_version: Optional[str] = None, test_version: Optional[str] = None) -> None:
     """
     Create a new comparison record in the database.
     
     Args:
         test_id: ID of the test deployment
         ref_id: ID of the reference deployment
-        thread_link: Link to the comparison thread
+        ref_version: Optional reference version string
+        test_version: Optional test version string
     """
     init_db()
     
@@ -257,14 +260,15 @@ def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
         cursor.execute(
             """
             INSERT INTO comparisons 
-            (test_id, ref_id, thread_link, created_at)
-            VALUES (?, ?, ?, ?)
+            (test_id, ref_id, created_at, ref_version, test_version)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 test_id,
                 ref_id,
-                thread_link,
-                datetime.utcnow().isoformat()
+                datetime.utcnow().isoformat(),
+                ref_version,
+                test_version
             )
         )
         conn.commit()
@@ -287,7 +291,6 @@ def validate_comparison_deployment_ids(test_id: int, ref_id: int) -> None:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM deployments WHERE id IN (?, ?)", (test_id, ref_id))
         count = cursor.fetchone()[0]
-        
         if count != 2:
             raise ValueError(f"One or both deployment IDs ({test_id}, {ref_id}) do not exist")
     finally:
@@ -351,13 +354,13 @@ def get_deployment_by_id(cursor: sqlite3.Cursor, deployment_id: int) -> Deployme
     return Deployment(
         id=row[0],
         name=row[2],
-        autonomi_version=row[3],
-        safenode_version=row[4],
-        safenode_manager_version=row[5],
+        ant_version=row[3],
+        antnode_version=row[4],
+        antctl_version=row[5],
         branch=row[6],
         repo_owner=row[7],
         chunk_size=row[8],
-        safenode_features=row[9],
+        antnode_features=row[9],
         bootstrap_node_count=row[10],
         generic_node_count=row[11],
         private_node_count=row[12],
@@ -403,29 +406,31 @@ def get_comparison(comparison_id: int) -> Comparison:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, test_id, ref_id, thread_link, created_at, report, result_recorded_at, 
-                   started_at, ended_at
+            SELECT id, test_id, ref_id, thread_link, created_at, report, result_recorded_at,
+                started_at, ended_at, ref_version, test_version
             FROM comparisons
             WHERE id = ?
         """, (comparison_id,))
         
-        comp_row = cursor.fetchone()
-        if not comp_row:
+        row = cursor.fetchone()
+        if not row:
             raise ValueError(f"Comparison with ID {comparison_id} not found")
             
-        test_deployment = get_deployment_by_id(cursor, comp_row[1])
-        ref_deployment = get_deployment_by_id(cursor, comp_row[2])
+        test_deployment = get_deployment_by_id(cursor, row[1])
+        ref_deployment = get_deployment_by_id(cursor, row[2])
             
         return Comparison(
-            id=comp_row[0],
+            id=row[0],
             test_deployment=test_deployment,
             ref_deployment=ref_deployment,
-            thread_link=comp_row[3],
-            created_at=datetime.fromisoformat(comp_row[4]),
-            report=comp_row[5],
-            result_recorded_at=datetime.fromisoformat(comp_row[6]) if comp_row[6] else None,
-            started_at=datetime.fromisoformat(comp_row[7]) if comp_row[7] else None,
-            ended_at=datetime.fromisoformat(comp_row[8]) if comp_row[8] else None
+            thread_link=row[3],
+            created_at=datetime.fromisoformat(row[4]),
+            report=row[5],
+            result_recorded_at=datetime.fromisoformat(row[6]) if row[6] else None,
+            started_at=datetime.fromisoformat(row[7]) if row[7] else None,
+            ended_at=datetime.fromisoformat(row[8]) if row[8] else None,
+            ref_version=row[9] if row[9] else None,
+            test_version=row[10] if row[10] else None
         )
     finally:
         conn.close()

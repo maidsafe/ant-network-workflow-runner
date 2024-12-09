@@ -17,6 +17,7 @@ from runner.db import (
     validate_comparison_deployment_ids,
     get_comparison,
 )
+from runner.models import Deployment
 from runner.workflows import (
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
@@ -686,15 +687,12 @@ def list_deployments(show_details: bool = False) -> None:
         print(f"Error: Failed to retrieve deployments: {e}")
         sys.exit(1)
 
-def create_comparison(test_id: int, ref_id: int, thread_link: str) -> None:
+def create_comparison(test_id: int, ref_id: int, ref_version: Optional[str] = None, test_version: Optional[str] = None) -> None:
     """Create a new comparison between two deployments."""
     try:
         validate_comparison_deployment_ids(test_id, ref_id)
-        db_create_comparison(test_id, ref_id, thread_link)
-        
-        print(f"Successfully created comparison between deployments {test_id} and {ref_id}")
-        print(f"Thread link: {thread_link}")
-        
+        db_create_comparison(test_id, ref_id, ref_version, test_version)
+        print(f"Created comparison between deployments {test_id} and {ref_id}")
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -720,70 +718,78 @@ def list_comparisons() -> None:
         for comparison in comparisons:
             id, test_name, ref_name, thread_link = comparison
             rprint(f"{id:<5} {test_name:<7} {ref_name:<7} {thread_link}")
-            
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve comparisons: {e}")
         sys.exit(1)
 
-def print_deployment(deployment, label: str) -> None:
-    """
-    Print detailed information about a deployment.
-    
-    Args:
-        deployment: The Deployment object to print
-        label: Label to use for this deployment (e.g. "Test" or "Reference")
-    """
-    print(f"\n{label} Deployment")
-    print("-" * 61)
-    rprint(f"Name: [green]{deployment.name}[/green]")
-    print(f"ID: {deployment.id}")
+def print_deployment_for_comparison(deployment: Deployment) -> None:
     print(f"Deployed: {deployment.triggered_at.strftime('%Y-%m-%d %H:%M:%S')}")
-    
+    evm_type_display = {
+        "anvil": "Anvil",
+        "arbitrum-one": "Arbitrum One",
+        "arbitrum-sepolia": "Arbitrum Sepolia", 
+        "custom": "Custom"
+    }.get(deployment.evm_network_type, deployment.evm_network_type)
+    print(f"EVM Type: {evm_type_display}")
+    print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
     if deployment.related_pr:
         print(f"Related PR: #{deployment.related_pr}")
-        pr_title = get_pr_title(deployment.related_pr)
-        if pr_title:
-            print(f"PR Title: {pr_title}")
-        print(f"PR Link: https://github.com/maidsafe/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
-    
-    if deployment.autonomi_version:
-        print(f"\nVersion Details")
-        print("-" * 15)
-        print(f"Autonomi: {deployment.autonomi_version}")
-        print(f"Safenode: {deployment.safenode_version}")
-        print(f"Node Manager: {deployment.safenode_manager_version}")
-        
+        print(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
+
+    if deployment.ant_version:
+        print(f"===============")
+        print(f"Version Details")
+        print(f"===============")
+        print(f"Ant: {deployment.ant_version}")
+        print(f"Antnode: {deployment.antnode_version}")
+        print(f"Antctl: {deployment.antctl_version}")
+
     if deployment.branch:
-        print(f"\nCustom Branch Details")
-        print("-" * 20)
+        print(f"=====================")
+        print(f"Custom Branch Details")
+        print(f"=====================")
         print(f"Branch: {deployment.branch}")
         print(f"Repo Owner: {deployment.repo_owner}")
         print(f"Link: https://github.com/{deployment.repo_owner}/{AUTONOMI_REPO_NAME}/tree/{deployment.branch}")
         if deployment.chunk_size:
             print(f"Chunk Size: {deployment.chunk_size}")
-        if deployment.safenode_features:
-            print(f"Safenode Features: {deployment.safenode_features}")
-            
-    print(f"\nNode Configuration")
-    print("-" * 18)
+        if deployment.antnode_features:
+            print(f"Antnode Features: {deployment.antnode_features}")
+
+    print(f"==================")
+    print(f"Node Configuration")
+    print(f"==================")
     print(f"Bootstrap nodes: {deployment.bootstrap_vm_count}x{deployment.bootstrap_node_count} [{deployment.bootstrap_node_vm_size}]")
     print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
     print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
-    print(f"Uploaders: {deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
-    
+    total_nodes = (deployment.bootstrap_vm_count * deployment.bootstrap_node_count + 
+                   deployment.generic_vm_count * deployment.generic_node_count +
+                   deployment.private_vm_count * deployment.private_node_count)
+    print(f"Total: {total_nodes}")
+
+    print(f"======================")
+    print(f"Uploader Configuration")
+    print(f"======================")
+    print(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
+    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
+    print(f"Total: {total_uploaders}")
+
+
     if deployment.max_log_files or deployment.max_archived_log_files:
-        print(f"\nMisc Configuration")
-        print("-" * 18)
+        print(f"==================")
+        print(f"Misc Configuration")
+        print(f"==================")
         if deployment.max_log_files:
             print(f"Max log files: {deployment.max_log_files}")
         if deployment.max_archived_log_files:
             print(f"Max archived log files: {deployment.max_archived_log_files}")
-            
+        
     if any([deployment.evm_data_payments_address, 
             deployment.evm_payment_token_address, 
             deployment.evm_rpc_url]):
-        print(f"\nEVM Configuration")
-        print("-" * 17)
+        print(f"=================")
+        print(f"EVM Configuration")
+        print(f"=================")
         if deployment.evm_data_payments_address:
             print(f"Data Payments Address: {deployment.evm_data_payments_address}")
         if deployment.evm_payment_token_address:
@@ -798,21 +804,32 @@ def print_comparison(comparison_id: int) -> None:
         print(f"Error: Comparison with ID {comparison_id} not found")
         return
         
-    print("=" * 61)
-    print(" " * 18 + "C O M P A R I S O N" + " " * 18)
-    print("=" * 61)
-    print(f"\nID: {comparison.id}")
-    print(f"Created: {comparison.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
-    if comparison.started_at:
-        print(f"Started: {comparison.started_at.strftime('%Y-%m-%d %H:%M:%S')}")
-    if comparison.ended_at:
-        print(f"Ended: {comparison.ended_at.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Thread: {comparison.thread_link}")
-    
-    print_deployment(comparison.test_deployment, "Test")
-    print_deployment(comparison.ref_deployment, "Reference")
+    print("========================")
+    print("*ENVIRONMENT COMPARISON*")
+    print("========================")
 
-def get_pr_title(pr_number: int) -> Optional[str]:
+    test_title = ""
+    if comparison.test_deployment.related_pr:
+        pr_title = get_pr_title(comparison.test_deployment.related_pr)
+        test_title = f"{pr_title} [#{comparison.test_deployment.related_pr}]"
+    elif comparison.test_deployment.test_version:
+        test_title = comparison.test_deployment.test_version
+
+    print()
+    if comparison.thread_link:
+        print(f"Slack thread: {comparison.thread_link}")
+
+    print(f"*TEST*: {test_title} [`{comparison.test_deployment.name}`]")
+    print(f"*REF*: {comparison.ref_version} [`{comparison.ref_deployment.name}`]")
+    print()
+
+    print(f"`{comparison.test_deployment.name}`:")
+    print_deployment_for_comparison(comparison.test_deployment)
+    print()
+    print(f"`{comparison.ref_deployment.name}`:")
+    print_deployment_for_comparison(comparison.ref_deployment)
+
+def get_pr_title(pr_number: int) -> str:
     """
     Fetch PR title from GitHub API.
     
@@ -820,7 +837,10 @@ def get_pr_title(pr_number: int) -> Optional[str]:
         pr_number: The PR number to fetch the title for
         
     Returns:
-        Optional[str]: The PR title if found and accessible, None otherwise
+        str: The PR title
+        
+    Raises:
+        RuntimeError: If the PR title cannot be obtained
     """
     url = f"https://api.github.com/repos/maidsafe/autonomi/pulls/{pr_number}"
     headers = {"Accept": "application/vnd.github.v3+json"}
@@ -829,5 +849,5 @@ def get_pr_title(pr_number: int) -> Optional[str]:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()["title"]
-    except (requests.RequestException, KeyError):
-        return None
+    except (requests.RequestException, KeyError) as e:
+        raise RuntimeError(f"Failed to get PR title for PR #{pr_number}: {str(e)}")

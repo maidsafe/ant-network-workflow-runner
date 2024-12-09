@@ -62,9 +62,14 @@ def main():
         help="ID of the reference deployment"
     )
     new_comparison_parser.add_argument(
-        "--thread-link",
-        required=True,
-        help="Link to the comparison thread"
+        "--ref-version",
+        type=str,
+        help="Reference version string"
+    )
+    new_comparison_parser.add_argument(
+        "--test-version",
+        type=str,
+        help="Test version string"
     )
     
     comparisons_ls_parser = comparisons_subparsers.add_parser("ls", help="List all comparisons")
@@ -272,7 +277,7 @@ def main():
     
     if args.command == "comparisons":
         if args.comparisons_command == "new":
-            cmd.create_comparison(args.test_id, args.ref_id, args.thread_link)
+            cmd.create_comparison(args.test_id, args.ref_id, args.ref_version, args.test_version)
         elif args.comparisons_command == "ls":
             cmd.list_comparisons()
         elif args.comparisons_command == "print":

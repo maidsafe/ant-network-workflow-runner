@@ -42,9 +42,11 @@ class Comparison:
     id: int
     test_deployment: Deployment
     ref_deployment: Deployment
-    thread_link: str
+    thread_link: Optional[str]
     created_at: datetime
     report: Optional[str]
     result_recorded_at: Optional[datetime]
     started_at: Optional[datetime]
-    ended_at: Optional[datetime] 
+    ended_at: Optional[datetime]
+    ref_version: Optional[str]
+    test_version: Optional[str] 
