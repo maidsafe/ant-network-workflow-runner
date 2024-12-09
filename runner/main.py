@@ -96,6 +96,38 @@ def main():
         help="URL of the thread where the comparison was posted"
     )
     
+    record_results_parser = comparisons_subparsers.add_parser("record-results", help="Record comparison results")
+    record_results_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison"
+    )
+    record_results_parser.add_argument(
+        "--start",
+        type=str,
+        required=True,
+        help="Start timestamp of the comparison"
+    )
+    record_results_parser.add_argument(
+        "--end",
+        type=str,
+        required=True,
+        help="End timestamp of the comparison"
+    )
+    record_results_parser.add_argument(
+        "--path",
+        type=str,
+        required=True,
+        help="Path to the HTML report file"
+    )
+    record_results_parser.add_argument(
+        "--pass",
+        dest="passed",
+        action="store_true",
+        help="Mark the comparison as passed"
+    )
+    
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
     
@@ -298,6 +330,8 @@ def main():
             cmd.print_comparison(args.id)
         elif args.comparisons_command == "add-thread":
             cmd.add_comparison_thread(args.id, args.link)
+        elif args.comparisons_command == "record-results":
+            cmd.record_comparison_results(args.id, args.start, args.end, args.path, args.passed)
         else:
             comparisons_parser.print_help()
             sys.exit(1)

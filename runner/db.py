@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-from runner.models import Comparison, Deployment
+from runner.models import Comparison, Deployment, ComparisonSummary
 
 DB_PATH = Path.home() / ".local" / "share" / "autonomi" / "workflow_runs.db"
 
@@ -76,6 +76,7 @@ def init_db() -> None:
                 ended_at TIMESTAMP,
                 ref_version TEXT,
                 test_version TEXT,
+                passed BOOLEAN,
                 FOREIGN KEY (test_id) REFERENCES deployments(id),
                 FOREIGN KEY (ref_id) REFERENCES deployments(id)
             )
@@ -296,12 +297,12 @@ def validate_comparison_deployment_ids(test_id: int, ref_id: int) -> None:
     finally:
         conn.close()
 
-def list_comparisons() -> list:
+def list_comparisons() -> list[ComparisonSummary]:
     """
     Retrieve all comparisons from the database, joined with deployment names.
     
     Returns:
-        List of tuples containing (test_name, ref_name, thread_link)
+        List of ComparisonSummary objects containing summary information about each comparison
     """
     init_db()
     
@@ -313,13 +314,27 @@ def list_comparisons() -> list:
                 c.id,
                 test.name as test_name,
                 ref.name as ref_name,
-                c.thread_link
+                c.thread_link,
+                c.passed,
+                c.created_at,
+                c.result_recorded_at
             FROM comparisons c
             JOIN deployments test ON c.test_id = test.id
             JOIN deployments ref ON c.ref_id = ref.id
             ORDER BY c.created_at ASC
         """)
-        return cursor.fetchall()
+        return [
+            ComparisonSummary(
+                id=row[0],
+                test_name=row[1],
+                ref_name=row[2],
+                thread_link=row[3],
+                passed=row[4],
+                created_at=datetime.fromisoformat(row[5]),
+                result_recorded_at=datetime.fromisoformat(row[6]) if row[6] else None
+            )
+            for row in cursor.fetchall()
+        ]
     finally:
         conn.close()
 
@@ -458,6 +473,48 @@ def update_comparison_thread_link(comparison_id: int, thread_link: str) -> None:
             WHERE id = ?
             """,
             (thread_link, comparison_id)
+        )
+        
+        if cursor.rowcount == 0:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+            
+        conn.commit()
+    finally:
+        conn.close()
+
+def update_comparison_results(comparison_id: int, started_at: str, ended_at: str, report_content: str, passed: bool) -> None:
+    """
+    Update a comparison record with results data.
+    
+    Args:
+        comparison_id: ID of the comparison to update
+        started_at: ISO format timestamp for when the comparison started
+        ended_at: ISO format timestamp for when the comparison ended
+        report_content: HTML content of the report
+        passed: Boolean indicating if the comparison passed (True) or failed (False)
+        
+    Raises:
+        ValueError: If comparison with given ID is not found
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE comparisons
+            SET started_at = ?, ended_at = ?, report = ?, result_recorded_at = ?, passed = ?
+            WHERE id = ?
+            """,
+            (
+                started_at,
+                ended_at,
+                report_content,
+                datetime.utcnow().isoformat(),
+                passed,
+                comparison_id
+            )
         )
         
         if cursor.rowcount == 0:

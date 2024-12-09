@@ -49,4 +49,15 @@ class Comparison:
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
     ref_version: Optional[str]
-    test_version: Optional[str] 
+    test_version: Optional[str]
+    passed: Optional[bool] 
+
+@dataclass
+class ComparisonSummary:
+    id: int
+    test_name: str
+    ref_name: str
+    thread_link: Optional[str]
+    passed: Optional[bool]
+    created_at: datetime
+    result_recorded_at: Optional[datetime] 

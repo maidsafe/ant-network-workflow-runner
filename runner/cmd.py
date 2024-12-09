@@ -17,6 +17,7 @@ from runner.db import (
     validate_comparison_deployment_ids,
     get_comparison,
     update_comparison_thread_link,
+    update_comparison_results,
 )
 from runner.models import Deployment
 from runner.workflows import (
@@ -709,16 +710,26 @@ def list_comparisons() -> None:
             print("No comparisons found.")
             return
             
-        print("=" * 61)
-        print(" " * 18 + "C O M P A R I S O N S" + " " * 18)
-        print("=" * 61)
+        print("=" * 100)
+        print(" " * 35 + "C O M P A R I S O N S" + " " * 35)
+        print("=" * 100)
         
-        print(f"{'ID':<5} {'TEST':<7} {'REF':<7} {'Thread':<20}")
-        print("-" * 61)
+        print(f"{'ID':<5} {'TEST':<15} {'REF':<15} {'Created':<20} {'Results':<20} {'Pass':<5}")
+        print("-" * 100)
         
         for comparison in comparisons:
-            id, test_name, ref_name, thread_link = comparison
-            rprint(f"{id:<5} {test_name:<7} {ref_name:<7} {thread_link}")
+            created_at = comparison.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            results_at = comparison.result_recorded_at.strftime("%Y-%m-%d %H:%M:%S") if comparison.result_recorded_at else "-"
+            
+            if comparison.passed is None:
+                pass_mark = "-"
+            elif comparison.passed:
+                pass_mark = f"[green]✓[/green]"
+            else:
+                pass_mark = f"[red]✗[/red]"
+            rprint(f"{comparison.id:<5} {comparison.test_name:<15} {comparison.ref_name:<15} {created_at:<20} {results_at:<20} {pass_mark:<12}")
+            
+        print("\nAll times are in UTC")
     except sqlite3.Error as e:
         print(f"Error: Failed to retrieve comparisons: {e}")
         sys.exit(1)
@@ -863,6 +874,48 @@ def add_comparison_thread(comparison_id: int, thread_link: str) -> None:
     try:
         update_comparison_thread_link(comparison_id, thread_link)
         print(f"Updated thread link for comparison {comparison_id}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except sqlite3.Error as e:
+        print(f"Error: Failed to update comparison: {e}")
+        sys.exit(1)
+
+def record_comparison_results(comparison_id: int, started_at: str, ended_at: str, report_path: str, passed: bool) -> None:
+    """Record results for a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to update
+        started_at: Timestamp string for when the comparison started
+        ended_at: Timestamp string for when the comparison ended
+        report_path: Path to the HTML report file
+        passed: Boolean indicating if the comparison passed
+        failed: Boolean indicating if the comparison failed
+    
+    Raises:
+        ValueError: If both passed and failed are True, or if both are False
+    """
+    try:
+        try:
+            datetime.fromisoformat(started_at)
+            datetime.fromisoformat(ended_at)
+        except ValueError:
+            print("Error: Timestamps must be in ISO format (YYYY-MM-DDTHH:MM:SS)")
+            sys.exit(1)
+            
+        try:
+            with open(report_path, 'r', encoding='utf-8') as f:
+                report_content = f.read()
+        except FileNotFoundError:
+            print(f"Error: Report file not found at {report_path}")
+            sys.exit(1)
+        except IOError as e:
+            print(f"Error: Failed to read report file: {e}")
+            sys.exit(1)
+            
+        update_comparison_results(comparison_id, started_at, ended_at, report_content, passed)
+        result = "passed" if passed else "failed"
+        print(f"Updated results for comparison {comparison_id} - {result}")
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
