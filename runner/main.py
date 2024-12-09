@@ -82,6 +82,20 @@ def main():
         help="ID of the comparison to print"
     )
     
+    add_thread_parser = comparisons_subparsers.add_parser("add-thread", help="Add thread link to a comparison")
+    add_thread_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison"
+    )
+    add_thread_parser.add_argument(
+        "--link",
+        type=str,
+        required=True,
+        help="URL of the thread where the comparison was posted"
+    )
+    
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
     
@@ -282,6 +296,8 @@ def main():
             cmd.list_comparisons()
         elif args.comparisons_command == "print":
             cmd.print_comparison(args.id)
+        elif args.comparisons_command == "add-thread":
+            cmd.add_comparison_thread(args.id, args.link)
         else:
             comparisons_parser.print_help()
             sys.exit(1)

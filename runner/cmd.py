@@ -16,6 +16,7 @@ from runner.db import (
     record_deployment,
     validate_comparison_deployment_ids,
     get_comparison,
+    update_comparison_thread_link,
 )
 from runner.models import Deployment
 from runner.workflows import (
@@ -851,3 +852,20 @@ def get_pr_title(pr_number: int) -> str:
         return response.json()["title"]
     except (requests.RequestException, KeyError) as e:
         raise RuntimeError(f"Failed to get PR title for PR #{pr_number}: {str(e)}")
+
+def add_comparison_thread(comparison_id: int, thread_link: str) -> None:
+    """Add or update the thread link for a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to update
+        thread_link: URL of the thread where the comparison was posted
+    """
+    try:
+        update_comparison_thread_link(comparison_id, thread_link)
+        print(f"Updated thread link for comparison {comparison_id}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except sqlite3.Error as e:
+        print(f"Error: Failed to update comparison: {e}")
+        sys.exit(1)

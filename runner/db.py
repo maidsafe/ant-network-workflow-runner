@@ -434,3 +434,35 @@ def get_comparison(comparison_id: int) -> Comparison:
         )
     finally:
         conn.close()
+
+def update_comparison_thread_link(comparison_id: int, thread_link: str) -> None:
+    """
+    Update the thread link for a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to update
+        thread_link: URL of the thread where the comparison was posted
+        
+    Raises:
+        ValueError: If comparison with given ID is not found
+    """
+    init_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE comparisons
+            SET thread_link = ?
+            WHERE id = ?
+            """,
+            (thread_link, comparison_id)
+        )
+        
+        if cursor.rowcount == 0:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+            
+        conn.commit()
+    finally:
+        conn.close()
