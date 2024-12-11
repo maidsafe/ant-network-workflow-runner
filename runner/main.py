@@ -313,6 +313,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    network_status_parser = subparsers.add_parser("network-status", help="Check status of testnet nodes")
+    network_status_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    network_status_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -385,6 +397,9 @@ def main():
     elif args.command == "upscale-network":
         config = load_yaml_config(args.path)
         cmd.upscale_network(config, args.branch, args.force)
+    elif args.command == "network-status":
+        config = load_yaml_config(args.path)
+        cmd.network_status(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

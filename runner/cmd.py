@@ -26,6 +26,7 @@ from runner.workflows import (
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
     LaunchLegacyNetworkWorkflow,
+    NetworkStatusWorkflow,
     NodeType,
     StartNodesWorkflow,
     StartTelegrafWorkflow,
@@ -46,6 +47,7 @@ DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
+NETWORK_STATUS_WORKFLOW_ID = 109501466
 START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 113666375
 STOP_NODES_WORKFLOW_ID = 126356854
@@ -932,3 +934,24 @@ def record_comparison_results(comparison_id: int, started_at: str, ended_at: str
     except sqlite3.Error as e:
         print(f"Error: Failed to update comparison: {e}")
         sys.exit(1)
+
+def network_status(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Check status of nodes in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = NetworkStatusWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=NETWORK_STATUS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)

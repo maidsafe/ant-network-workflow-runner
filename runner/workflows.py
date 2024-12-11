@@ -770,3 +770,26 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
 
         return inputs
+
+class NetworkStatusWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int, 
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Network Status")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the network status workflow."""
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
