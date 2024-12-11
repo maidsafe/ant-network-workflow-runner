@@ -422,7 +422,7 @@ def get_comparison(comparison_id: int) -> Comparison:
         
         cursor.execute("""
             SELECT id, test_id, ref_id, thread_link, created_at, report, result_recorded_at,
-                started_at, ended_at, ref_version, test_version
+                started_at, ended_at, ref_version, test_version, passed
             FROM comparisons
             WHERE id = ?
         """, (comparison_id,))
@@ -445,7 +445,8 @@ def get_comparison(comparison_id: int) -> Comparison:
             started_at=datetime.fromisoformat(row[7]) if row[7] else None,
             ended_at=datetime.fromisoformat(row[8]) if row[8] else None,
             ref_version=row[9] if row[9] else None,
-            test_version=row[10] if row[10] else None
+            test_version=row[10] if row[10] else None,
+            passed=row[11] if row[11] else None
         )
     finally:
         conn.close()

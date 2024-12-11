@@ -824,8 +824,8 @@ def print_comparison(comparison_id: int) -> None:
     if comparison.test_deployment.related_pr:
         pr_title = get_pr_title(comparison.test_deployment.related_pr)
         test_title = f"{pr_title} [#{comparison.test_deployment.related_pr}]"
-    elif comparison.test_deployment.test_version:
-        test_title = comparison.test_deployment.test_version
+    elif comparison.test_deployment.branch:
+        test_title = f"{comparison.test_deployment.repo_owner}/{comparison.test_deployment.branch}"
 
     print()
     if comparison.thread_link:
