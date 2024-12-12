@@ -58,46 +58,46 @@ UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
-        "bootstrap_node_count": 1,
+        "peer_cache_node_count": 1,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "bootstrap_vm_count": 1,
+        "peer_cache_vm_count": 1,
         "generic_vm_count": 10,
         "private_vm_count": 1,
         "uploader_vm_count": 1,
-        "bootstrap_node_vm_size": "s-2vcpu-4gb",
+        "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
         "private_node_vm_size": "s-4vcpu-8gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "staging": {
-        "bootstrap_node_count": 1,
+        "peer_cache_node_count": 1,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "bootstrap_vm_count": 2,
+        "peer_cache_vm_count": 2,
         "generic_vm_count": 39,
         "private_vm_count": 1,
         "uploader_vm_count": 2,
-        "bootstrap_node_vm_size": "s-2vcpu-4gb",
+        "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
         "private_node_vm_size": "s-4vcpu-8gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "production": {
-        "bootstrap_node_count": 1,
+        "peer_cache_node_count": 1,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "bootstrap_vm_count": 2,
+        "peer_cache_vm_count": 2,
         "generic_vm_count": 39,
         "private_vm_count": 1,
         "uploader_vm_count": 2,
-        "bootstrap_node_vm_size": "s-8vcpu-16gb",
+        "peer_cache_node_vm_size": "s-8vcpu-16gb",
         "generic_node_vm_size": "s-8vcpu-16gb",
         "private_node_vm_size": "s-8vcpu-16gb",
         "uploader_vm_size": "s-8vcpu-16gb"
@@ -595,10 +595,10 @@ def list_deployments(show_details: bool = False) -> None:
         if show_details:
             for deployment in deployments:
                 (id, _, name, ant_version, antnode_version, antctl_version,
-                 branch, repo_owner, chunk_size, antnode_features, bootstrap_node_count,
+                 branch, repo_owner, chunk_size, antnode_features, peer_cache_node_count,
                  generic_node_count, private_node_count, _, uploader_count,
-                 bootstrap_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
-                 bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
+                 peer_cache_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
+                 peer_cache_node_vm_size, generic_node_vm_size, private_node_vm_size,
                  uploader_vm_size, evm_network_type, _, max_log_files,
                  max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
                  evm_rpc_url, related_pr, triggered_at, run_id) = deployment
@@ -642,10 +642,20 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"==================")
                 print(f"Node Configuration")
                 print(f"==================")
-                print(f"Bootstrap nodes: {bootstrap_vm_count}x{bootstrap_node_count} [{bootstrap_node_vm_size}]")
+                print(f"Peer cache nodes: {peer_cache_vm_count}x{peer_cache_node_count} [{peer_cache_node_vm_size}]")
                 print(f"Generic nodes: {generic_vm_count}x{generic_node_count} [{generic_node_vm_size}]")
                 print(f"Private nodes: {private_vm_count}x{private_node_count} [{private_node_vm_size}]")
-                print(f"Uploaders: {uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
+                total_nodes = (peer_cache_vm_count * peer_cache_node_count + 
+                               generic_vm_count * generic_node_count +
+                               private_vm_count * private_node_count)
+                print(f"Total: {total_nodes}")
+
+                print(f"======================")
+                print(f"Uploader Configuration")
+                print(f"======================")
+                print(f"{uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
+                total_uploaders = uploader_vm_count * uploader_count
+                print(f"Total: {total_uploaders}")
 
                 if max_log_files or max_archived_log_files:
                     print(f"==================")
@@ -771,10 +781,10 @@ def print_deployment_for_comparison(deployment: Deployment) -> None:
     print(f"==================")
     print(f"Node Configuration")
     print(f"==================")
-    print(f"Bootstrap nodes: {deployment.bootstrap_vm_count}x{deployment.bootstrap_node_count} [{deployment.bootstrap_node_vm_size}]")
+    print(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
     print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
     print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
-    total_nodes = (deployment.bootstrap_vm_count * deployment.bootstrap_node_count + 
+    total_nodes = (deployment.peer_cache_vm_count * deployment.peer_cache_node_count + 
                    deployment.generic_vm_count * deployment.generic_node_count +
                    deployment.private_vm_count * deployment.private_node_count)
     print(f"Total: {total_nodes}")

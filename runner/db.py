@@ -38,16 +38,16 @@ def init_db() -> None:
                 repo_owner TEXT,
                 chunk_size INTEGER,
                 antnode_features TEXT,
-                bootstrap_node_count INTEGER NOT NULL,
+                peer_cache_node_count INTEGER NOT NULL,
                 generic_node_count INTEGER NOT NULL,
                 private_node_count INTEGER NOT NULL,
                 downloader_count INTEGER NOT NULL,
                 uploader_count INTEGER NOT NULL,
-                bootstrap_vm_count INTEGER NOT NULL,
+                peer_cache_vm_count INTEGER NOT NULL,
                 generic_vm_count INTEGER NOT NULL,
                 private_vm_count INTEGER NOT NULL,
                 uploader_vm_count INTEGER NOT NULL,
-                bootstrap_node_vm_size TEXT NOT NULL,
+                peer_cache_node_vm_size TEXT NOT NULL,
                 generic_node_vm_size TEXT NOT NULL,
                 private_node_vm_size TEXT NOT NULL,
                 uploader_vm_size TEXT NOT NULL,
@@ -59,6 +59,7 @@ def init_db() -> None:
                 evm_payment_token_address TEXT,
                 evm_rpc_url TEXT,
                 related_pr INTEGER,
+                network_id INTEGER,
                 FOREIGN KEY (workflow_run_id) REFERENCES workflow_runs(id)
             )
         """)
@@ -171,15 +172,15 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 workflow_run_id, name, ant_version,
                 antnode_version, antctl_version, branch,
                 repo_owner, chunk_size, antnode_features,
-                bootstrap_node_count, generic_node_count, private_node_count,
-                downloader_count, uploader_count, bootstrap_vm_count,
+                peer_cache_node_count, generic_node_count, private_node_count,
+                downloader_count, uploader_count, peer_cache_vm_count,
                 generic_vm_count, private_vm_count, uploader_vm_count,
-                bootstrap_node_vm_size, generic_node_vm_size, private_node_vm_size,
+                peer_cache_node_vm_size, generic_node_vm_size, private_node_vm_size,
                 uploader_vm_size, evm_network_type, rewards_address,
                 max_log_files, max_archived_log_files, evm_data_payments_address,
-                evm_payment_token_address, evm_rpc_url, related_pr
+                evm_payment_token_address, evm_rpc_url, related_pr, network_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 workflow_run_id,
@@ -191,16 +192,16 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("repo-owner"),
                 config.get("chunk-size"),
                 features,
-                config.get("bootstrap-node-count", defaults["bootstrap_node_count"]),
+                config.get("peer-cache-node-count", defaults["peer_cache_node_count"]),
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),
                 config.get("downloader-count", defaults["downloader_count"]),
                 config.get("uploader-count", defaults["uploader_count"]),
-                config.get("bootstrap-vm-count", defaults["bootstrap_vm_count"]),
+                config.get("peer-cache-vm-count", defaults["peer_cache_vm_count"]),
                 config.get("generic-vm-count", defaults["generic_vm_count"]),
                 config.get("private-vm-count", defaults["private_vm_count"]),
                 config.get("uploader-vm-count", defaults["uploader_vm_count"]),
-                config.get("bootstrap-node-vm-size", defaults["bootstrap_node_vm_size"]),
+                config.get("peer-cache-node-vm-size", defaults["peer_cache_node_vm_size"]),
                 config.get("node-vm-size", defaults["generic_node_vm_size"]),
                 config.get("node-vm-size", defaults["private_node_vm_size"]),
                 config.get("uploader-vm-size", defaults["uploader_vm_size"]),
@@ -211,7 +212,8 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("evm-data-payments-address"),
                 config.get("evm-payment-token-address"),
                 config.get("evm-rpc-url"),
-                config.get("related-pr")
+                config.get("related-pr"),
+                config.get("network-id") if not is_legacy else None
             )
         )
         conn.commit()

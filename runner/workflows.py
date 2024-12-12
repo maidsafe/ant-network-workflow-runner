@@ -413,11 +413,16 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address"]
+        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
                 
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 2 or network_id > 255:
+                raise ValueError("network-id must be an integer between 2 and 255")
+
         has_versions = any([
             "ant-version" in self.config,
             "antnode-version" in self.config,
@@ -476,6 +481,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
+            "network-id": "--network-id",
             "node-vm-size": "--node-vm-size",
             "public-rpc": "--public-rpc",
             "repo-owner": "--repo-owner",

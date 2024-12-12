@@ -13,16 +13,16 @@ class Deployment:
     repo_owner: Optional[str]
     chunk_size: Optional[int]
     antnode_features: Optional[str]
-    bootstrap_node_count: int
+    peer_cache_node_count: int
     generic_node_count: int
     private_node_count: int
     downloader_count: int
     uploader_count: int
-    bootstrap_vm_count: int
+    peer_cache_vm_count: int
     generic_vm_count: int
     private_vm_count: int
     uploader_vm_count: int
-    bootstrap_node_vm_size: str
+    peer_cache_node_vm_size: str
     generic_node_vm_size: str
     private_node_vm_size: str
     uploader_vm_size: str
@@ -34,6 +34,7 @@ class Deployment:
     evm_payment_token_address: Optional[str]
     evm_rpc_url: Optional[str]
     related_pr: Optional[int]
+    network_id: Optional[int]
     triggered_at: datetime
     run_id: int
 
