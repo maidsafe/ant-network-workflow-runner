@@ -39,7 +39,7 @@ def main():
     )
     parser.add_argument(
         "--branch",
-        default="rc-2024.12.1-peer_cache",
+        default="rc-2024.12.1",
         help="GitHub branch name (default: main)"
     )
     

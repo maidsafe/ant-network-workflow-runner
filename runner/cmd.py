@@ -603,7 +603,7 @@ def list_deployments(show_details: bool = False) -> None:
                  peer_cache_node_vm_size, generic_node_vm_size, private_node_vm_size,
                  uploader_vm_size, evm_network_type, _, max_log_files,
                  max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
-                 evm_rpc_url, related_pr, triggered_at, run_id) = deployment
+                 evm_rpc_url, related_pr, network_id, triggered_at, run_id) = deployment
                 
                 timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
                 rprint(f"Name: [green]{name}[/green]")

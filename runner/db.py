@@ -378,16 +378,16 @@ def get_deployment_by_id(cursor: sqlite3.Cursor, deployment_id: int) -> Deployme
         repo_owner=row[7],
         chunk_size=row[8],
         antnode_features=row[9],
-        bootstrap_node_count=row[10],
+        peer_cache_node_count=row[10],
         generic_node_count=row[11],
         private_node_count=row[12],
         downloader_count=row[13],
         uploader_count=row[14],
-        bootstrap_vm_count=row[15],
+        peer_cache_vm_count=row[15],
         generic_vm_count=row[16],
         private_vm_count=row[17],
         uploader_vm_count=row[18],
-        bootstrap_node_vm_size=row[19],
+        peer_cache_node_vm_size=row[19],
         generic_node_vm_size=row[20],
         private_node_vm_size=row[21],
         uploader_vm_size=row[22],
@@ -399,8 +399,9 @@ def get_deployment_by_id(cursor: sqlite3.Cursor, deployment_id: int) -> Deployme
         evm_payment_token_address=row[28],
         evm_rpc_url=row[29],
         related_pr=row[30],
-        triggered_at=datetime.fromisoformat(row[31]),
-        run_id=row[32]
+        network_id=row[31],
+        triggered_at=datetime.fromisoformat(row[32]),
+        run_id=row[33]
     )
 
 def get_comparison(comparison_id: int) -> Comparison:
