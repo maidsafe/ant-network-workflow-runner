@@ -60,12 +60,12 @@ UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
-        "peer_cache_node_count": 1,
+        "peer_cache_node_count": 5,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "peer_cache_vm_count": 1,
+        "peer_cache_vm_count": 3,
         "generic_vm_count": 10,
         "private_vm_count": 1,
         "uploader_vm_count": 1,
@@ -75,12 +75,12 @@ ENVIRONMENT_DEFAULTS = {
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "staging": {
-        "peer_cache_node_count": 1,
+        "peer_cache_node_count": 5,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "peer_cache_vm_count": 2,
+        "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
         "private_vm_count": 1,
         "uploader_vm_count": 2,
@@ -90,12 +90,12 @@ ENVIRONMENT_DEFAULTS = {
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "production": {
-        "peer_cache_node_count": 1,
+        "peer_cache_node_count": 5,
         "generic_node_count": 25,
         "private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
-        "peer_cache_vm_count": 2,
+        "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
         "private_vm_count": 1,
         "uploader_vm_count": 2,
@@ -797,7 +797,6 @@ def print_deployment_for_comparison(deployment: Deployment) -> None:
     print(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
     total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
     print(f"Total: {total_uploaders}")
-
 
     if deployment.max_log_files or deployment.max_archived_log_files:
         print(f"==================")
