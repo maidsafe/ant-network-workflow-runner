@@ -333,6 +333,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    start_uploaders_parser = subparsers.add_parser("start-uploaders", help="Start uploaders on testnet nodes")
+    start_uploaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_uploaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -410,6 +422,9 @@ def main():
     elif args.command == "network-status":
         config = load_yaml_config(args.path)
         cmd.network_status(config, args.branch, args.force)
+    elif args.command == "start-uploaders":
+        config = load_yaml_config(args.path)
+        cmd.start_uploaders(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

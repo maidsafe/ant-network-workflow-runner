@@ -30,6 +30,7 @@ from runner.workflows import (
     NodeType,
     StartNodesWorkflow,
     StartTelegrafWorkflow,
+    StartUploadersWorkflow,
     StopNodesWorkflowRun,
     StopTelegrafWorkflow,
     UpdatePeerWorkflow,
@@ -50,6 +51,7 @@ LAUNCH_NETWORK_WORKFLOW_ID = 58844793
 NETWORK_STATUS_WORKFLOW_ID = 109501466
 START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 113666375
+START_UPLOADERS_WORKFLOW_ID = 116345515
 STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
 UPDATE_PEER_WORKFLOW_ID = 127823614
@@ -518,6 +520,26 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False) -
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
+
+def start_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Start uploaders in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartUploadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_UPLOADERS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
 
 def _execute_workflow(workflow, force: bool = False) -> None:
     """
