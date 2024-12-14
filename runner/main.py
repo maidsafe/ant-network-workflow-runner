@@ -345,6 +345,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    stop_uploaders_parser = subparsers.add_parser("stop-uploaders", help="Stop uploaders on testnet nodes")
+    stop_uploaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    stop_uploaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -392,18 +404,27 @@ def main():
         cmd.launch_legacy_network(config, "main", args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
+    elif args.command == "network-status":
+        config = load_yaml_config(args.path)
+        cmd.network_status(config, args.branch, args.force)
     elif args.command == "start-nodes":
         config = load_yaml_config(args.path)
         cmd.start_nodes(config, args.branch, args.force)
     elif args.command == "start-telegraf":
         config = load_yaml_config(args.path)
         cmd.start_telegraf(config, args.branch, args.force)
+    elif args.command == "start-uploaders":
+        config = load_yaml_config(args.path)
+        cmd.start_uploaders(config, args.branch, args.force)
     elif args.command == "stop-nodes":
         config = load_yaml_config(args.path)
         cmd.stop_nodes(config, args.branch, args.force)
     elif args.command == "stop-telegraf":
         config = load_yaml_config(args.path)
         cmd.stop_telegraf(config, args.branch, args.force)
+    elif args.command == "stop-uploaders":
+        config = load_yaml_config(args.path)
+        cmd.stop_uploaders(config, args.branch, args.force)
     elif args.command == "update-peer":
         config = load_yaml_config(args.path)
         cmd.update_peer(config, args.branch, args.force)
@@ -419,12 +440,6 @@ def main():
     elif args.command == "upscale-network":
         config = load_yaml_config(args.path)
         cmd.upscale_network(config, args.branch, args.force)
-    elif args.command == "network-status":
-        config = load_yaml_config(args.path)
-        cmd.network_status(config, args.branch, args.force)
-    elif args.command == "start-uploaders":
-        config = load_yaml_config(args.path)
-        cmd.start_uploaders(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

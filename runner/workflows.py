@@ -812,3 +812,31 @@ class StartUploadersWorkflow(WorkflowRun):
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
+
+class StopUploadersWorkflow(WorkflowRun):
+    """Workflow for stopping uploaders on testnet nodes."""
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        id: int,
+        personal_access_token: str,
+        branch_name: str,
+        network_name: str,
+        testnet_deploy_args: Optional[str] = None
+    ):
+        super().__init__(owner, repo, id, personal_access_token)
+        self.branch_name = branch_name
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get the inputs for the workflow."""
+        inputs = {
+            "network-name": self.network_name
+        }
+        
+        if self.testnet_deploy_args:
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
