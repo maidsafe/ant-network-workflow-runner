@@ -357,6 +357,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    drain_funds_parser = subparsers.add_parser("drain-funds", help="Drain funds from network nodes")
+    drain_funds_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    drain_funds_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -393,6 +405,9 @@ def main():
     elif args.command == "destroy-network":
         config = load_yaml_config(args.path)
         cmd.destroy_network(config, args.branch, args.force)
+    elif args.command == "drain-funds":
+        config = load_yaml_config(args.path)
+        cmd.drain_funds(config, args.branch, args.force)
     elif args.command == "kill-droplets":
         config = load_yaml_config(args.path)
         cmd.kill_droplets(config, args.branch, args.force)

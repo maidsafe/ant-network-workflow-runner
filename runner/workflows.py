@@ -825,8 +825,7 @@ class StopUploadersWorkflow(WorkflowRun):
         network_name: str,
         testnet_deploy_args: Optional[str] = None
     ):
-        super().__init__(owner, repo, id, personal_access_token)
-        self.branch_name = branch_name
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Uploaders")
         self.network_name = network_name
         self.testnet_deploy_args = testnet_deploy_args
 
@@ -837,6 +836,29 @@ class StopUploadersWorkflow(WorkflowRun):
         }
         
         if self.testnet_deploy_args:
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class DrainFundsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, to_address: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Drain Funds")
+        self.network_name = network_name
+        self.to_address = to_address
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the drain funds workflow."""
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.to_address is not None:
+            inputs["to-address"] = self.to_address
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs

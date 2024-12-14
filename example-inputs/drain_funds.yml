@@ -1,0 +1,12 @@
+# Required
+network-name: DEV-03
+
+# Optional
+# The address that will receive all the tokens and gas
+# Defaults to the address used when the environment was created.
+to-address: 0x1234567890123456789012345678901234567890
+
+# testnet-deploy options
+testnet-deploy-branch: experimental
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.65 

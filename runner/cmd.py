@@ -23,6 +23,7 @@ from runner.models import Deployment
 from runner.workflows import (
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
+    DrainFundsWorkflow,
     KillDropletsWorkflow,
     LaunchNetworkWorkflow,
     LaunchLegacyNetworkWorkflow,
@@ -47,6 +48,7 @@ AUTONOMI_REPO_NAME = "autonomi"
 
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
+DRAIN_FUNDS_WORKFLOW_ID = 125539749
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
 NETWORK_STATUS_WORKFLOW_ID = 109501466
@@ -559,6 +561,27 @@ def stop_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
         personal_access_token=get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)
+
+def drain_funds(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Drain funds from network nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = DrainFundsWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=DRAIN_FUNDS_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        to_address=config.get("to-address"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
