@@ -128,6 +128,14 @@ def main():
         help="Mark the comparison as passed"
     )
     
+    comparisons_post_parser = comparisons_subparsers.add_parser("post", help="Post a comparison report to Slack")
+    comparisons_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison to post"
+    )
+    
     deployment_parser = subparsers.add_parser("deployment", help="Manage deployments")
     deployment_subparsers = deployment_parser.add_subparsers(dest="deployment_command", help="Available deployment commands")
     
@@ -344,6 +352,8 @@ def main():
             cmd.add_comparison_thread(args.id, args.link)
         elif args.comparisons_command == "record-results":
             cmd.record_comparison_results(args.id, args.start, args.end, args.path, args.passed)
+        elif args.comparisons_command == "post":
+            cmd.post_comparison(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)

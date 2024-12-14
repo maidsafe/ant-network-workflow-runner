@@ -3,7 +3,7 @@ import sqlite3
 import os
 import sys
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import requests
 from rich import print as rprint
@@ -682,7 +682,7 @@ def list_deployments(show_details: bool = False) -> None:
                 print("-" * 61)
         else:
             print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15}")
-            print("-" * 61)
+            print("-" * 60)
             
             for deployment in deployments:
                 id = deployment[0]
@@ -820,37 +820,257 @@ def print_deployment_for_comparison(deployment: Deployment) -> None:
         if deployment.evm_rpc_url:
             print(f"RPC URL: {deployment.evm_rpc_url}")
 
-def print_comparison(comparison_id: int) -> None:
-    """Print detailed information about a specific comparison."""
+def build_comparison_report(comparison_id: int) -> str:
+    """Build a detailed report about a specific comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to report on
+        
+    Returns:
+        str: The formatted comparison report
+        
+    Raises:
+        ValueError: If comparison with given ID is not found
+    """
     comparison = get_comparison(comparison_id)
     if not comparison:
-        print(f"Error: Comparison with ID {comparison_id} not found")
-        return
+        raise ValueError(f"Comparison with ID {comparison_id} not found")
         
-    print("========================")
-    print("*ENVIRONMENT COMPARISON*")
-    print("========================")
+    lines = []
+    lines.append("============================")
+    lines.append("   *ENVIRONMENT COMPARISON*  ")
+    lines.append("============================")
+    lines.append("")
 
     test_title = ""
-    if comparison.test_deployment.related_pr:
+    if comparison.test_version:
+        test_title = f"{comparison.test_version}"
+    elif comparison.test_deployment.related_pr:
         pr_title = get_pr_title(comparison.test_deployment.related_pr)
         test_title = f"{pr_title} [#{comparison.test_deployment.related_pr}]"
     elif comparison.test_deployment.branch:
         test_title = f"{comparison.test_deployment.repo_owner}/{comparison.test_deployment.branch}"
 
-    print()
     if comparison.thread_link:
-        print(f"Slack thread: {comparison.thread_link}")
+        lines.append(f"Slack thread: {comparison.thread_link}")
 
-    print(f"*TEST*: {test_title} [`{comparison.test_deployment.name}`]")
-    print(f"*REF*: {comparison.ref_version} [`{comparison.ref_deployment.name}`]")
-    print()
+    lines.append(f"*TEST*: {test_title} [`{comparison.test_deployment.name}`]")
+    lines.append(f"*REF*: {comparison.ref_version} [`{comparison.ref_deployment.name}`]")
+    lines.append("")
 
-    print(f"`{comparison.test_deployment.name}`:")
-    print_deployment_for_comparison(comparison.test_deployment)
-    print()
-    print(f"`{comparison.ref_deployment.name}`:")
-    print_deployment_for_comparison(comparison.ref_deployment)
+    lines.append(f"`{comparison.test_deployment.name}`:")
+    lines.append("```")
+    lines.extend(_format_deployment_details(comparison.test_deployment))
+    lines.append("```")
+    lines.append("")
+    lines.append(f"`{comparison.ref_deployment.name}`:")
+    lines.append("```")
+    lines.extend(_format_deployment_details(comparison.ref_deployment))
+    lines.append("```")
+
+    return "\n".join(lines)
+
+def _format_deployment_details(deployment: Deployment) -> List[str]:
+    """Format deployment details into a list of strings.
+    
+    Args:
+        deployment: The deployment to format
+        
+    Returns:
+        List[str]: Lines of formatted deployment details
+    """
+    lines = []
+    lines.append(f"Deployed: {deployment.triggered_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    evm_type_display = {
+        "anvil": "Anvil",
+        "arbitrum-one": "Arbitrum One",
+        "arbitrum-sepolia": "Arbitrum Sepolia", 
+        "custom": "Custom"
+    }.get(deployment.evm_network_type, deployment.evm_network_type)
+    
+    lines.append(f"EVM Type: {evm_type_display}")
+    lines.append(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
+    
+    if deployment.related_pr:
+        lines.append(f"Related PR: #{deployment.related_pr}")
+        lines.append(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
+
+    if deployment.ant_version:
+        lines.append(f"===============")
+        lines.append(f"Version Details")
+        lines.append(f"===============")
+        lines.append(f"Ant: {deployment.ant_version}")
+        lines.append(f"Antnode: {deployment.antnode_version}")
+        lines.append(f"Antctl: {deployment.antctl_version}")
+
+    if deployment.branch:
+        lines.append(f"=====================")
+        lines.append(f"Custom Branch Details")
+        lines.append(f"=====================")
+        lines.append(f"Branch: {deployment.branch}")
+        lines.append(f"Repo Owner: {deployment.repo_owner}")
+        lines.append(f"Link: https://github.com/{deployment.repo_owner}/{AUTONOMI_REPO_NAME}/tree/{deployment.branch}")
+        if deployment.chunk_size:
+            lines.append(f"Chunk Size: {deployment.chunk_size}")
+        if deployment.antnode_features:
+            lines.append(f"Antnode Features: {deployment.antnode_features}")
+
+    lines.append(f"==================")
+    lines.append(f"Node Configuration")
+    lines.append(f"==================")
+    lines.append(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
+    lines.append(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
+    lines.append(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+    total_nodes = (deployment.peer_cache_vm_count * deployment.peer_cache_node_count + 
+                   deployment.generic_vm_count * deployment.generic_node_count +
+                   deployment.private_vm_count * deployment.private_node_count)
+    lines.append(f"Total: {total_nodes}")
+
+    lines.append(f"======================")
+    lines.append(f"Uploader Configuration")
+    lines.append(f"======================")
+    lines.append(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
+    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
+    lines.append(f"Total: {total_uploaders}")
+
+    if deployment.max_log_files or deployment.max_archived_log_files:
+        lines.append(f"==================")
+        lines.append(f"Misc Configuration")
+        lines.append(f"==================")
+        if deployment.max_log_files:
+            lines.append(f"Max log files: {deployment.max_log_files}")
+        if deployment.max_archived_log_files:
+            lines.append(f"Max archived log files: {deployment.max_archived_log_files}")
+        
+    if any([deployment.evm_data_payments_address, 
+            deployment.evm_payment_token_address, 
+            deployment.evm_rpc_url]):
+        lines.append(f"=================")
+        lines.append(f"EVM Configuration")
+        lines.append(f"=================")
+        if deployment.evm_data_payments_address:
+            lines.append(f"Data Payments Address: {deployment.evm_data_payments_address}")
+        if deployment.evm_payment_token_address:
+            lines.append(f"Payment Token Address: {deployment.evm_payment_token_address}")
+        if deployment.evm_rpc_url:
+            lines.append(f"RPC URL: {deployment.evm_rpc_url}")
+            
+    return lines
+
+def print_comparison(comparison_id: int) -> None:
+    """Print detailed information about a specific comparison."""
+    try:
+        report = build_comparison_report(comparison_id)
+        print(report)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+def post_comparison(comparison_id: int) -> None:
+    """Post a comparison report to Slack.
+    
+    Args:
+        comparison_id: ID of the comparison to post
+    """
+    webhook_url = os.getenv("ANT_RUNNER_COMPARISON_WEBHOOK_URL")
+    if not webhook_url:
+        print("Error: ANT_RUNNER_COMPARISON_WEBHOOK_URL environment variable is not set")
+        sys.exit(1)
+        
+    try:
+        report = build_comparison_report(comparison_id)
+        
+        print("\nSmoke test for TEST environment:")
+        test_results = _get_smoke_test_responses()
+        
+        print("\nSmoke test for REF environment:")
+        ref_results = _get_smoke_test_responses()
+        
+        smoke_test_report = _build_smoke_test_report(test_results, ref_results)
+        
+        full_report = f"{report}\n\n{smoke_test_report}"
+        
+        response = requests.post(
+            webhook_url,
+            json={"text": full_report},
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        
+        print(f"Successfully posted comparison {comparison_id} to Slack")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error posting to Slack: {e}")
+        sys.exit(1)
+
+def _get_smoke_test_responses() -> dict:
+    """Get user responses for smoke test questions.
+    
+    Returns:
+        dict: Dictionary containing smoke test responses
+    """
+    import questionary
+    
+    questions = {
+        "antnode_version": "Is the `antnode` version correct?",
+        "antctl_version": "Is the `antctl` version correct?",
+        "nodes_running": "Are all nodes running?",
+        "wallets_funded": "Are the uploader wallets funded?",
+        "ant_version": "Is the `ant` version correct?",
+        "uploaders_running": "Are the uploaders running without errors?",
+        "dashboard_receiving": "Is the monitoring dashboard receiving data?"
+    }
+    
+    responses = {}
+    for key, question in questions.items():
+        response = questionary.confirm(question).ask()
+        responses[key] = response
+        
+    return responses
+
+def _build_smoke_test_report(test_results: dict, ref_results: dict) -> str:
+    """Build smoke test report section.
+    
+    Args:
+        test_results: Dictionary containing TEST environment responses
+        ref_results: Dictionary containing REF environment responses
+        
+    Returns:
+        str: Formatted smoke test report
+    """
+    lines = []
+    lines.append("----------------")
+    lines.append("  Smoke Test  ")
+    lines.append("----------------")
+    
+    lines.append("`TEST`:")
+    lines.extend([
+        f"{'✅' if test_results['antnode_version'] else '❌'}`antnode` version is correct",
+        f"{'✅' if test_results['antctl_version'] else '❌'}`antctl` version is correct",
+        f"{'✅' if test_results['nodes_running'] else '❌'}All nodes running",
+        f"{'✅' if test_results['wallets_funded'] else '❌'}Uploader wallets funded",
+        f"{'✅' if test_results['ant_version'] else '❌'}`ant` version is correct",
+        f"{'✅' if test_results['uploaders_running'] else '❌'}Uploaders running without errors",
+        f"{'✅' if test_results['dashboard_receiving'] else '❌'}Dashboard receiving data"
+    ])
+    
+    lines.append("")
+    
+    lines.append("`REF`:")
+    lines.extend([
+        f"{'✅' if ref_results['antnode_version'] else '❌'}`safenode` version is correct",
+        f"{'✅' if ref_results['antctl_version'] else '❌'}`safenode-manager` version is correct",
+        f"{'✅' if ref_results['nodes_running'] else '❌'}All nodes running",
+        f"{'✅' if ref_results['wallets_funded'] else '❌'}Uploader wallets funded",
+        f"{'✅' if ref_results['ant_version'] else '❌'}`autonomi` version is correct",
+        f"{'✅' if ref_results['uploaders_running'] else '❌'}Uploaders running without errors",
+        f"{'✅' if ref_results['dashboard_receiving'] else '❌'}Dashboard receiving data"
+    ])
+    
+    return "\n".join(lines)
 
 def get_pr_title(pr_number: int) -> str:
     """
