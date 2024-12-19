@@ -401,7 +401,7 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         raise KeyError("network-name")
     
     node_counts = [
-        "bootstrap-node-count",
+        "peer-cache-node-count",
         "generic-node-count", 
         "private-node-count",
         "downloader-count",
@@ -409,7 +409,7 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
     ]
     
     vm_counts = [
-        "bootstrap-vm-count",
+        "peer-cache-vm-count",
         "generic-vm-count",
         "private-vm-count",
         "uploader-vm-count"
@@ -435,9 +435,9 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         branch_name=branch_name,
         network_name=config["network-name"],
         desired_counts=desired_counts,
-        autonomi_version=config.get("autonomi-version"),
-        safenode_version=config.get("safenode-version"),
-        safenode_manager_version=config.get("safenode-manager-version"),
+        ant_version=config.get("ant-version"),
+        antnode_version=config.get("antnode-version"),
+        antctl_version=config.get("antctl-version"),
         infra_only=config.get("infra-only"),
         interval=config.get("interval"),
         plan=config.get("plan"),

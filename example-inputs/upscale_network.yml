@@ -7,7 +7,7 @@ network-name: testnet-1
 # Desired node counts
 # Only supply inputs for the types you want to upscale, and remove the others.
 # Any other counts will remain the same.
-bootstrap-node-count: 10
+peer-cache-node-count: 10
 generic-node-count: 12
 private-node-count: 10
 downloader-count: 5
@@ -16,7 +16,7 @@ uploader-count: 2
 # Desired VM counts
 # Only supply inputs for the types you want to upscale, and remove the others.
 # Any other counts will remain the same.
-bootstrap-vm-count: 10
+peer-cache-vm-count: 10
 generic-vm-count: 12
 private-vm-count: 1
 uploader-vm-count: 2
@@ -24,9 +24,9 @@ uploader-vm-count: 2
 #
 # Binary versions
 #
-autonomi-version: 0.1.0
-safenode-version: 0.1.0
-safenode-manager-version: 0.1.0
+ant-version: 0.1.0
+antnode-version: 0.1.0
+antctl-version: 0.1.0
 
 # Set to only run Terraform and not Ansible.
 infra-only: false

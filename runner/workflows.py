@@ -543,9 +543,9 @@ class UpscaleNetworkWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,
                  network_name: str, desired_counts: str,
-                 autonomi_version: Optional[str] = None,
-                 safenode_version: Optional[str] = None,
-                 safenode_manager_version: Optional[str] = None,
+                 ant_version: Optional[str] = None,
+                 antnode_version: Optional[str] = None,
+                 antctl_version: Optional[str] = None,
                  infra_only: Optional[bool] = None,
                  interval: Optional[int] = None,
                  plan: Optional[bool] = None,
@@ -553,9 +553,9 @@ class UpscaleNetworkWorkflow(WorkflowRun):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upscale Network")
         self.network_name = network_name
         self.desired_counts = desired_counts
-        self.autonomi_version = autonomi_version
-        self.safenode_version = safenode_version
-        self.safenode_manager_version = safenode_manager_version
+        self.ant_version = ant_version
+        self.antnode_version = antnode_version
+        self.antctl_version = antctl_version
         self.infra_only = infra_only
         self.interval = interval
         self.plan = plan
@@ -568,12 +568,12 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "desired-counts": self.desired_counts
         }
         
-        if self.autonomi_version is not None:
-            inputs["autonomi-version"] = self.autonomi_version
-        if self.safenode_version is not None:
-            inputs["safenode-version"] = self.safenode_version
-        if self.safenode_manager_version is not None:
-            inputs["safenode-manager-version"] = self.safenode_manager_version
+        if self.ant_version is not None:
+            inputs["ant-version"] = self.ant_version
+        if self.antnode_version is not None:
+            inputs["antnode-version"] = self.antnode_version
+        if self.antctl_version is not None:
+            inputs["antctl-version"] = self.antctl_version
         if self.infra_only is not None:
             inputs["infra-only"] = str(self.infra_only).lower()
         if self.interval is not None:
