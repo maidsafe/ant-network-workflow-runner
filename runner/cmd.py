@@ -1082,13 +1082,15 @@ def _get_smoke_test_responses() -> dict:
     import questionary
     
     questions = {
+        "peer_cache_available": "Are the peer cache files accessible?",
         "antnode_version": "Is the `antnode` version correct?",
         "antctl_version": "Is the `antctl` version correct?",
         "nodes_running": "Are all nodes running?",
         "wallets_funded": "Are the uploader wallets funded?",
         "ant_version": "Is the `ant` version correct?",
         "uploaders_running": "Are the uploaders running without errors?",
-        "dashboard_receiving": "Is the monitoring dashboard receiving data?"
+        "dashboard_receiving": "Is the main monitoring dashboard receiving data?",
+        "uploader_dashboard_receiving": "Is the uploader monitoring dashboard receiving data?"
     }
     
     responses = {}
@@ -1115,26 +1117,30 @@ def _build_smoke_test_report(test_results: dict, ref_results: dict) -> str:
     
     lines.append("`TEST`:")
     lines.extend([
+        f"{'✅' if test_results['peer_cache_available'] else '❌'}Peer cache files available",
         f"{'✅' if test_results['antnode_version'] else '❌'}`antnode` version is correct",
         f"{'✅' if test_results['antctl_version'] else '❌'}`antctl` version is correct",
         f"{'✅' if test_results['nodes_running'] else '❌'}All nodes running",
         f"{'✅' if test_results['wallets_funded'] else '❌'}Uploader wallets funded",
         f"{'✅' if test_results['ant_version'] else '❌'}`ant` version is correct",
         f"{'✅' if test_results['uploaders_running'] else '❌'}Uploaders running without errors",
-        f"{'✅' if test_results['dashboard_receiving'] else '❌'}Dashboard receiving data"
+        f"{'✅' if test_results['dashboard_receiving'] else '❌'}Main monitoring dashboard receiving data",
+        f"{'✅' if test_results['uploader_dashboard_receiving'] else '❌'}Uploader monitoring dashboard receiving data"
     ])
     
     lines.append("")
     
     lines.append("`REF`:")
     lines.extend([
-        f"{'✅' if ref_results['antnode_version'] else '❌'}`safenode` version is correct",
-        f"{'✅' if ref_results['antctl_version'] else '❌'}`safenode-manager` version is correct",
+        f"{'✅' if test_results['peer_cache_available'] else '❌'}Peer cache files available",
+        f"{'✅' if ref_results['antnode_version'] else '❌'}`antnode` version is correct",
+        f"{'✅' if ref_results['antctl_version'] else '❌'}`antctl` version is correct",
         f"{'✅' if ref_results['nodes_running'] else '❌'}All nodes running",
         f"{'✅' if ref_results['wallets_funded'] else '❌'}Uploader wallets funded",
-        f"{'✅' if ref_results['ant_version'] else '❌'}`autonomi` version is correct",
+        f"{'✅' if ref_results['ant_version'] else '❌'}`ant` version is correct",
         f"{'✅' if ref_results['uploaders_running'] else '❌'}Uploaders running without errors",
-        f"{'✅' if ref_results['dashboard_receiving'] else '❌'}Dashboard receiving data"
+        f"{'✅' if ref_results['dashboard_receiving'] else '❌'}Main monitoring dashboard receiving data",
+        f"{'✅' if test_results['uploader_dashboard_receiving'] else '❌'}Uploader monitoring dashboard receiving data"
     ])
     
     return "\n".join(lines)
