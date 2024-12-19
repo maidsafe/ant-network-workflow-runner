@@ -420,8 +420,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
                 
         if "network-id" in self.config:
             network_id = self.config["network-id"]
-            if not isinstance(network_id, int) or network_id < 2 or network_id > 255:
-                raise ValueError("network-id must be an integer between 2 and 255")
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
 
         has_versions = any([
             "ant-version" in self.config,
