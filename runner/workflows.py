@@ -454,13 +454,13 @@ class LaunchNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['ant-version']},{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
-        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
+        for count_type in ["peer-cache-node-count", "generic-node-count", "private-node-count", 
                           "downloader-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
-        for count_type in ["bootstrap-vm-count", "generic-vm-count", "private-vm-count", 
+        for count_type in ["peer-cache-vm-count", "generic-vm-count", "private-vm-count", 
                           "uploader-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
