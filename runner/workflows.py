@@ -12,7 +12,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from runner.db import record_workflow_run
 
 class NodeType(Enum):
-    BOOTSTRAP = "bootstrap"
+    PEER_CACHE = "peer-cache"
     GENESIS = "genesis"
     GENERIC = "generic"
     PRIVATE = "private"
@@ -861,4 +861,108 @@ class DrainFundsWorkflow(WorkflowRun):
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
+        return inputs
+
+class BootstrapNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, network_name: str,
+                 peer: str, environment_type: str, config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Bootstrap Network")
+        self.network_name = network_name
+        self.peer = peer
+        self.environment_type = environment_type
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["network-name", "environment-type", "rewards-address", "peer"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        has_versions = any([
+            "antnode-version" in self.config,
+            "antctl-version" in self.config
+        ])
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_versions and has_build_config:
+            raise ValueError("Cannot specify both binary versions and build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the bootstrap network workflow."""
+        inputs = {
+            "network-name": self.config["network-name"],
+            "environment-type": self.config["environment-type"],
+            "peer": self.config["peer"]
+        }
+
+        if all(key in self.config for key in ["antnode-version", "antctl-version"]):
+            inputs["bin-versions"] = f"{self.config['antnode-version']},{self.config['antctl-version']}"
+
+        node_counts = []
+        for count_type in ["private-node-count", "generic-node-count"]:
+            if count_type in self.config:
+                node_counts.append(str(self.config[count_type]))
+                
+        vm_counts = []
+        for count_type in ["private-vm-count", "generic-vm-count"]:
+            if count_type in self.config:
+                vm_counts.append(str(self.config[count_type]))
+                
+        if node_counts and vm_counts:
+            inputs["node-vm-counts"] = f"({', '.join(node_counts)}), ({', '.join(vm_counts)})"
+
+        bootstrap_args = []
+        bootstrap_arg_mappings = {
+            "branch": "--branch",
+            "chunk-size": "--chunk-size",
+            "evm-network-type": "--evm-network-type",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "max-archived-log-files": "--max-archived-log-files",
+            "max-log-files": "--max-log-files",
+            "node-vm-size": "--node-vm-size",
+            "repo-owner": "--repo-owner",
+            "rewards-address": "--rewards-address"
+        }
+        
+        for config_key, arg_name in bootstrap_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        bootstrap_args.append(arg_name)
+                else:
+                    bootstrap_args.append(f"{arg_name} {value}")
+        
+        if bootstrap_args:
+            inputs["bootstrap-args"] = " ".join(bootstrap_args)
+
+        if "environment-vars" in self.config:
+            inputs["environment-vars"] = self.config["environment-vars"]
+
+        if "interval" in self.config:
+            inputs["interval"] = str(self.config["interval"])
+
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in self.config:
+            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in self.config:
+            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in self.config:
+            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
+            
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+
         return inputs

@@ -144,7 +144,7 @@ def list_workflow_runs() -> list:
     finally:
         conn.close()
 
-def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Dict[str, Any], is_legacy: bool = False) -> None:
+def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Dict[str, Any], is_legacy: bool = False, is_bootstrap: bool = False) -> None:
     """
     Record a deployment in the database.
     
@@ -153,6 +153,7 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         config: Dictionary containing deployment configuration
         defaults: Dictionary containing default values for the environment type
         is_legacy: Whether the deployment is a legacy deployment
+        is_bootstrap: Whether the deployment is a bootstrap deployment
     """
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -165,6 +166,23 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
         features = config.get("safenode-features" if is_legacy else "antnode-features")
         if isinstance(features, list):
             features = ",".join(features)
+            
+        if is_bootstrap:
+            peer_cache_node_count = None
+            peer_cache_vm_count = None
+            peer_cache_node_vm_size = None
+            downloader_count = None
+            uploader_count = None
+            uploader_vm_count = None
+            uploader_vm_size = None
+        else:
+            peer_cache_node_count = config.get("peer-cache-node-count", defaults["peer_cache_node_count"])
+            peer_cache_vm_count = config.get("peer-cache-vm-count", defaults["peer_cache_vm_count"])
+            peer_cache_node_vm_size = config.get("peer-cache-node-vm-size", defaults["peer_cache_node_vm_size"])
+            downloader_count = config.get("downloader-count", defaults["downloader_count"])
+            uploader_count = config.get("uploader-count", defaults["uploader_count"])
+            uploader_vm_count = config.get("uploader-vm-count", defaults["uploader_vm_count"])
+            uploader_vm_size = config.get("uploader-vm-size", defaults["uploader_vm_size"])
             
         cursor.execute(
             """
@@ -192,19 +210,19 @@ def record_deployment(workflow_run_id: int, config: Dict[str, Any], defaults: Di
                 config.get("repo-owner"),
                 config.get("chunk-size"),
                 features,
-                config.get("peer-cache-node-count", defaults["peer_cache_node_count"]),
+                peer_cache_node_count,
                 config.get("generic-node-count", defaults["generic_node_count"]),
                 config.get("private-node-count", defaults["private_node_count"]),
-                config.get("downloader-count", defaults["downloader_count"]),
-                config.get("uploader-count", defaults["uploader_count"]),
-                config.get("peer-cache-vm-count", defaults["peer_cache_vm_count"]),
+                downloader_count,
+                uploader_count,
+                peer_cache_vm_count,
                 config.get("generic-vm-count", defaults["generic_vm_count"]),
                 config.get("private-vm-count", defaults["private_vm_count"]),
-                config.get("uploader-vm-count", defaults["uploader_vm_count"]),
-                config.get("peer-cache-node-vm-size", defaults["peer_cache_node_vm_size"]),
+                uploader_vm_count,
+                peer_cache_node_vm_size,
                 config.get("node-vm-size", defaults["generic_node_vm_size"]),
                 config.get("node-vm-size", defaults["private_node_vm_size"]),
-                config.get("uploader-vm-size", defaults["uploader_vm_size"]),
+                uploader_vm_size,
                 config.get("evm-network-type", "custom"),
                 config["rewards-address"],
                 config.get("max-log-files"),

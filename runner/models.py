@@ -13,19 +13,19 @@ class Deployment:
     repo_owner: Optional[str]
     chunk_size: Optional[int]
     antnode_features: Optional[str]
-    peer_cache_node_count: int
+    peer_cache_node_count: Optional[int]
     generic_node_count: int
-    private_node_count: int
-    downloader_count: int
-    uploader_count: int
-    peer_cache_vm_count: int
+    private_node_count: Optional[int]
+    downloader_count: Optional[int]
+    uploader_count: Optional[int]
+    peer_cache_vm_count: Optional[int]
     generic_vm_count: int
-    private_vm_count: int
-    uploader_vm_count: int
-    peer_cache_node_vm_size: str
+    private_vm_count: Optional[int]
+    uploader_vm_count: Optional[int]
+    peer_cache_node_vm_size: Optional[str]
     generic_node_vm_size: str
-    private_node_vm_size: str
-    uploader_vm_size: str
+    private_node_vm_size: Optional[str]
+    uploader_vm_size: Optional[str]
     evm_network_type: str
     rewards_address: str
     max_log_files: Optional[int]

@@ -21,6 +21,7 @@ from runner.db import (
 )
 from runner.models import Deployment
 from runner.workflows import (
+    BootstrapNetworkWorkflow,
     DepositFundsWorkflow,
     DestroyNetworkWorkflow,
     DrainFundsWorkflow,
@@ -46,6 +47,7 @@ REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
 
+BOOTSTRAP_NETWORK_WORKFLOW_ID = 117603859
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 DRAIN_FUNDS_WORKFLOW_ID = 125539749
@@ -714,17 +716,20 @@ def list_deployments(show_details: bool = False) -> None:
                 print(f"Peer cache nodes: {peer_cache_vm_count}x{peer_cache_node_count} [{peer_cache_node_vm_size}]")
                 print(f"Generic nodes: {generic_vm_count}x{generic_node_count} [{generic_node_vm_size}]")
                 print(f"Private nodes: {private_vm_count}x{private_node_count} [{private_node_vm_size}]")
-                total_nodes = (peer_cache_vm_count * peer_cache_node_count + 
-                               generic_vm_count * generic_node_count +
-                               private_vm_count * private_node_count)
+                total_nodes = generic_vm_count * generic_node_count
+                if peer_cache_vm_count and peer_cache_node_count:
+                    total_nodes += peer_cache_vm_count * peer_cache_node_count
+                if private_vm_count and private_node_count:
+                    total_nodes += private_vm_count * private_node_count
                 print(f"Total: {total_nodes}")
 
-                print(f"======================")
-                print(f"Uploader Configuration")
-                print(f"======================")
-                print(f"{uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
-                total_uploaders = uploader_vm_count * uploader_count
-                print(f"Total: {total_uploaders}")
+                if uploader_vm_count and uploader_count and uploader_vm_size:
+                    print(f"======================")
+                    print(f"Uploader Configuration")
+                    print(f"======================")
+                    print(f"{uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
+                    total_uploaders = uploader_vm_count * uploader_count
+                    print(f"Total: {total_uploaders}")
 
                 if max_log_files or max_archived_log_files:
                     print(f"==================")
@@ -1247,3 +1252,34 @@ def network_status(config: Dict, branch_name: str, force: bool = False) -> None:
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
+
+def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Bootstrap a new network."""
+    _print_workflow_banner()
+    
+    workflow = BootstrapNetworkWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=BOOTSTRAP_NETWORK_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        peer=config["peer"],
+        environment_type=config["environment-type"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force)
+        env_type = config.get("environment-type", "development")
+        defaults = ENVIRONMENT_DEFAULTS[env_type]
+        record_deployment(workflow_run_id, config, defaults, is_bootstrap=True)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)

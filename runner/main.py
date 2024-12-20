@@ -369,6 +369,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    bootstrap_network_parser = subparsers.add_parser("bootstrap-network", help="Bootstrap a new network")
+    bootstrap_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    bootstrap_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -455,6 +467,9 @@ def main():
     elif args.command == "upscale-network":
         config = load_yaml_config(args.path)
         cmd.upscale_network(config, args.branch, args.force)
+    elif args.command == "bootstrap-network":
+        config = load_yaml_config(args.path)
+        cmd.bootstrap_network(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)
