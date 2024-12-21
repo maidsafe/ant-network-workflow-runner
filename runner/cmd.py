@@ -37,8 +37,8 @@ from runner.workflows import (
     StopTelegrafWorkflow,
     StopUploadersWorkflow,
     UpdatePeerWorkflow,
+    UpgradeAntctlWorkflow,
     UpgradeNetworkWorkflow,
-    UpgradeNodeManagerWorkflow,
     UpgradeUploadersWorkflow,
     UpscaleNetworkWorkflow,
 )
@@ -61,7 +61,7 @@ STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
 STOP_UPLOADERS_WORKFLOW_ID = 116345516
 UPDATE_PEER_WORKFLOW_ID = 127823614
-UPGRADE_NODE_MANAGER_WORKFLOW_ID = 109612531
+UPGRADE_ANTCTL_WORKFLOW_ID = 109612531
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
 UPSCALE_NETWORK_WORKFLOW_ID = 105092652
@@ -188,7 +188,8 @@ def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
     )
     _execute_workflow(workflow, force)
 
-def upgrade_node_manager(config: Dict, branch_name: str, force: bool = False) -> None:
+def upgrade_antctl(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Upgrade antctl version."""
     if "network-name" not in config:
         raise KeyError("network-name")
     if "version" not in config:
@@ -198,10 +199,10 @@ def upgrade_node_manager(config: Dict, branch_name: str, force: bool = False) ->
     
     testnet_deploy_args = _build_testnet_deploy_args(config)
         
-    workflow = UpgradeNodeManagerWorkflow(
+    workflow = UpgradeAntctlWorkflow(
         owner=REPO_OWNER,
         repo=REPO_NAME,
-        id=UPGRADE_NODE_MANAGER_WORKFLOW_ID,
+        id=UPGRADE_ANTCTL_WORKFLOW_ID,
         personal_access_token=get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],

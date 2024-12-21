@@ -285,13 +285,13 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    upgrade_node_man_parser = subparsers.add_parser("upgrade-node-man", help="Upgrade node manager version")
-    upgrade_node_man_parser.add_argument(
+    upgrade_antctl_parser = subparsers.add_parser("upgrade-antctl", help="Upgrade antctl version")
+    upgrade_antctl_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
     )
-    upgrade_node_man_parser.add_argument(
+    upgrade_antctl_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -458,9 +458,9 @@ def main():
     elif args.command == "upgrade-network":
         config = load_yaml_config(args.path)
         cmd.upgrade_network(config, args.branch, args.force)
-    elif args.command == "upgrade-node-man":
+    elif args.command == "upgrade-antctl":
         config = load_yaml_config(args.path)
-        cmd.upgrade_node_manager(config, args.branch, args.force)
+        cmd.upgrade_antctl(config, args.branch, args.force)
     elif args.command == "upgrade-uploaders":
         config = load_yaml_config(args.path)
         cmd.upgrade_uploaders(config, args.branch, args.force)

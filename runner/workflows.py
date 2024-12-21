@@ -193,14 +193,14 @@ class StopNodesWorkflowRun(WorkflowRun):
             
         return inputs
 
-class UpgradeNodeManagerWorkflow(WorkflowRun):
+class UpgradeAntctlWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,
                  network_name: str, version: str,
                  custom_inventory: Optional[List[str]] = None,
                  node_type: Optional[NodeType] = None,
                  testnet_deploy_args: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Node Manager")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Antctl")
         self.network_name = network_name
         self.version = version
         self.custom_inventory = custom_inventory
@@ -208,7 +208,7 @@ class UpgradeNodeManagerWorkflow(WorkflowRun):
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the upgrade node manager workflow."""
+        """Get inputs specific to the upgrade antctl workflow."""
         inputs = {
             "network-name": self.network_name,
             "version": self.version
