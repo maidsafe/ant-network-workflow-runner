@@ -45,6 +45,18 @@ def main():
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    bootstrap_network_parser = subparsers.add_parser("bootstrap-network", help="Bootstrap a new network")
+    bootstrap_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    bootstrap_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
@@ -170,6 +182,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    drain_funds_parser = subparsers.add_parser("drain-funds", help="Drain funds from network nodes")
+    drain_funds_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    drain_funds_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     kill_droplets_parser = subparsers.add_parser("kill-droplets", help="Kill specified droplets")
     kill_droplets_parser.add_argument(
         "--path",
@@ -177,18 +201,6 @@ def main():
         help="Path to the inputs file"
     )
     kill_droplets_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    launch_network_parser = subparsers.add_parser("launch-network", help="Launch a new network")
-    launch_network_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    launch_network_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -206,11 +218,35 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    launch_network_parser = subparsers.add_parser("launch-network", help="Launch a new network")
+    launch_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    launch_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     ls_parser = subparsers.add_parser("ls", help="List all workflow runs")
     ls_parser.add_argument(
         "--details",
         action="store_true",
         help="Show detailed information for each workflow run"
+    )
+
+    network_status_parser = subparsers.add_parser("network-status", help="Check status of testnet nodes")
+    network_status_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    network_status_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
     )
 
     start_nodes_parser = subparsers.add_parser("start-nodes", help="Start testnet nodes")
@@ -232,6 +268,18 @@ def main():
         help="Path to the inputs file"
     )
     start_telegraf_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    start_uploaders_parser = subparsers.add_parser("start-uploaders", help="Start uploaders on testnet nodes")
+    start_uploaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_uploaders_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -261,6 +309,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    stop_uploaders_parser = subparsers.add_parser("stop-uploaders", help="Stop uploaders on testnet nodes")
+    stop_uploaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    stop_uploaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     update_peer_parser = subparsers.add_parser("update-peer", help="Update peer multiaddr on testnet nodes")
     update_peer_parser.add_argument(
         "--path",
@@ -273,18 +333,6 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    upgrade_network_parser = subparsers.add_parser("upgrade-network", help="Upgrade network nodes")
-    upgrade_network_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    upgrade_network_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
     upgrade_antctl_parser = subparsers.add_parser("upgrade-antctl", help="Upgrade antctl version")
     upgrade_antctl_parser.add_argument(
         "--path",
@@ -292,6 +340,18 @@ def main():
         help="Path to the inputs file"
     )
     upgrade_antctl_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    upgrade_network_parser = subparsers.add_parser("upgrade-network", help="Upgrade network nodes")
+    upgrade_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_network_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -321,66 +381,6 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    network_status_parser = subparsers.add_parser("network-status", help="Check status of testnet nodes")
-    network_status_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    network_status_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    start_uploaders_parser = subparsers.add_parser("start-uploaders", help="Start uploaders on testnet nodes")
-    start_uploaders_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    start_uploaders_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    stop_uploaders_parser = subparsers.add_parser("stop-uploaders", help="Stop uploaders on testnet nodes")
-    stop_uploaders_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    stop_uploaders_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    drain_funds_parser = subparsers.add_parser("drain-funds", help="Drain funds from network nodes")
-    drain_funds_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    drain_funds_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    bootstrap_network_parser = subparsers.add_parser("bootstrap-network", help="Bootstrap a new network")
-    bootstrap_network_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    bootstrap_network_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
     args = parser.parse_args()
     
     if args.debug:
@@ -390,18 +390,18 @@ def main():
         )
     
     if args.command == "comparisons":
-        if args.comparisons_command == "new":
-            cmd.create_comparison(args.test_id, args.ref_id, args.ref_version, args.test_version)
+        if args.comparisons_command == "add-thread":
+            cmd.add_comparison_thread(args.id, args.link)
         elif args.comparisons_command == "ls":
             cmd.list_comparisons()
-        elif args.comparisons_command == "print":
-            cmd.print_comparison(args.id)
-        elif args.comparisons_command == "add-thread":
-            cmd.add_comparison_thread(args.id, args.link)
-        elif args.comparisons_command == "record-results":
-            cmd.record_comparison_results(args.id, args.start, args.end, args.path, args.passed)
+        elif args.comparisons_command == "new":
+            cmd.create_comparison(args.test_id, args.ref_id, args.ref_version, args.test_version)
         elif args.comparisons_command == "post":
             cmd.post_comparison(args.id)
+        elif args.comparisons_command == "print":
+            cmd.print_comparison(args.id)
+        elif args.comparisons_command == "record-results":
+            cmd.record_comparison_results(args.id, args.start, args.end, args.path, args.passed)
         else:
             comparisons_parser.print_help()
             sys.exit(1)
@@ -411,6 +411,9 @@ def main():
         else:
             deployment_ls_parser.print_help()
             sys.exit(1)
+    elif args.command == "bootstrap-network":
+        config = load_yaml_config(args.path)
+        cmd.bootstrap_network(config, args.branch, args.force)
     elif args.command == "deposit-funds":
         config = load_yaml_config(args.path)
         cmd.deposit_funds(config, args.branch, args.force)
@@ -423,12 +426,12 @@ def main():
     elif args.command == "kill-droplets":
         config = load_yaml_config(args.path)
         cmd.kill_droplets(config, args.branch, args.force)
-    elif args.command == "launch-network":
-        config = load_yaml_config(args.path)
-        cmd.launch_network(config, args.branch, args.force)
     elif args.command == "launch-legacy-network":
         config = load_yaml_config(args.path)
         cmd.launch_legacy_network(config, "main", args.force)
+    elif args.command == "launch-network":
+        config = load_yaml_config(args.path)
+        cmd.launch_network(config, args.branch, args.force)
     elif args.command == "ls":
         cmd.list_runs(show_details=args.details)
     elif args.command == "network-status":
@@ -455,21 +458,18 @@ def main():
     elif args.command == "update-peer":
         config = load_yaml_config(args.path)
         cmd.update_peer(config, args.branch, args.force)
-    elif args.command == "upgrade-network":
-        config = load_yaml_config(args.path)
-        cmd.upgrade_network(config, args.branch, args.force)
     elif args.command == "upgrade-antctl":
         config = load_yaml_config(args.path)
         cmd.upgrade_antctl(config, args.branch, args.force)
+    elif args.command == "upgrade-network":
+        config = load_yaml_config(args.path)
+        cmd.upgrade_network(config, args.branch, args.force)
     elif args.command == "upgrade-uploaders":
         config = load_yaml_config(args.path)
         cmd.upgrade_uploaders(config, args.branch, args.force)
     elif args.command == "upscale-network":
         config = load_yaml_config(args.path)
         cmd.upscale_network(config, args.branch, args.force)
-    elif args.command == "bootstrap-network":
-        config = load_yaml_config(args.path)
-        cmd.bootstrap_network(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)
