@@ -470,7 +470,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         deploy_args = []
         deploy_arg_mappings = {
-            "bootstrap-node-vm-size": "--bootstrap-node-vm-size",
+            "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
             "branch": "--branch",
             "chunk-size": "--chunk-size",
             "evm-network-type": "--evm-network-type",
