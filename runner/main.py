@@ -39,7 +39,7 @@ def main():
     )
     parser.add_argument(
         "--branch",
-        default="rc-2024.12.1",
+        default="main",
         help="GitHub branch name (default: main)"
     )
     
@@ -381,6 +381,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    reset_to_n_nodes_parser = subparsers.add_parser("reset-to-n-nodes", help="Reset network to run specified number of nodes")
+    reset_to_n_nodes_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    reset_to_n_nodes_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -470,6 +482,9 @@ def main():
     elif args.command == "upscale-network":
         config = load_yaml_config(args.path)
         cmd.upscale_network(config, args.branch, args.force)
+    elif args.command == "reset-to-n-nodes":
+        config = load_yaml_config(args.path)
+        cmd.reset_to_n_nodes(config, args.branch, args.force)
     else:
         parser.print_help()
         sys.exit(1)

@@ -20,28 +20,7 @@ from runner.db import (
     update_comparison_results,
 )
 from runner.models import Deployment
-from runner.workflows import (
-    BootstrapNetworkWorkflow,
-    DepositFundsWorkflow,
-    DestroyNetworkWorkflow,
-    DrainFundsWorkflow,
-    KillDropletsWorkflow,
-    LaunchNetworkWorkflow,
-    LaunchLegacyNetworkWorkflow,
-    NetworkStatusWorkflow,
-    NodeType,
-    StartNodesWorkflow,
-    StartTelegrafWorkflow,
-    StartUploadersWorkflow,
-    StopNodesWorkflowRun,
-    StopTelegrafWorkflow,
-    StopUploadersWorkflow,
-    UpdatePeerWorkflow,
-    UpgradeAntctlWorkflow,
-    UpgradeNetworkWorkflow,
-    UpgradeUploadersWorkflow,
-    UpscaleNetworkWorkflow,
-)
+from runner.workflows import *
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -54,6 +33,7 @@ DRAIN_FUNDS_WORKFLOW_ID = 125539749
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 58844793
 NETWORK_STATUS_WORKFLOW_ID = 109501466
+RESET_TO_N_NODES_WORKFLOW_ID = 134957069
 START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 113666375
 START_UPLOADERS_WORKFLOW_ID = 116345515
@@ -61,7 +41,7 @@ STOP_NODES_WORKFLOW_ID = 126356854
 STOP_TELEGRAF_WORKFLOW_ID = 109718824
 STOP_UPLOADERS_WORKFLOW_ID = 116345516
 UPDATE_PEER_WORKFLOW_ID = 127823614
-UPGRADE_ANTCTL_WORKFLOW_ID = 109612531
+UPGRADE_ANTCTL_WORKFLOW_ID = 134531916
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
 UPSCALE_NETWORK_WORKFLOW_ID = 105092652
@@ -1284,3 +1264,35 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> No
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
+
+def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+    """Reset network to run specified number of nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    if "evm-network-type" not in config:
+        raise KeyError("evm-network-type")
+    if "node-count" not in config:
+        raise KeyError("node-count")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = ResetToNNodesWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=RESET_TO_N_NODES_WORKFLOW_ID,
+        personal_access_token=get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        evm_network_type=config["evm-network-type"],
+        node_count=str(config["node-count"]),
+        custom_inventory=config.get("custom-inventory"),
+        forks=config.get("forks"),
+        node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        start_interval=config.get("start-interval"),
+        stop_interval=config.get("stop-interval"),
+        version=config.get("version"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force)

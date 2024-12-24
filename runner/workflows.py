@@ -966,3 +966,51 @@ class BootstrapNetworkWorkflow(WorkflowRun):
             inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
 
         return inputs
+
+class ResetToNNodesWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, evm_network_type: str, node_count: str,
+                 custom_inventory: Optional[List[str]] = None,
+                 forks: Optional[int] = None,
+                 node_type: Optional[NodeType] = None,
+                 start_interval: Optional[int] = None,
+                 stop_interval: Optional[int] = None,
+                 version: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Reset to N Nodes")
+        self.network_name = network_name
+        self.evm_network_type = evm_network_type
+        self.node_count = node_count
+        self.custom_inventory = custom_inventory
+        self.forks = forks
+        self.node_type = node_type
+        self.start_interval = start_interval
+        self.stop_interval = stop_interval
+        self.version = version
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the reset to n nodes workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "evm-network-type": self.evm_network_type,
+            "node-count": self.node_count
+        }
+        
+        if self.custom_inventory is not None:
+            inputs["custom-inventory"] = ",".join(self.custom_inventory)
+        if self.forks is not None:
+            inputs["forks"] = str(self.forks)
+        if self.node_type is not None:
+            inputs["node-type"] = self.node_type.value
+        if self.start_interval is not None:
+            inputs["start-interval"] = str(self.start_interval)
+        if self.stop_interval is not None:
+            inputs["stop-interval"] = str(self.stop_interval)
+        if self.version is not None:
+            inputs["version"] = self.version
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs

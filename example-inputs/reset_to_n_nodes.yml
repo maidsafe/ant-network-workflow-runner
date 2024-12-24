@@ -1,0 +1,33 @@
+# Required
+network-name: DEV-02
+evm-network-type: arbitrum-sepolia
+node-count: 10
+
+# Optional
+# Remove any you don't want to use
+
+# Run only against certain nodes within the inventory
+custom-inventory:
+  - DEV-02-node-1
+  - DEV-02-node-2
+
+# Maximum number of forks Ansible will use (default: 50)
+forks: 1
+
+# Type of node VM to reset (peer-cache, genesis, generic, or private)
+node-type: generic
+
+# Interval between starting each node (milliseconds)
+start-interval: 60000
+
+# Interval between stopping each node (milliseconds)
+stop-interval: 30000
+
+# Version of antnode to use (uses latest if not specified)
+version: 0.1.0
+
+# Use these inputs if you want some custom version of testnet-deploy
+# Can be either a branch on a fork, or a specific version
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0
