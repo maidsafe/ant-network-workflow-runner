@@ -1,6 +1,7 @@
 build/
 dist/
 inputs/
+scripts/
 venv/
 
 runner/__pycache__

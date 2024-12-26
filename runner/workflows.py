@@ -12,7 +12,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from runner.db import record_workflow_run
 
 class NodeType(Enum):
-    BOOTSTRAP = "bootstrap"
+    PEER_CACHE = "peer-cache"
     GENESIS = "genesis"
     GENERIC = "generic"
     PRIVATE = "private"
@@ -81,11 +81,14 @@ class WorkflowRun:
         
         workflow_runs = response.json().get("workflow_runs", [])
         
-        for run in workflow_runs:
-            if run["status"] != "completed":
-                return run["id"]
+        active_runs = [run for run in workflow_runs if run["status"] != "completed"]
+        if not active_runs:
+            raise RuntimeError("Could not find workflow run ID for recently triggered workflow")
         
-        raise RuntimeError("Could not find workflow run ID for recently triggered workflow")
+        from datetime import datetime
+        active_runs.sort(key=lambda x: datetime.fromisoformat(x["created_at"].replace('Z', '+00:00')), reverse=True)
+        
+        return active_runs[0]["id"]
 
     def _display_spinner(self, seconds: int) -> None:
         """Display a spinner in the terminal for the specified number of seconds."""
@@ -190,14 +193,14 @@ class StopNodesWorkflowRun(WorkflowRun):
             
         return inputs
 
-class UpgradeNodeManagerWorkflow(WorkflowRun):
+class UpgradeAntctlWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,
                  network_name: str, version: str,
                  custom_inventory: Optional[List[str]] = None,
                  node_type: Optional[NodeType] = None,
                  testnet_deploy_args: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Node Manager")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Antctl")
         self.network_name = network_name
         self.version = version
         self.custom_inventory = custom_inventory
@@ -205,7 +208,7 @@ class UpgradeNodeManagerWorkflow(WorkflowRun):
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the upgrade node manager workflow."""
+        """Get inputs specific to the upgrade antctl workflow."""
         inputs = {
             "network-name": self.network_name,
             "version": self.version
@@ -410,6 +413,258 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
+        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
+
+        has_versions = any([
+            "ant-version" in self.config,
+            "antnode-version" in self.config,
+            "antctl-version" in self.config
+        ])
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_versions and has_build_config:
+            raise ValueError("Cannot specify both binary versions and build configuration")
+            
+        if not has_versions and not has_build_config:
+            raise ValueError("Must specify either binary versions or build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the launch network workflow."""
+        inputs = {
+            "network-name": self.config["network-name"],
+            "environment-type": self.config["environment-type"],
+        }
+
+        if all(key in self.config for key in ["ant-version", "antnode-version", "antctl-version"]):
+            inputs["bin-versions"] = f"{self.config['ant-version']},{self.config['antnode-version']},{self.config['antctl-version']}"
+
+        node_counts = []
+        for count_type in ["peer-cache-node-count", "generic-node-count", "private-node-count", 
+                          "downloader-count", "uploader-count"]:
+            if count_type in self.config:
+                node_counts.append(str(self.config[count_type]))
+                
+        vm_counts = []
+        for count_type in ["peer-cache-vm-count", "generic-vm-count", "private-vm-count", 
+                          "uploader-vm-count"]:
+            if count_type in self.config:
+                vm_counts.append(str(self.config[count_type]))
+                
+        if node_counts and vm_counts:
+            inputs["node-vm-counts"] = f"({', '.join(node_counts)}), ({', '.join(vm_counts)})"
+
+        deploy_args = []
+        deploy_arg_mappings = {
+            "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
+            "branch": "--branch",
+            "chunk-size": "--chunk-size",
+            "evm-network-type": "--evm-network-type",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-node-vm-size": "--evm-node-vm-size",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "interval": "--interval",
+            "max-archived-log-files": "--max-archived-log-files",
+            "max-log-files": "--max-log-files",
+            "network-id": "--network-id",
+            "node-vm-size": "--node-vm-size",
+            "public-rpc": "--public-rpc",
+            "repo-owner": "--repo-owner",
+            "rewards-address": "--rewards-address",
+            "uploader-vm-size": "--uploader-vm-size"
+        }
+        
+        for config_key, arg_name in deploy_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        deploy_args.append(arg_name)
+                else:
+                    deploy_args.append(f"{arg_name} {value}")
+
+        if "antnode-features" in self.config:
+            features = self.config["antnode-features"]
+            if isinstance(features, list):
+                features_str = ",".join(features)
+                deploy_args.append(f"--antnode-features {features_str}")
+            else:
+                deploy_args.append(f"--antnode-features {features}")
+        
+        if deploy_args:
+            inputs["deploy-args"] = " ".join(deploy_args)
+
+        if "environment-vars" in self.config:
+            inputs["environment-vars"] = self.config["environment-vars"]
+
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in self.config:
+            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in self.config:
+            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in self.config:
+            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
+            
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+
+        return inputs
+
+class KillDropletsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, droplet_names: List[str]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Kill Droplets")
+        self.network_name = network_name
+        self.droplet_names = droplet_names
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the kill droplets workflow."""
+        return {
+            "droplet-names": ",".join(self.droplet_names)
+        }
+
+class UpscaleNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, desired_counts: str,
+                 ant_version: Optional[str] = None,
+                 antnode_version: Optional[str] = None,
+                 antctl_version: Optional[str] = None,
+                 infra_only: Optional[bool] = None,
+                 interval: Optional[int] = None,
+                 plan: Optional[bool] = None,
+                 testnet_deploy_repo_ref: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upscale Network")
+        self.network_name = network_name
+        self.desired_counts = desired_counts
+        self.ant_version = ant_version
+        self.antnode_version = antnode_version
+        self.antctl_version = antctl_version
+        self.infra_only = infra_only
+        self.interval = interval
+        self.plan = plan
+        self.testnet_deploy_repo_ref = testnet_deploy_repo_ref
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the upscale network workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "desired-counts": self.desired_counts
+        }
+        
+        if self.ant_version is not None:
+            inputs["ant-version"] = self.ant_version
+        if self.antnode_version is not None:
+            inputs["antnode-version"] = self.antnode_version
+        if self.antctl_version is not None:
+            inputs["antctl-version"] = self.antctl_version
+        if self.infra_only is not None:
+            inputs["infra-only"] = str(self.infra_only).lower()
+        if self.interval is not None:
+            inputs["interval"] = str(self.interval)
+        if self.plan is not None:
+            inputs["plan"] = str(self.plan).lower()
+        if self.testnet_deploy_repo_ref is not None:
+            inputs["testnet-deploy-repo-ref"] = self.testnet_deploy_repo_ref
+            
+        return inputs
+
+class DepositFundsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, provider: str,
+                 funding_wallet_secret_key: Optional[str] = None,
+                 gas_to_transfer: Optional[str] = None,
+                 tokens_to_transfer: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Deposit Funds")
+        self.network_name = network_name
+        self.provider = provider
+        self.funding_wallet_secret_key = funding_wallet_secret_key
+        self.gas_to_transfer = gas_to_transfer
+        self.tokens_to_transfer = tokens_to_transfer
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the deposit funds workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "provider": self.provider
+        }
+        
+        if self.funding_wallet_secret_key is not None:
+            inputs["funding-wallet-secret-key"] = self.funding_wallet_secret_key
+        if self.gas_to_transfer is not None:
+            inputs["gas-to-transfer"] = self.gas_to_transfer
+        if self.tokens_to_transfer is not None:
+            inputs["tokens-to-transfer"] = self.tokens_to_transfer
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class StartNodesWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int, 
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None, 
+                 custom_inventory: Optional[List[str]] = None,
+                 interval: Optional[int] = None,
+                 node_type: Optional[NodeType] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Start Nodes")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.custom_inventory = custom_inventory
+        self.interval = interval
+        self.node_type = node_type
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the start nodes workflow."""
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.custom_inventory is not None:
+            inputs["custom-inventory"] = ",".join(self.custom_inventory)
+        if self.interval is not None:
+            inputs["interval"] = str(self.interval)
+        if self.node_type is not None:
+            inputs["node-type"] = self.node_type.value
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class LaunchLegacyNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, network_name: str,
+                 config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Launch Legacy Network")
+        self.network_name = network_name
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
         required_fields = ["network-name", "environment-type", "rewards-address"]
         for field in required_fields:
             if field not in self.config:
@@ -516,130 +771,245 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         return inputs
 
-class KillDropletsWorkflow(WorkflowRun):
-    def __init__(self, owner: str, repo: str, id: int,
-                 personal_access_token: str, branch_name: str,
-                 network_name: str, droplet_names: List[str]):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Kill Droplets")
-        self.network_name = network_name
-        self.droplet_names = droplet_names
-
-    def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the kill droplets workflow."""
-        return {
-            "droplet-names": ",".join(self.droplet_names)
-        }
-
-class UpscaleNetworkWorkflow(WorkflowRun):
-    def __init__(self, owner: str, repo: str, id: int,
-                 personal_access_token: str, branch_name: str,
-                 network_name: str, desired_counts: str,
-                 autonomi_version: Optional[str] = None,
-                 safenode_version: Optional[str] = None,
-                 safenode_manager_version: Optional[str] = None,
-                 infra_only: Optional[bool] = None,
-                 interval: Optional[int] = None,
-                 plan: Optional[bool] = None,
-                 testnet_deploy_repo_ref: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upscale Network")
-        self.network_name = network_name
-        self.desired_counts = desired_counts
-        self.autonomi_version = autonomi_version
-        self.safenode_version = safenode_version
-        self.safenode_manager_version = safenode_manager_version
-        self.infra_only = infra_only
-        self.interval = interval
-        self.plan = plan
-        self.testnet_deploy_repo_ref = testnet_deploy_repo_ref
-
-    def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the upscale network workflow."""
-        inputs = {
-            "network-name": self.network_name,
-            "desired-counts": self.desired_counts
-        }
-        
-        if self.autonomi_version is not None:
-            inputs["autonomi-version"] = self.autonomi_version
-        if self.safenode_version is not None:
-            inputs["safenode-version"] = self.safenode_version
-        if self.safenode_manager_version is not None:
-            inputs["safenode-manager-version"] = self.safenode_manager_version
-        if self.infra_only is not None:
-            inputs["infra-only"] = str(self.infra_only).lower()
-        if self.interval is not None:
-            inputs["interval"] = str(self.interval)
-        if self.plan is not None:
-            inputs["plan"] = str(self.plan).lower()
-        if self.testnet_deploy_repo_ref is not None:
-            inputs["testnet-deploy-repo-ref"] = self.testnet_deploy_repo_ref
-            
-        return inputs
-
-class DepositFundsWorkflow(WorkflowRun):
-    def __init__(self, owner: str, repo: str, id: int,
-                 personal_access_token: str, branch_name: str,
-                 network_name: str, provider: str,
-                 funding_wallet_secret_key: Optional[str] = None,
-                 gas_to_transfer: Optional[str] = None,
-                 tokens_to_transfer: Optional[str] = None,
-                 testnet_deploy_args: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Deposit Funds")
-        self.network_name = network_name
-        self.provider = provider
-        self.funding_wallet_secret_key = funding_wallet_secret_key
-        self.gas_to_transfer = gas_to_transfer
-        self.tokens_to_transfer = tokens_to_transfer
-        self.testnet_deploy_args = testnet_deploy_args
-
-    def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the deposit funds workflow."""
-        inputs = {
-            "network-name": self.network_name,
-            "provider": self.provider
-        }
-        
-        if self.funding_wallet_secret_key is not None:
-            inputs["funding-wallet-secret-key"] = self.funding_wallet_secret_key
-        if self.gas_to_transfer is not None:
-            inputs["gas-to-transfer"] = self.gas_to_transfer
-        if self.tokens_to_transfer is not None:
-            inputs["tokens-to-transfer"] = self.tokens_to_transfer
-        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
-            inputs["testnet-deploy-args"] = self.testnet_deploy_args
-            
-        return inputs
-
-class StartNodesWorkflow(WorkflowRun):
+class NetworkStatusWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int, 
                  personal_access_token: str, branch_name: str,
-                 network_name: str, ansible_forks: Optional[int] = None, 
-                 custom_inventory: Optional[List[str]] = None,
-                 interval: Optional[int] = None,
-                 node_type: Optional[NodeType] = None,
+                 network_name: str, ansible_forks: Optional[int] = None,
                  testnet_deploy_args: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Start Nodes")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Network Status")
         self.network_name = network_name
         self.ansible_forks = ansible_forks
-        self.custom_inventory = custom_inventory
-        self.interval = interval
-        self.node_type = node_type
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the start nodes workflow."""
+        """Get inputs specific to the network status workflow."""
         inputs = {
             "network-name": self.network_name,
         }
         
         if self.ansible_forks is not None:
             inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class StartUploadersWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Start Uploaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the start uploaders workflow."""
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class StopUploadersWorkflow(WorkflowRun):
+    """Workflow for stopping uploaders on testnet nodes."""
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        id: int,
+        personal_access_token: str,
+        branch_name: str,
+        network_name: str,
+        testnet_deploy_args: Optional[str] = None
+    ):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Uploaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get the inputs for the workflow."""
+        inputs = {
+            "network-name": self.network_name
+        }
+        
+        if self.testnet_deploy_args:
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class DrainFundsWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, to_address: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Drain Funds")
+        self.network_name = network_name
+        self.to_address = to_address
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the drain funds workflow."""
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.to_address is not None:
+            inputs["to-address"] = self.to_address
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class BootstrapNetworkWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, network_name: str,
+                 peer: str, environment_type: str, config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Bootstrap Network")
+        self.network_name = network_name
+        self.peer = peer
+        self.environment_type = environment_type
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["network-name", "environment-type", "rewards-address", "peer"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        has_versions = any([
+            "antnode-version" in self.config,
+            "antctl-version" in self.config
+        ])
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_versions and has_build_config:
+            raise ValueError("Cannot specify both binary versions and build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the bootstrap network workflow."""
+        inputs = {
+            "network-name": self.config["network-name"],
+            "environment-type": self.config["environment-type"],
+            "peer": self.config["peer"]
+        }
+
+        if all(key in self.config for key in ["antnode-version", "antctl-version"]):
+            inputs["bin-versions"] = f"{self.config['antnode-version']},{self.config['antctl-version']}"
+
+        node_counts = []
+        for count_type in ["private-node-count", "generic-node-count"]:
+            if count_type in self.config:
+                node_counts.append(str(self.config[count_type]))
+                
+        vm_counts = []
+        for count_type in ["private-vm-count", "generic-vm-count"]:
+            if count_type in self.config:
+                vm_counts.append(str(self.config[count_type]))
+                
+        if node_counts and vm_counts:
+            inputs["node-vm-counts"] = f"({', '.join(node_counts)}), ({', '.join(vm_counts)})"
+
+        bootstrap_args = []
+        bootstrap_arg_mappings = {
+            "branch": "--branch",
+            "chunk-size": "--chunk-size",
+            "evm-network-type": "--evm-network-type",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "max-archived-log-files": "--max-archived-log-files",
+            "max-log-files": "--max-log-files",
+            "node-vm-size": "--node-vm-size",
+            "repo-owner": "--repo-owner",
+            "rewards-address": "--rewards-address"
+        }
+        
+        for config_key, arg_name in bootstrap_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        bootstrap_args.append(arg_name)
+                else:
+                    bootstrap_args.append(f"{arg_name} {value}")
+        
+        if bootstrap_args:
+            inputs["bootstrap-args"] = " ".join(bootstrap_args)
+
+        if "environment-vars" in self.config:
+            inputs["environment-vars"] = self.config["environment-vars"]
+
+        if "interval" in self.config:
+            inputs["interval"] = str(self.config["interval"])
+
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in self.config:
+            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in self.config:
+            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in self.config:
+            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
+            
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+
+        return inputs
+
+class ResetToNNodesWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, evm_network_type: str, node_count: str,
+                 custom_inventory: Optional[List[str]] = None,
+                 forks: Optional[int] = None,
+                 node_type: Optional[NodeType] = None,
+                 start_interval: Optional[int] = None,
+                 stop_interval: Optional[int] = None,
+                 version: Optional[str] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Reset to N Nodes")
+        self.network_name = network_name
+        self.evm_network_type = evm_network_type
+        self.node_count = node_count
+        self.custom_inventory = custom_inventory
+        self.forks = forks
+        self.node_type = node_type
+        self.start_interval = start_interval
+        self.stop_interval = stop_interval
+        self.version = version
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the reset to n nodes workflow."""
+        inputs = {
+            "network-name": self.network_name,
+            "evm-network-type": self.evm_network_type,
+            "node-count": self.node_count
+        }
+        
         if self.custom_inventory is not None:
             inputs["custom-inventory"] = ",".join(self.custom_inventory)
-        if self.interval is not None:
-            inputs["interval"] = str(self.interval)
+        if self.forks is not None:
+            inputs["forks"] = str(self.forks)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
+        if self.start_interval is not None:
+            inputs["start-interval"] = str(self.start_interval)
+        if self.stop_interval is not None:
+            inputs["stop-interval"] = str(self.stop_interval)
+        if self.version is not None:
+            inputs["version"] = self.version
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             

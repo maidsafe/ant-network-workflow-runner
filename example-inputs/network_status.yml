@@ -1,0 +1,23 @@
+# Inputs for running the `Network Status` workflow.
+# This workflow uses the node manager `status` command to check the status of nodes on any machines that Ansible will
+# run against.
+
+# Required
+network-name: DEV-02
+
+# Optional
+# Remove any you don't want to use.
+
+# Forks can be set to 1 to force Ansible to run against one machine at a time. This allows a
+# controlled check against several machines. Otherwise, forks will default to 50.
+ansible-forks: 1
+
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0 
