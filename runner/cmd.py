@@ -1,5 +1,3 @@
-import json
-import sqlite3
 import os
 import sys
 from datetime import datetime
@@ -8,17 +6,7 @@ from typing import Dict, Optional, List
 import requests
 from rich import print as rprint
 
-from runner.db import (
-    create_comparison as db_create_comparison,
-    list_comparisons as db_list_comparisons,
-    list_deployments as db_list_deployments,
-    list_workflow_runs,
-    record_deployment,
-    validate_comparison_deployment_ids,
-    get_comparison,
-    update_comparison_thread_link,
-    update_comparison_results,
-)
+from runner.db import ComparisonRepository, DeploymentRepository
 from runner.models import Deployment
 from runner.workflows import *
 
@@ -102,47 +90,39 @@ def get_github_token() -> str:
 
 def list_runs(show_details: bool = False) -> None:
     """List all recorded workflow runs."""
-    try:
-        runs = list_workflow_runs()
-        if not runs:
-            print("No workflow runs found.")
-            return
+
+    repo = WorkflowRunRepository()
+    runs = repo.list_workflow_runs()
+    if not runs:
+        print("No workflow runs found.")
+        return
+        
+    print("=" * 61)
+    print(" " * 18 + "W O R K F L O W   R U N S" + " " * 18)
+    print("=" * 61 + "\n")
+    
+    if show_details:
+        for run in runs:
+            timestamp = run.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
             
-        runs.sort(key=lambda x: x[3])
+            rprint(f"Workflow: [green]{run.workflow_name}[/green]")
+            print(f"Triggered: {timestamp}")
+            print(f"Network: {run.network_name}")
+            print(f"Branch: {run.branch_name}")
+            print(f"URL: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run.run_id}")
+            print("Inputs:")
+            for key, value in run.inputs.items():
+                print(f"  {key}: {value}")
+            print("-" * 50)
+    else:
+        print(f"{'Triggered':<20} {'Workflow':<25} {'Network':<15}")
+        print("-" * 60)
         
-        print("=" * 61)
-        print(" " * 18 + "W O R K F L O W   R U N S" + " " * 18)
-        print("=" * 61 + "\n")
-        
-        if show_details:
-            for run in runs:
-                workflow_name, branch_name, network_name, triggered_at, inputs, run_id = run
-                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                inputs_dict = json.loads(inputs)
-                
-                rprint(f"Workflow: [green]{workflow_name}[/green]")
-                print(f"Triggered: {timestamp}")
-                print(f"Network: {network_name}")
-                print(f"Branch: {branch_name}")
-                print(f"URL: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
-                print("Inputs:")
-                for key, value in inputs_dict.items():
-                    print(f"  {key}: {value}")
-                print("-" * 50)
-        else:
-            print(f"{'Triggered':<20} {'Workflow':<25} {'Network':<15}")
-            print("-" * 60)
-            
-            for run in runs:
-                workflow_name, _, network_name, triggered_at, _, _ = run
-                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"{timestamp:<20} [green]{workflow_name:<25}[/green] {network_name:<15}")
-        
-        print("\nAll times are in UTC")
-                
-    except sqlite3.Error as e:
-        print(f"Error: Failed to retrieve workflow runs: {e}")
-        sys.exit(1)
+        for run in runs:
+            timestamp = run.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
+            rprint(f"{timestamp:<20} [green]{run.workflow_name:<25}[/green] {run.network_name:<15}")
+    
+    print("\nAll times are in UTC")
 
 def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
     if "network-name" not in config:
@@ -349,7 +329,8 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
         workflow_run_id = workflow.run(force=force)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        record_deployment(workflow_run_id, config, defaults)
+        repo = DeploymentRepository()
+        repo.record_deployment(workflow_run_id, config, defaults)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
@@ -497,7 +478,8 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False) -
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         
-        record_deployment(workflow_run_id, config, defaults, is_legacy=True)
+        repo = DeploymentRepository()
+        repo.record_deployment(workflow_run_id, config, defaults, is_legacy=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
@@ -635,102 +617,96 @@ def _build_testnet_deploy_args(config: Dict) -> str:
 def list_deployments(show_details: bool = False) -> None:
     """List all recorded deployments."""
     try:
-        deployments = db_list_deployments()
+        repo = DeploymentRepository()
+        deployments = repo.list_deployments()
         if not deployments:
             print("No deployments found.")
             return
-        
+            
         print("=" * 61)
         print(" " * 18 + "D E P L O Y M E N T S" + " " * 18)
         print("=" * 61)
         
         if show_details:
             for deployment in deployments:
-                (id, _, name, ant_version, antnode_version, antctl_version,
-                 branch, repo_owner, chunk_size, antnode_features, peer_cache_node_count,
-                 generic_node_count, private_node_count, _, uploader_count,
-                 peer_cache_vm_count, generic_vm_count, private_vm_count, uploader_vm_count,
-                 peer_cache_node_vm_size, generic_node_vm_size, private_node_vm_size,
-                 uploader_vm_size, evm_network_type, _, max_log_files,
-                 max_archived_log_files, evm_data_payments_address, evm_payment_token_address,
-                 evm_rpc_url, related_pr, network_id, triggered_at, run_id) = deployment
-                
-                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"Name: [green]{name}[/green]")
-                print(f"ID: {id}")
+                timestamp = deployment.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
+                rprint(f"Name: [green]{deployment.name}[/green]")
+                print(f"ID: {deployment.id}")
                 print(f"Deployed: {timestamp}")
                 evm_type_display = {
                     "anvil": "Anvil",
                     "arbitrum-one": "Arbitrum One",
                     "arbitrum-sepolia": "Arbitrum Sepolia", 
                     "custom": "Custom"
-                }.get(evm_network_type, evm_network_type)
+                }.get(deployment.evm_network_type, deployment.evm_network_type)
                 print(f"EVM Type: {evm_type_display}")
-                print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
-                if related_pr:
-                    print(f"Related PR: #{related_pr}")
-                    print(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{related_pr}")
+                print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
+                if deployment.related_pr:
+                    print(f"Related PR: #{deployment.related_pr}")
+                    print(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
 
-                if ant_version:
+                if deployment.ant_version:
                     print(f"===============")
                     print(f"Version Details")
                     print(f"===============")
-                    print(f"Ant: {ant_version}")
-                    print(f"Antnode: {antnode_version}")
-                    print(f"Antctl: {antctl_version}")
+                    print(f"Ant: {deployment.ant_version}")
+                    print(f"Antnode: {deployment.antnode_version}")
+                    print(f"Antctl: {deployment.antctl_version}")
 
-                if branch:
+                if deployment.branch:
                     print(f"=====================")
                     print(f"Custom Branch Details")
                     print(f"=====================")
-                    print(f"Branch: {branch}")
-                    print(f"Repo Owner: {repo_owner}")
-                    print(f"Link: https://github.com/{repo_owner}/{AUTONOMI_REPO_NAME}/tree/{branch}")
-                    if chunk_size:
-                        print(f"Chunk Size: {chunk_size}")
-                    if antnode_features:
-                        print(f"Antnode Features: {antnode_features}")
+                    print(f"Branch: {deployment.branch}")
+                    print(f"Repo Owner: {deployment.repo_owner}")
+                    print(f"Link: https://github.com/{deployment.repo_owner}/{AUTONOMI_REPO_NAME}/tree/{deployment.branch}")
+                    if deployment.chunk_size:
+                        print(f"Chunk Size: {deployment.chunk_size}")
+                    if deployment.antnode_features:
+                        print(f"Antnode Features: {deployment.antnode_features}")
 
                 print(f"==================")
                 print(f"Node Configuration")
                 print(f"==================")
-                print(f"Peer cache nodes: {peer_cache_vm_count}x{peer_cache_node_count} [{peer_cache_node_vm_size}]")
-                print(f"Generic nodes: {generic_vm_count}x{generic_node_count} [{generic_node_vm_size}]")
-                print(f"Private nodes: {private_vm_count}x{private_node_count} [{private_node_vm_size}]")
-                total_nodes = generic_vm_count * generic_node_count
-                if peer_cache_vm_count and peer_cache_node_count:
-                    total_nodes += peer_cache_vm_count * peer_cache_node_count
-                if private_vm_count and private_node_count:
-                    total_nodes += private_vm_count * private_node_count
+                print(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
+                print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
+                print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+                total_nodes = deployment.generic_vm_count * deployment.generic_node_count
+                if deployment.peer_cache_vm_count and deployment.peer_cache_node_count:
+                    total_nodes += deployment.peer_cache_vm_count * deployment.peer_cache_node_count
+                if deployment.private_vm_count and deployment.private_node_count:
+                    total_nodes += deployment.private_vm_count * deployment.private_node_count
                 print(f"Total: {total_nodes}")
 
-                if uploader_vm_count and uploader_count and uploader_vm_size:
+                if deployment.uploader_vm_count and deployment.uploader_count and deployment.uploader_vm_size:
                     print(f"======================")
                     print(f"Uploader Configuration")
                     print(f"======================")
-                    print(f"{uploader_vm_count}x{uploader_count} [{uploader_vm_size}]")
-                    total_uploaders = uploader_vm_count * uploader_count
+                    print(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
+                    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
                     print(f"Total: {total_uploaders}")
 
-                if max_log_files or max_archived_log_files:
+                if deployment.max_log_files or deployment.max_archived_log_files:
                     print(f"==================")
                     print(f"Misc Configuration")
                     print(f"==================")
-                    if max_log_files:
-                        print(f"Max log files: {max_log_files}")
-                    if max_archived_log_files:
-                        print(f"Max archived log files: {max_archived_log_files}")
+                    if deployment.max_log_files:
+                        print(f"Max log files: {deployment.max_log_files}")
+                    if deployment.max_archived_log_files:
+                        print(f"Max archived log files: {deployment.max_archived_log_files}")
                     
-                if any([evm_data_payments_address, evm_payment_token_address, evm_rpc_url]):
+                if any([deployment.evm_data_payments_address, 
+                       deployment.evm_payment_token_address, 
+                       deployment.evm_rpc_url]):
                     print(f"=================")
                     print(f"EVM Configuration")
                     print(f"=================")
-                    if evm_data_payments_address:
-                        print(f"Data Payments Address: {evm_data_payments_address}")
-                    if evm_payment_token_address:
-                        print(f"Payment Token Address: {evm_payment_token_address}")
-                    if evm_rpc_url:
-                        print(f"RPC URL: {evm_rpc_url}")
+                    if deployment.evm_data_payments_address:
+                        print(f"Data Payments Address: {deployment.evm_data_payments_address}")
+                    if deployment.evm_payment_token_address:
+                        print(f"Payment Token Address: {deployment.evm_payment_token_address}")
+                    if deployment.evm_rpc_url:
+                        print(f"RPC URL: {deployment.evm_rpc_url}")
 
                 print("-" * 61)
         else:
@@ -738,66 +714,50 @@ def list_deployments(show_details: bool = False) -> None:
             print("-" * 60)
             
             for deployment in deployments:
-                id = deployment[0]
-                name = deployment[2]
-                triggered_at = deployment[-2]
-                run_id = deployment[-1]
-                related_pr = deployment[-3]
-                if related_pr:
-                    related_pr = f"#{related_pr}"
-                else:
-                    related_pr = "-"
-                timestamp = datetime.fromisoformat(triggered_at).strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"{id:<5} [green]{name:<7}[/green] {timestamp:<20} {related_pr:<15}")
-                print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}")
-    except sqlite3.Error as e:
+                related_pr = f"#{deployment.related_pr}" if deployment.related_pr else "-"
+                timestamp = deployment.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
+                rprint(f"{deployment.id:<5} [green]{deployment.name:<7}[/green] {timestamp:<20} {related_pr:<15}")
+                print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
+                
+        print("\nAll times are in UTC")
+    except Exception as e:
         print(f"Error: Failed to retrieve deployments: {e}")
         sys.exit(1)
 
 def create_comparison(test_id: int, ref_id: int, ref_version: Optional[str] = None, test_version: Optional[str] = None) -> None:
     """Create a new comparison between two deployments."""
-    try:
-        validate_comparison_deployment_ids(test_id, ref_id)
-        db_create_comparison(test_id, ref_id, ref_version, test_version)
-        print(f"Created comparison between deployments {test_id} and {ref_id}")
-    except ValueError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    except sqlite3.Error as e:
-        print(f"Error: Failed to create comparison: {e}")
-        sys.exit(1)
+    repo = ComparisonRepository()
+    repo.create_comparison(test_id, ref_id, ref_version, test_version)
+    print(f"Created comparison between deployments {test_id} and {ref_id}")
 
 def list_comparisons() -> None:
     """List all recorded comparisons."""
-    try:
-        comparisons = db_list_comparisons()
-        if not comparisons:
-            print("No comparisons found.")
-            return
-            
-        print("=" * 100)
-        print(" " * 35 + "C O M P A R I S O N S" + " " * 35)
-        print("=" * 100)
+    repo = ComparisonRepository()
+    comparisons = repo.list_comparisons()
+    if not comparisons:
+        print("No comparisons found.")
+        return
         
-        print(f"{'ID':<5} {'TEST':<15} {'REF':<15} {'Created':<20} {'Results':<20} {'Pass':<5}")
-        print("-" * 100)
+    print("=" * 100)
+    print(" " * 35 + "C O M P A R I S O N S" + " " * 35)
+    print("=" * 100)
+    
+    print(f"{'ID':<5} {'TEST':<15} {'REF':<15} {'Created':<20} {'Results':<20} {'Pass':<5}")
+    print("-" * 100)
+    
+    for comparison in comparisons:
+        created_at = comparison.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        results_at = comparison.result_recorded_at.strftime("%Y-%m-%d %H:%M:%S") if comparison.result_recorded_at else "-"
         
-        for comparison in comparisons:
-            created_at = comparison.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            results_at = comparison.result_recorded_at.strftime("%Y-%m-%d %H:%M:%S") if comparison.result_recorded_at else "-"
-            
-            if comparison.passed is None:
-                pass_mark = "-"
-            elif comparison.passed:
-                pass_mark = f"[green]✓[/green]"
-            else:
-                pass_mark = f"[red]✗[/red]"
-            rprint(f"{comparison.id:<5} {comparison.test_name:<15} {comparison.ref_name:<15} {created_at:<20} {results_at:<20} {pass_mark:<12}")
-            
-        print("\nAll times are in UTC")
-    except sqlite3.Error as e:
-        print(f"Error: Failed to retrieve comparisons: {e}")
-        sys.exit(1)
+        if comparison.passed is None:
+            pass_mark = "-"
+        elif comparison.passed:
+            pass_mark = f"[green]✓[/green]"
+        else:
+            pass_mark = f"[red]✗[/red]"
+        rprint(f"{comparison.id:<5} {comparison.test_name:<15} {comparison.ref_name:<15} {created_at:<20} {results_at:<20} {pass_mark:<12}")
+        
+    print("\nAll times are in UTC")
 
 def print_deployment_for_comparison(deployment: Deployment) -> None:
     print(f"Deployed: {deployment.triggered_at.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -885,7 +845,8 @@ def build_comparison_report(comparison_id: int) -> str:
     Raises:
         ValueError: If comparison with given ID is not found
     """
-    comparison = get_comparison(comparison_id)
+    repo = ComparisonRepository()
+    comparison = repo.get_by_id(comparison_id)
     if not comparison:
         raise ValueError(f"Comparison with ID {comparison_id} not found")
         
@@ -1161,15 +1122,12 @@ def add_comparison_thread(comparison_id: int, thread_link: str) -> None:
         comparison_id: ID of the comparison to update
         thread_link: URL of the thread where the comparison was posted
     """
-    try:
-        update_comparison_thread_link(comparison_id, thread_link)
-        print(f"Updated thread link for comparison {comparison_id}")
-    except ValueError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    except sqlite3.Error as e:
-        print(f"Error: Failed to update comparison: {e}")
-        sys.exit(1)
+    repo = ComparisonRepository()
+    comparison = repo.get_by_id(comparison_id)
+    if not comparison:
+        raise ValueError(f"Comparison with ID {comparison_id} not found")
+    comparison.thread_link = thread_link
+    repo.save(comparison)
 
 def record_comparison_results(comparison_id: int, started_at: str, ended_at: str, report_path: str, passed: bool) -> None:
     """Record results for a comparison.
@@ -1186,32 +1144,32 @@ def record_comparison_results(comparison_id: int, started_at: str, ended_at: str
         ValueError: If both passed and failed are True, or if both are False
     """
     try:
-        try:
-            datetime.fromisoformat(started_at)
-            datetime.fromisoformat(ended_at)
-        except ValueError:
-            print("Error: Timestamps must be in ISO format (YYYY-MM-DDTHH:MM:SS)")
-            sys.exit(1)
-            
-        try:
-            with open(report_path, 'r', encoding='utf-8') as f:
-                report_content = f.read()
-        except FileNotFoundError:
-            print(f"Error: Report file not found at {report_path}")
-            sys.exit(1)
-        except IOError as e:
-            print(f"Error: Failed to read report file: {e}")
-            sys.exit(1)
-            
-        update_comparison_results(comparison_id, started_at, ended_at, report_content, passed)
-        result = "passed" if passed else "failed"
-        print(f"Updated results for comparison {comparison_id} - {result}")
-    except ValueError as e:
-        print(f"Error: {e}")
+        datetime.fromisoformat(started_at)
+        datetime.fromisoformat(ended_at)
+    except ValueError:
+        print("Error: Timestamps must be in ISO format (YYYY-MM-DDTHH:MM:SS)")
         sys.exit(1)
-    except sqlite3.Error as e:
-        print(f"Error: Failed to update comparison: {e}")
+        
+    try:
+        with open(report_path, 'r', encoding='utf-8') as f:
+            report_content = f.read()
+    except FileNotFoundError:
+        print(f"Error: Report file not found at {report_path}")
         sys.exit(1)
+    except IOError as e:
+        print(f"Error: Failed to read report file: {e}")
+        sys.exit(1)
+        
+    repo = ComparisonRepository()
+    comparison = repo.get_by_id(comparison_id)
+    if not comparison:
+        raise ValueError(f"Comparison with ID {comparison_id} not found")
+    comparison.started_at = datetime.fromisoformat(started_at)
+    comparison.ended_at = datetime.fromisoformat(ended_at)
+    comparison.report = report_content
+    comparison.result_recorded_at = datetime.now(UTC)
+    comparison.passed = passed
+    repo.save(comparison)
 
 def network_status(config: Dict, branch_name: str, force: bool = False) -> None:
     """Check status of nodes in a testnet network."""
@@ -1254,7 +1212,8 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> No
         workflow_run_id = workflow.run(force=force)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        record_deployment(workflow_run_id, config, defaults, is_bootstrap=True)
+        repo = DeploymentRepository()
+        repo.record_deployment(workflow_run_id, config, defaults, is_bootstrap=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
