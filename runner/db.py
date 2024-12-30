@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, TypeVar, Generic, Type
 from .database import get_db
-from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary
+from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
@@ -37,59 +37,84 @@ class ComparisonRepository(BaseRepository[Comparison]):
         super().__init__(Comparison)
 
     def create_comparison(
-            self, test_id: int, ref_id: int,
-            ref_version: Optional[str] = None, test_version: Optional[str] = None) -> None:
-        """Create a new comparison between two deployments."""
-        test_deployment = self.db.query(Deployment).filter(Deployment.id == test_id).first()
-        if not test_deployment:
-            raise ValueError(f"Deployment with ID {test_id} not found")
+            self, ref_id: int, test_ids: list[tuple[int, Optional[str]]],
+            ref_label: Optional[str] = None, description: Optional[str] = None) -> None:
+        """Create a new comparison between multiple deployments.
+        
+        Args:
+            ref_id: ID of the reference deployment
+            test_ids: List of tuples containing (deployment_id, label) for test environments
+            ref_label: Optional label for the reference deployment
+            description: Optional description of the comparison
+        """
         ref_deployment = self.db.query(Deployment).filter(Deployment.id == ref_id).first()
         if not ref_deployment:
             raise ValueError(f"Deployment with ID {ref_id} not found")
+        
+        for test_id, _ in test_ids:
+            test_deployment = self.db.query(Deployment).filter(Deployment.id == test_id).first()
+            if not test_deployment:
+                raise ValueError(f"Deployment with ID {test_id} not found")
 
         comparison = Comparison(
-            test_deployment=test_deployment,
             ref_deployment=ref_deployment,
-            created_at=datetime.utcnow(),
-            ref_version=ref_version,
-            test_version=test_version
+            created_at=datetime.now(UTC),
+            ref_label=ref_label,
+            description=description
         )
         self.save(comparison)
+        
+        for test_id, label in test_ids:
+            test_assoc = ComparisonDeployment(
+                comparison=comparison,
+                deployment_id=test_id,
+                label=label
+            )
+            self.db.add(test_assoc)
+        self.db.commit()
+        self.close()
 
     def list_comparisons(self) -> list[ComparisonSummary]:
         try:
-            # Create aliases for the second join to Deployment
-            ref_deployment = aliased(Deployment)
-            
             stmt = (
                 select(
                     Comparison.id,
-                    Deployment.name.label('test_name'),
-                    ref_deployment.name.label('ref_name'),
+                    Deployment.name.label('ref_name'),
+                    Comparison.ref_label,
                     Comparison.thread_link,
+                    Comparison.description,
                     Comparison.passed,
                     Comparison.created_at,
                     Comparison.result_recorded_at
                 )
-                .join(Deployment, Comparison.test_id == Deployment.id)
-                .join(ref_deployment, Comparison.ref_id == ref_deployment.id)
+                .join(Deployment, Comparison.ref_id == Deployment.id)
                 .order_by(Comparison.created_at.asc())
             )
             
             results = self.db.execute(stmt).all()
             
-            return [
-                ComparisonSummary(
+            summaries = []
+            for row in results:
+                test_envs = (
+                    self.db.query(Deployment.name, ComparisonDeployment.label)
+                    .join(ComparisonDeployment, Deployment.id == ComparisonDeployment.deployment_id)
+                    .filter(ComparisonDeployment.comparison_id == row.id)
+                    .all()
+                )
+                
+                summaries.append(ComparisonSummary(
                     id=row.id,
-                    test_name=row.test_name,
                     ref_name=row.ref_name,
+                    ref_label=row.ref_label,
+                    test_environments=test_envs,
                     thread_link=row.thread_link,
+                    description=row.description,
                     passed=row.passed,
                     created_at=row.created_at,
                     result_recorded_at=row.result_recorded_at
-                )
-                for row in results
-            ]
+                ))
+                
+            return summaries
         finally:
             self.db.close()
 

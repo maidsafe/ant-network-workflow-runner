@@ -1255,3 +1255,50 @@ def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False) -> Non
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force)
+
+def create_comparison_interactive() -> None:
+    """Create a new comparison using interactive prompts."""
+    import questionary
+
+    description = questionary.text(
+        "Description (optional):",
+    ).ask()
+
+    ref_id = questionary.text(
+        "What is the ID of the reference deployment?",
+        validate=lambda text: text.isdigit() and int(text) > 0 or "Please enter a valid deployment ID"
+    ).ask()
+    ref_id = int(ref_id)
+
+    ref_label = questionary.text(
+        "What is the label for the reference environment? (e.g. version number or PR#)",
+    ).ask()
+
+    num_tests = questionary.text(
+        "How many test environments are in this comparison?",
+        default="1",
+        validate=lambda text: text.isdigit() and int(text) > 0 or "Please enter a valid number"
+    ).ask()
+    num_tests = int(num_tests)
+
+    test_envs = []
+    for i in range(num_tests):
+        print(f"\nTest Environment #{i+1}")
+        print("-" * 20)
+        
+        test_id = questionary.text(
+            "What is the ID of this test deployment?",
+            validate=lambda text: text.isdigit() and int(text) > 0 or "Please enter a valid deployment ID"
+        ).ask()
+        test_id = int(test_id)
+
+        test_label = questionary.text(
+            "What is the label for this test environment? (e.g. version number or PR#)",
+        ).ask()
+
+        test_envs.append((test_id, test_label))
+
+
+    repo = ComparisonRepository()
+    repo.create_comparison(ref_id, test_envs, ref_label, description if description else None)
+    print(f"\nComparison created")

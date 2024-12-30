@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, mapped_column
+from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm import backref
 from .database import Base
 
 class WorkflowRun(Base):
@@ -54,31 +56,43 @@ class Deployment(Base):
     triggered_at = Column(DateTime, nullable=False)
     run_id = Column(Integer, nullable=False)
 
+class ComparisonDeployment(Base):
+    """Association table for many-to-many relationship between comparisons and test deployments"""
+    __tablename__ = "comparison_deployments"
+
+    id = Column(Integer, primary_key=True)
+    comparison_id = Column(Integer, ForeignKey("comparisons.id"), nullable=False)
+    deployment_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    label = Column(String)
+    
+    comparison = relationship("Comparison", back_populates="test_deployments")
+    deployment = relationship("Deployment")
+
 class Comparison(Base):
     __tablename__ = "comparisons"
 
     id = Column(Integer, primary_key=True, index=True)
-    test_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
     ref_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    description = Column(String)
     thread_link = Column(String)
     created_at = Column(DateTime, nullable=False)
-    report = Column(String)
-    result_recorded_at = Column(DateTime)
-    started_at = Column(DateTime)
-    ended_at = Column(DateTime)
-    ref_version = Column(String)
-    test_version = Column(String)
+    ref_label = Column(String)
     passed = Column(Boolean)
 
-    test_deployment = relationship("Deployment", foreign_keys=[test_id])
     ref_deployment = relationship("Deployment", foreign_keys=[ref_id])
+    test_deployments = relationship("ComparisonDeployment", back_populates="comparison")
+    
+    # Instead of association_proxy, we can access deployments through the relationship
+    @property
+    def test_environments(self):
+        return [(cd.deployment, cd.label) for cd in self.test_deployments]
 
 @dataclass
 class ComparisonSummary:
     id: int
-    test_name: str
     ref_name: str
+    ref_label: Optional[str]
+    test_environments: list[tuple[str, Optional[str]]]
     thread_link: Optional[str]
-    passed: Optional[bool]
+    description: Optional[str]
     created_at: datetime
-    result_recorded_at: Optional[datetime] 

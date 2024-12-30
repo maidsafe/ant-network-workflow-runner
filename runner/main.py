@@ -60,31 +60,8 @@ def main():
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
-    new_comparison_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
-    new_comparison_parser.add_argument(
-        "--test-id",
-        type=int,
-        required=True,
-        help="ID of the test deployment"
-    )
-    new_comparison_parser.add_argument(
-        "--ref-id",
-        type=int,
-        required=True,
-        help="ID of the reference deployment"
-    )
-    new_comparison_parser.add_argument(
-        "--ref-version",
-        type=str,
-        help="Reference version string"
-    )
-    new_comparison_parser.add_argument(
-        "--test-version",
-        type=str,
-        help="Test version string"
-    )
-    
-    comparisons_ls_parser = comparisons_subparsers.add_parser("ls", help="List all comparisons")
+    comparisons_subparsers.add_parser("new", help="Create a new comparison")
+    comparisons_subparsers.add_parser("ls", help="List all comparisons")
     
     comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
     comparisons_print_parser.add_argument(
@@ -407,7 +384,7 @@ def main():
         elif args.comparisons_command == "ls":
             cmd.list_comparisons()
         elif args.comparisons_command == "new":
-            cmd.create_comparison(args.test_id, args.ref_id, args.ref_version, args.test_version)
+            cmd.create_comparison_interactive()
         elif args.comparisons_command == "post":
             cmd.post_comparison(args.id)
         elif args.comparisons_command == "print":
