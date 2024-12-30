@@ -135,6 +135,17 @@ def main():
         help="Show detailed information for each deployment"
     )
 
+    deployment_smoke_test_parser = deployment_subparsers.add_parser(
+        "smoke-test", 
+        help="Run a smoke test for a deployment"
+    )
+    deployment_smoke_test_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to test"
+    )
+
     deposit_funds_parser = subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
     deposit_funds_parser.add_argument(
         "--path",
@@ -397,8 +408,10 @@ def main():
     elif args.command == "deployment":
         if args.deployment_command == "ls":
             cmd.list_deployments(show_details=args.details)
+        elif args.deployment_command == "smoke-test":
+            cmd.smoke_test_deployment(args.id)
         else:
-            deployment_ls_parser.print_help()
+            deployment_parser.print_help()
             sys.exit(1)
     elif args.command == "bootstrap-network":
         config = load_yaml_config(args.path)

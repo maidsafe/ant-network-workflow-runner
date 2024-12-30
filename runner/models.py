@@ -96,3 +96,13 @@ class ComparisonSummary:
     thread_link: Optional[str]
     description: Optional[str]
     created_at: datetime
+
+class SmokeTestResult(Base):
+    __tablename__ = "smoke_test_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    deployment_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    results = Column(JSON, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+
+    deployment = relationship("Deployment", backref="smoke_test_results")

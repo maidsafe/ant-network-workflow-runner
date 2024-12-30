@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from typing import Dict, Optional, List
 
+import questionary
 import requests
 from rich import print as rprint
 
@@ -1258,7 +1259,6 @@ def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False) -> Non
 
 def create_comparison_interactive() -> None:
     """Create a new comparison using interactive prompts."""
-    import questionary
 
     description = questionary.text(
         "Description (optional):",
@@ -1302,3 +1302,52 @@ def create_comparison_interactive() -> None:
     repo = ComparisonRepository()
     repo.create_comparison(ref_id, test_envs, ref_label, description if description else None)
     print(f"\nComparison created")
+
+def smoke_test_deployment(deployment_id: int) -> None:
+    """Run a smoke test for a deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to test
+    """
+    repo = DeploymentRepository()
+    deployment = repo.get_by_id(deployment_id)
+    if not deployment:
+        print(f"Error: Deployment with ID {deployment_id} not found")
+        sys.exit(1)
+
+    print(f"\nSmoke test for {deployment.name}")
+    print("-" * 40)
+
+    questions = [
+        "Are all nodes running?",
+        "Is the main dashboard receiving data?",
+        "Do nodes on generic hosts have open connections and connected peers?",
+        "Do nodes on peer cache hosts have open connections and connected peers?",
+        "Do private nodes have open connections and connected peers?",
+        "Is ELK receiving logs?",
+        "Is `antctl` on the correct version?",
+        "Is `antnode` on the correct version?",
+        "Are the correct reserved IPs allocated?",
+        "Are the bootstrap cache files available?",
+        "Is the uploader dashboard receiving data?",
+        "Do uploader wallets have funds?",
+        "Is `ant` on the correct version?",
+        "Do the uploaders have no errors?"
+    ]
+
+    results = {}
+    for question in questions:
+        answer = questionary.select(
+            question,
+            choices=["Yes", "No", "N/A"]
+        ).ask()
+        
+        if answer is None:
+            print("\nSmoke test cancelled.")
+            return
+            
+        results[question] = answer
+
+    repo.record_smoke_test_result(deployment_id, results)
+    print("\nRecorded results")
+        

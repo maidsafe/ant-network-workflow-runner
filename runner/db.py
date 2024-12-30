@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, TypeVar, Generic, Type
 from .database import get_db
-from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment
+from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment, SmokeTestResult
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
@@ -213,6 +213,25 @@ class DeploymentRepository(BaseRepository[Deployment]):
             run_id=workflow_run_id
         )
         self.save(deployment)
+
+    def record_smoke_test_result(self, deployment_id: int, results: dict) -> None:
+        """Record smoke test results for a deployment.
+        
+        Args:
+            deployment_id: ID of the deployment
+            results: Dictionary containing smoke test responses
+        """
+        deployment = self.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Deployment with ID {deployment_id} not found")
+            
+        smoke_test = SmokeTestResult(
+            deployment_id=deployment_id,
+            results=results,
+            created_at=datetime.now(UTC)
+        )
+        self.db.add(smoke_test)
+        self.db.commit()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):
