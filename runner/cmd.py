@@ -8,7 +8,7 @@ import requests
 from rich import print as rprint
 
 from runner.db import ComparisonRepository, DeploymentRepository
-from runner.models import Deployment
+from runner.models import Comparison, Deployment
 from runner.workflows import *
 
 REPO_OWNER = "maidsafe"
@@ -743,20 +743,12 @@ def list_comparisons() -> None:
     print(" " * 35 + "C O M P A R I S O N S" + " " * 35)
     print("=" * 100)
     
-    print(f"{'ID':<5} {'TEST':<15} {'REF':<15} {'Created':<20} {'Results':<20} {'Pass':<5}")
+    print(f"{'ID':<5} {'Title':<40} {'Created':<20}")
     print("-" * 100)
     
     for comparison in comparisons:
         created_at = comparison.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        results_at = comparison.result_recorded_at.strftime("%Y-%m-%d %H:%M:%S") if comparison.result_recorded_at else "-"
-        
-        if comparison.passed is None:
-            pass_mark = "-"
-        elif comparison.passed:
-            pass_mark = f"[green]✓[/green]"
-        else:
-            pass_mark = f"[red]✗[/red]"
-        rprint(f"{comparison.id:<5} {comparison.test_name:<15} {comparison.ref_name:<15} {created_at:<20} {results_at:<20} {pass_mark:<12}")
+        rprint(f"{comparison.id:<5} {comparison.title:<40} {created_at:<20}")
         
     print("\nAll times are in UTC")
 
@@ -834,7 +826,7 @@ def print_deployment_for_comparison(deployment: Deployment) -> None:
         if deployment.evm_rpc_url:
             print(f"RPC URL: {deployment.evm_rpc_url}")
 
-def build_comparison_report(comparison_id: int) -> str:
+def build_comparison_report(comparison: Comparison) -> str:
     """Build a detailed report about a specific comparison.
     
     Args:
@@ -842,43 +834,39 @@ def build_comparison_report(comparison_id: int) -> str:
         
     Returns:
         str: The formatted comparison report
-        
-    Raises:
-        ValueError: If comparison with given ID is not found
     """
-    repo = ComparisonRepository()
-    comparison = repo.get_by_id(comparison_id)
-    if not comparison:
-        raise ValueError(f"Comparison with ID {comparison_id} not found")
-        
     lines = []
-    lines.append("============================")
-    lines.append("   *ENVIRONMENT COMPARISON*  ")
-    lines.append("============================")
+    lines.append("*ENVIRONMENT COMPARISON*")
     lines.append("")
 
-    test_title = ""
-    if comparison.test_version:
-        test_title = f"{comparison.test_version}"
-    elif comparison.test_deployment.related_pr:
-        pr_title = get_pr_title(comparison.test_deployment.related_pr)
-        test_title = f"{pr_title} [#{comparison.test_deployment.related_pr}]"
-    elif comparison.test_deployment.branch:
-        test_title = f"{comparison.test_deployment.repo_owner}/{comparison.test_deployment.branch}"
+    if comparison.description:
+        lines.append(f"{comparison.description}")
+        lines.append("")
 
     if comparison.thread_link:
         lines.append(f"Slack thread: {comparison.thread_link}")
 
-    lines.append(f"*TEST*: {test_title} [`{comparison.test_deployment.name}`]")
-    lines.append(f"*REF*: {comparison.ref_version} [`{comparison.ref_deployment.name}`]")
-    lines.append("")
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
+    n = 1
+    for test_deployment in comparison.test_environments:
+        (deployment, label) = test_deployment
+        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
+        n += 1
 
-    lines.append(f"`{comparison.test_deployment.name}`:")
-    lines.append("```")
-    lines.extend(_format_deployment_details(comparison.test_deployment))
-    lines.append("```")
     lines.append("")
-    lines.append(f"`{comparison.ref_deployment.name}`:")
+    lines.append("---")
+    lines.append("")
+    n = 1
+    for test_deployment in comparison.test_environments:
+        (deployment, label) = test_deployment
+        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
+        lines.append("```")
+        lines.extend(_format_deployment_details(deployment))
+        lines.append("```")
+        lines.append("")
+        n += 1
+
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
     lines.append("```")
     lines.extend(_format_deployment_details(comparison.ref_deployment))
     lines.append("```")
@@ -976,8 +964,14 @@ def _format_deployment_details(deployment: Deployment) -> List[str]:
 def print_comparison(comparison_id: int) -> None:
     """Print detailed information about a specific comparison."""
     try:
-        report = build_comparison_report(comparison_id)
-        print(report)
+        repo = ComparisonRepository()
+        comparison = repo.get_by_id(comparison_id)
+        if not comparison:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+        report = build_comparison_report(comparison)
+        smoke_test_report = _build_smoke_test_report(comparison)
+        full_report = f"{report}\n\n{smoke_test_report}"
+        print(full_report)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -994,102 +988,82 @@ def post_comparison(comparison_id: int) -> None:
         sys.exit(1)
         
     try:
-        report = build_comparison_report(comparison_id)
-        
-        print("\nSmoke test for TEST environment:")
-        test_results = _get_smoke_test_responses()
-        
-        print("\nSmoke test for REF environment:")
-        ref_results = _get_smoke_test_responses()
-        
-        smoke_test_report = _build_smoke_test_report(test_results, ref_results)
-        
-        full_report = f"{report}\n\n{smoke_test_report}"
+        repo = ComparisonRepository()
+        comparison = repo.get_by_id(comparison_id)
+        if not comparison:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+
+        report = build_comparison_report(comparison)
+        smoke_test_report = _build_smoke_test_report(comparison)
         
         response = requests.post(
             webhook_url,
-            json={"text": full_report},
+            json={"text": report},
             headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
-        
-        print(f"Successfully posted comparison {comparison_id} to Slack")
-    except ValueError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+        print(f"Posted comparison report to Slack")
+
+        response = requests.post(
+            webhook_url,
+            json={"text": smoke_test_report},
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        print(f"Posted smoke test report to Slack")
     except requests.exceptions.RequestException as e:
         print(f"Error posting to Slack: {e}")
         sys.exit(1)
 
-def _get_smoke_test_responses() -> dict:
-    """Get user responses for smoke test questions.
-    
-    Returns:
-        dict: Dictionary containing smoke test responses
-    """
-    import questionary
-    
-    questions = {
-        "peer_cache_available": "Are the peer cache files accessible?",
-        "antnode_version": "Is the `antnode` version correct?",
-        "antctl_version": "Is the `antctl` version correct?",
-        "nodes_running": "Are all nodes running?",
-        "wallets_funded": "Are the uploader wallets funded?",
-        "ant_version": "Is the `ant` version correct?",
-        "uploaders_running": "Are the uploaders running without errors?",
-        "dashboard_receiving": "Is the main monitoring dashboard receiving data?",
-        "uploader_dashboard_receiving": "Is the uploader monitoring dashboard receiving data?"
-    }
-    
-    responses = {}
-    for key, question in questions.items():
-        response = questionary.confirm(question).ask()
-        responses[key] = response
-        
-    return responses
-
-def _build_smoke_test_report(test_results: dict, ref_results: dict) -> str:
-    """Build smoke test report section.
+def _build_smoke_test_report(comparison: Comparison) -> str:
+    """Build a smoke test report for a comparison.
     
     Args:
-        test_results: Dictionary containing TEST environment responses
-        ref_results: Dictionary containing REF environment responses
+        comparison: The comparison to build the report for
         
     Returns:
-        str: Formatted smoke test report
+        str: The formatted smoke test report
     """
     lines = []
-    lines.append("----------------")
-    lines.append("  Smoke Test  ")
-    lines.append("----------------")
-    
-    lines.append("`TEST`:")
-    lines.extend([
-        f"{'✅' if test_results['peer_cache_available'] else '❌'}Peer cache files available",
-        f"{'✅' if test_results['antnode_version'] else '❌'}`antnode` version is correct",
-        f"{'✅' if test_results['antctl_version'] else '❌'}`antctl` version is correct",
-        f"{'✅' if test_results['nodes_running'] else '❌'}All nodes running",
-        f"{'✅' if test_results['wallets_funded'] else '❌'}Uploader wallets funded",
-        f"{'✅' if test_results['ant_version'] else '❌'}`ant` version is correct",
-        f"{'✅' if test_results['uploaders_running'] else '❌'}Uploaders running without errors",
-        f"{'✅' if test_results['dashboard_receiving'] else '❌'}Main monitoring dashboard receiving data",
-        f"{'✅' if test_results['uploader_dashboard_receiving'] else '❌'}Uploader monitoring dashboard receiving data"
-    ])
-    
+    lines.append("*SMOKE TEST RESULTS*")
     lines.append("")
     
-    lines.append("`REF`:")
-    lines.extend([
-        f"{'✅' if test_results['peer_cache_available'] else '❌'}Peer cache files available",
-        f"{'✅' if ref_results['antnode_version'] else '❌'}`antnode` version is correct",
-        f"{'✅' if ref_results['antctl_version'] else '❌'}`antctl` version is correct",
-        f"{'✅' if ref_results['nodes_running'] else '❌'}All nodes running",
-        f"{'✅' if ref_results['wallets_funded'] else '❌'}Uploader wallets funded",
-        f"{'✅' if ref_results['ant_version'] else '❌'}`ant` version is correct",
-        f"{'✅' if ref_results['uploaders_running'] else '❌'}Uploaders running without errors",
-        f"{'✅' if ref_results['dashboard_receiving'] else '❌'}Main monitoring dashboard receiving data",
-        f"{'✅' if test_results['uploader_dashboard_receiving'] else '❌'}Uploader monitoring dashboard receiving data"
-    ])
+    repo = DeploymentRepository()
+    
+    n = 1
+    for test_deployment, label in comparison.test_environments:
+        results = repo.get_smoke_test_result(test_deployment.id)
+        if not results:
+            lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
+            lines.append("No smoke test results recorded")
+            lines.append("")
+            continue
+            
+        lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
+        for question, answer in results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            lines.append(f"{status}  {question}")
+        lines.append("")
+        lines.append(f"---")
+        lines.append("")
+        n += 1
+    
+    ref_results = repo.get_smoke_test_result(comparison.ref_deployment.id)
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
+    if not ref_results:
+        lines.append("No smoke test results recorded")
+    else:
+        for question, answer in ref_results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            lines.append(f"{status}  {question}")
     
     return "\n".join(lines)
 
@@ -1271,7 +1245,7 @@ def create_comparison_interactive() -> None:
     ref_id = int(ref_id)
 
     ref_label = questionary.text(
-        "What is the label for the reference environment? (e.g. version number or PR#)",
+        "What is the label for the reference environment? (e.g. version number/PR#/branch ref)",
     ).ask()
 
     num_tests = questionary.text(

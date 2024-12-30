@@ -90,12 +90,10 @@ class Comparison(Base):
 @dataclass
 class ComparisonSummary:
     id: int
-    ref_name: str
-    ref_label: Optional[str]
-    test_environments: list[tuple[str, Optional[str]]]
+    title: str
+    created_at: datetime
     thread_link: Optional[str]
     description: Optional[str]
-    created_at: datetime
 
 class SmokeTestResult(Base):
     __tablename__ = "smoke_test_results"

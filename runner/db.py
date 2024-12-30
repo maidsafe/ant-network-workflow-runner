@@ -85,7 +85,6 @@ class ComparisonRepository(BaseRepository[Comparison]):
                     Comparison.description,
                     Comparison.passed,
                     Comparison.created_at,
-                    Comparison.result_recorded_at
                 )
                 .join(Deployment, Comparison.ref_id == Deployment.id)
                 .order_by(Comparison.created_at.asc())
@@ -101,17 +100,17 @@ class ComparisonRepository(BaseRepository[Comparison]):
                     .filter(ComparisonDeployment.comparison_id == row.id)
                     .all()
                 )
+
+                title = f"{row.ref_name}"
+                for _, label in test_envs:
+                    title += f" vs {label}"
                 
                 summaries.append(ComparisonSummary(
                     id=row.id,
-                    ref_name=row.ref_name,
-                    ref_label=row.ref_label,
-                    test_environments=test_envs,
+                    title=title,
                     thread_link=row.thread_link,
                     description=row.description,
-                    passed=row.passed,
                     created_at=row.created_at,
-                    result_recorded_at=row.result_recorded_at
                 ))
                 
             return summaries
@@ -232,6 +231,9 @@ class DeploymentRepository(BaseRepository[Deployment]):
         )
         self.db.add(smoke_test)
         self.db.commit()
+
+    def get_smoke_test_result(self, deployment_id: int) -> list[SmokeTestResult]:
+        return self.db.query(SmokeTestResult).filter(SmokeTestResult.deployment_id == deployment_id).first()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):
