@@ -381,6 +381,17 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    deployment_print_parser = deployment_subparsers.add_parser(
+        "print", 
+        help="Print details of a specific deployment"
+    )
+    deployment_print_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to print"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -410,6 +421,8 @@ def main():
             cmd.list_deployments(show_details=args.details)
         elif args.deployment_command == "smoke-test":
             cmd.smoke_test_deployment(args.id)
+        elif args.deployment_command == "print":
+            cmd.print_deployment(args.id)
         else:
             deployment_parser.print_help()
             sys.exit(1)

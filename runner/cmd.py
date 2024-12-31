@@ -752,80 +752,6 @@ def list_comparisons() -> None:
         
     print("\nAll times are in UTC")
 
-def print_deployment_for_comparison(deployment: Deployment) -> None:
-    print(f"Deployed: {deployment.triggered_at.strftime('%Y-%m-%d %H:%M:%S')}")
-    evm_type_display = {
-        "anvil": "Anvil",
-        "arbitrum-one": "Arbitrum One",
-        "arbitrum-sepolia": "Arbitrum Sepolia", 
-        "custom": "Custom"
-    }.get(deployment.evm_network_type, deployment.evm_network_type)
-    print(f"EVM Type: {evm_type_display}")
-    print(f"Workflow run: https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
-    if deployment.related_pr:
-        print(f"Related PR: #{deployment.related_pr}")
-        print(f"Link: https://github.com/{REPO_OWNER}/{AUTONOMI_REPO_NAME}/pull/{deployment.related_pr}")
-
-    if deployment.ant_version:
-        print(f"===============")
-        print(f"Version Details")
-        print(f"===============")
-        print(f"Ant: {deployment.ant_version}")
-        print(f"Antnode: {deployment.antnode_version}")
-        print(f"Antctl: {deployment.antctl_version}")
-
-    if deployment.branch:
-        print(f"=====================")
-        print(f"Custom Branch Details")
-        print(f"=====================")
-        print(f"Branch: {deployment.branch}")
-        print(f"Repo Owner: {deployment.repo_owner}")
-        print(f"Link: https://github.com/{deployment.repo_owner}/{AUTONOMI_REPO_NAME}/tree/{deployment.branch}")
-        if deployment.chunk_size:
-            print(f"Chunk Size: {deployment.chunk_size}")
-        if deployment.antnode_features:
-            print(f"Antnode Features: {deployment.antnode_features}")
-
-    print(f"==================")
-    print(f"Node Configuration")
-    print(f"==================")
-    print(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
-    print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
-    print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
-    total_nodes = (deployment.peer_cache_vm_count * deployment.peer_cache_node_count + 
-                   deployment.generic_vm_count * deployment.generic_node_count +
-                   deployment.private_vm_count * deployment.private_node_count)
-    print(f"Total: {total_nodes}")
-
-    print(f"======================")
-    print(f"Uploader Configuration")
-    print(f"======================")
-    print(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
-    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
-    print(f"Total: {total_uploaders}")
-
-    if deployment.max_log_files or deployment.max_archived_log_files:
-        print(f"==================")
-        print(f"Misc Configuration")
-        print(f"==================")
-        if deployment.max_log_files:
-            print(f"Max log files: {deployment.max_log_files}")
-        if deployment.max_archived_log_files:
-            print(f"Max archived log files: {deployment.max_archived_log_files}")
-        
-    if any([deployment.evm_data_payments_address, 
-            deployment.evm_payment_token_address, 
-            deployment.evm_rpc_url]):
-        print(f"=================")
-        print(f"EVM Configuration")
-        print(f"=================")
-        if deployment.evm_data_payments_address:
-            print(f"Data Payments Address: {deployment.evm_data_payments_address}")
-        if deployment.evm_payment_token_address:
-            print(f"Payment Token Address: {deployment.evm_payment_token_address}")
-        if deployment.evm_rpc_url:
-            print(f"RPC URL: {deployment.evm_rpc_url}")
-
 def build_comparison_report(comparison: Comparison) -> str:
     """Build a detailed report about a specific comparison.
     
@@ -861,20 +787,20 @@ def build_comparison_report(comparison: Comparison) -> str:
         (deployment, label) = test_deployment
         lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
         lines.append("```")
-        lines.extend(_format_deployment_details(deployment))
+        lines.extend(_build_deployment_report(deployment))
         lines.append("```")
         lines.append("")
         n += 1
 
     lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
     lines.append("```")
-    lines.extend(_format_deployment_details(comparison.ref_deployment))
+    lines.extend(_build_deployment_report(comparison.ref_deployment))
     lines.append("```")
 
     return "\n".join(lines)
 
-def _format_deployment_details(deployment: Deployment) -> List[str]:
-    """Format deployment details into a list of strings.
+def _build_deployment_report(deployment: Deployment) -> List[str]:
+    """Build a detailed report about a specific deployment.
     
     Args:
         deployment: The deployment to format
@@ -1325,3 +1251,36 @@ def smoke_test_deployment(deployment_id: int) -> None:
     repo.record_smoke_test_result(deployment_id, results)
     print("\nRecorded results")
         
+def print_deployment(deployment_id: int) -> None:
+    """Print detailed information about a specific deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to print
+    """
+    repo = DeploymentRepository()
+    deployment = repo.get_by_id(deployment_id)
+    if not deployment:
+        print(f"Error: Deployment with ID {deployment_id} not found")
+        sys.exit(1)
+        
+    print(f"*{deployment.name}*")
+    print("---")
+    
+    report_lines = _build_deployment_report(deployment)
+    for line in report_lines:
+        print(line)
+        
+    print("*SMOKE TEST RESULTS*")
+    print("---")
+    
+    results = repo.get_smoke_test_result(deployment_id)
+    if not results:
+        print("No smoke test results recorded")
+    else:
+        for question, answer in results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            print(f"{status}  {question}")
