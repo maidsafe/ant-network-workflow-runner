@@ -1263,19 +1263,64 @@ def print_deployment(deployment_id: int) -> None:
         print(f"Error: Deployment with ID {deployment_id} not found")
         sys.exit(1)
         
-    print(f"*{deployment.name}*")
-    print("---")
+    report = _build_deployment_and_smoke_test_report(deployment)
+    print(report)
+
+def post_deployment(deployment_id: int) -> None:
+    """Post deployment information to Slack.
     
-    report_lines = _build_deployment_report(deployment)
-    for line in report_lines:
-        print(line)
+    Args:
+        deployment_id: ID of the deployment to post
+    """
+    webhook_url = os.getenv("ANT_RUNNER_COMPARISON_WEBHOOK_URL")
+    if not webhook_url:
+        print("Error: ANT_RUNNER_COMPARISON_WEBHOOK_URL environment variable is not set")
+        sys.exit(1)
         
-    print("*SMOKE TEST RESULTS*")
-    print("---")
+    try:
+        repo = DeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Deployment with ID {deployment_id} not found")
+
+        report = _build_deployment_and_smoke_test_report(deployment)
+        
+        response = requests.post(
+            webhook_url,
+            json={"text": report},
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        print(f"Posted deployment report to Slack")
+    except requests.exceptions.RequestException as e:
+        print(f"Error posting to Slack: {e}")
+        sys.exit(1)
+
+def _build_deployment_and_smoke_test_report(deployment: Deployment) -> str:
+    """Build a detailed report about a specific deployment.
     
-    results = repo.get_smoke_test_result(deployment_id)
+    Args:
+        deployment: The deployment to format
+        
+    Returns:
+        str: The formatted deployment report
+    """
+    lines = []
+    lines.append(f"*{deployment.name}*")
+    
+    lines.append("```")
+    lines.extend(_build_deployment_report(deployment))
+    lines.append("```")
+        
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("*SMOKE TEST RESULTS*")
+    
+    repo = DeploymentRepository()
+    results = repo.get_smoke_test_result(deployment.id)
     if not results:
-        print("No smoke test results recorded")
+        lines.append("No smoke test results recorded")
     else:
         for question, answer in results.results.items():
             status = {
@@ -1283,4 +1328,5 @@ def print_deployment(deployment_id: int) -> None:
                 "No": "❌ ",
                 "N/A": "N/A"
             }.get(answer, "?")
-            print(f"{status}  {question}")
+            lines.append(f"{status}  {question}")
+    return "\n".join(lines)

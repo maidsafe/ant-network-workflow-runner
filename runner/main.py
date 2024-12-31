@@ -392,6 +392,17 @@ def main():
         help="ID of the deployment to print"
     )
 
+    deployment_post_parser = deployment_subparsers.add_parser(
+        "post", 
+        help="Post deployment details to Slack"
+    )
+    deployment_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to post"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -419,10 +430,12 @@ def main():
     elif args.command == "deployment":
         if args.deployment_command == "ls":
             cmd.list_deployments(show_details=args.details)
-        elif args.deployment_command == "smoke-test":
-            cmd.smoke_test_deployment(args.id)
+        elif args.deployment_command == "post":
+            cmd.post_deployment(args.id)
         elif args.deployment_command == "print":
             cmd.print_deployment(args.id)
+        elif args.deployment_command == "smoke-test":
+            cmd.smoke_test_deployment(args.id)
         else:
             deployment_parser.print_help()
             sys.exit(1)
