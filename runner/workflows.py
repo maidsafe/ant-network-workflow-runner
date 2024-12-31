@@ -2,6 +2,8 @@ import json
 import logging
 import sys
 import time
+
+from datetime import datetime, UTC
 from enum import Enum
 from typing import List, Optional, Dict, Any
 
@@ -9,7 +11,8 @@ import requests
 from rich import print as rprint
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from runner.db import record_workflow_run
+from runner.db import WorkflowRunRepository
+from runner.models import WorkflowRun as WorkflowRunModel
 
 class NodeType(Enum):
     PEER_CACHE = "peer-cache"
@@ -135,13 +138,16 @@ class WorkflowRun:
                     raise
                 self._display_spinner(5)
         
-        record_workflow_run(
+        repo = WorkflowRunRepository()
+        workflow_run = WorkflowRunModel(
             workflow_name=self.name,
+            triggered_at=datetime.now(UTC),
             branch_name=self.branch_name,
             network_name=self.network_name,
             inputs=inputs,
             run_id=run_id
         )
+        repo.save(workflow_run)
         
         print()
         print("Workflow run:")

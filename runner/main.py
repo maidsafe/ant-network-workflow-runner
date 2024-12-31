@@ -60,31 +60,8 @@ def main():
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
-    new_comparison_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
-    new_comparison_parser.add_argument(
-        "--test-id",
-        type=int,
-        required=True,
-        help="ID of the test deployment"
-    )
-    new_comparison_parser.add_argument(
-        "--ref-id",
-        type=int,
-        required=True,
-        help="ID of the reference deployment"
-    )
-    new_comparison_parser.add_argument(
-        "--ref-version",
-        type=str,
-        help="Reference version string"
-    )
-    new_comparison_parser.add_argument(
-        "--test-version",
-        type=str,
-        help="Test version string"
-    )
-    
-    comparisons_ls_parser = comparisons_subparsers.add_parser("ls", help="List all comparisons")
+    comparisons_subparsers.add_parser("new", help="Create a new comparison")
+    comparisons_subparsers.add_parser("ls", help="List all comparisons")
     
     comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
     comparisons_print_parser.add_argument(
@@ -156,6 +133,17 @@ def main():
         "--details",
         action="store_true",
         help="Show detailed information for each deployment"
+    )
+
+    deployment_smoke_test_parser = deployment_subparsers.add_parser(
+        "smoke-test", 
+        help="Run a smoke test for a deployment"
+    )
+    deployment_smoke_test_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to test"
     )
 
     deposit_funds_parser = subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
@@ -393,6 +381,28 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    deployment_print_parser = deployment_subparsers.add_parser(
+        "print", 
+        help="Print details of a specific deployment"
+    )
+    deployment_print_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to print"
+    )
+
+    deployment_post_parser = deployment_subparsers.add_parser(
+        "post", 
+        help="Post deployment details to Slack"
+    )
+    deployment_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to post"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -407,7 +417,7 @@ def main():
         elif args.comparisons_command == "ls":
             cmd.list_comparisons()
         elif args.comparisons_command == "new":
-            cmd.create_comparison(args.test_id, args.ref_id, args.ref_version, args.test_version)
+            cmd.create_comparison_interactive()
         elif args.comparisons_command == "post":
             cmd.post_comparison(args.id)
         elif args.comparisons_command == "print":
@@ -420,8 +430,14 @@ def main():
     elif args.command == "deployment":
         if args.deployment_command == "ls":
             cmd.list_deployments(show_details=args.details)
+        elif args.deployment_command == "post":
+            cmd.post_deployment(args.id)
+        elif args.deployment_command == "print":
+            cmd.print_deployment(args.id)
+        elif args.deployment_command == "smoke-test":
+            cmd.smoke_test_deployment(args.id)
         else:
-            deployment_ls_parser.print_help()
+            deployment_parser.print_help()
             sys.exit(1)
     elif args.command == "bootstrap-network":
         config = load_yaml_config(args.path)

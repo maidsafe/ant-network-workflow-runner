@@ -4,6 +4,8 @@ inputs/
 scripts/
 venv/
 
+alembic/__pycache__
+alembic/versions/__pycache__
 runner/__pycache__
 runner.egg-info/
 *.pyc

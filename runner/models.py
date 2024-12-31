@@ -1,64 +1,106 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, ForeignKey
+from sqlalchemy.orm import relationship, mapped_column
+from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm import backref
+from .database import Base
 
-@dataclass
-class Deployment:
-    id: int
-    name: str
-    ant_version: Optional[str]
-    antnode_version: Optional[str]
-    antctl_version: Optional[str]
-    branch: Optional[str]
-    repo_owner: Optional[str]
-    chunk_size: Optional[int]
-    antnode_features: Optional[str]
-    peer_cache_node_count: Optional[int]
-    generic_node_count: int
-    private_node_count: Optional[int]
-    downloader_count: Optional[int]
-    uploader_count: Optional[int]
-    peer_cache_vm_count: Optional[int]
-    generic_vm_count: int
-    private_vm_count: Optional[int]
-    uploader_vm_count: Optional[int]
-    peer_cache_node_vm_size: Optional[str]
-    generic_node_vm_size: str
-    private_node_vm_size: Optional[str]
-    uploader_vm_size: Optional[str]
-    evm_network_type: str
-    rewards_address: str
-    max_log_files: Optional[int]
-    max_archived_log_files: Optional[int]
-    evm_data_payments_address: Optional[str]
-    evm_payment_token_address: Optional[str]
-    evm_rpc_url: Optional[str]
-    related_pr: Optional[int]
-    network_id: Optional[int]
-    triggered_at: datetime
-    run_id: int
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
 
-@dataclass
-class Comparison:
-    id: int
-    test_deployment: Deployment
-    ref_deployment: Deployment
-    thread_link: Optional[str]
-    created_at: datetime
-    report: Optional[str]
-    result_recorded_at: Optional[datetime]
-    started_at: Optional[datetime]
-    ended_at: Optional[datetime]
-    ref_version: Optional[str]
-    test_version: Optional[str]
-    passed: Optional[bool] 
+    id = Column(Integer, primary_key=True, index=True)
+    workflow_name = Column(String, nullable=False)
+    branch_name = Column(String, nullable=False)
+    network_name = Column(String, nullable=False)
+    triggered_at = Column(DateTime, nullable=False)
+    inputs = Column(JSON, nullable=False)
+    run_id = Column(Integer, nullable=False)
+
+class Deployment(Base):
+    __tablename__ = "deployments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workflow_run_id = Column(Integer, ForeignKey("workflow_runs.id"), nullable=False)
+    name = Column(String, nullable=False)
+    ant_version = Column(String)
+    antnode_version = Column(String)
+    antctl_version = Column(String)
+    branch = Column(String)
+    repo_owner = Column(String)
+    chunk_size = Column(Integer)
+    antnode_features = Column(String)
+    peer_cache_node_count = Column(Integer)
+    generic_node_count = Column(Integer, nullable=False)
+    private_node_count = Column(Integer)
+    downloader_count = Column(Integer)
+    uploader_count = Column(Integer)
+    peer_cache_vm_count = Column(Integer)
+    generic_vm_count = Column(Integer, nullable=False)
+    private_vm_count = Column(Integer)
+    uploader_vm_count = Column(Integer)
+    peer_cache_node_vm_size = Column(String)
+    generic_node_vm_size = Column(String, nullable=False)
+    private_node_vm_size = Column(String)
+    uploader_vm_size = Column(String)
+    evm_network_type = Column(String, nullable=False)
+    rewards_address = Column(String, nullable=False)
+    max_log_files = Column(Integer)
+    max_archived_log_files = Column(Integer)
+    evm_data_payments_address = Column(String)
+    evm_payment_token_address = Column(String)
+    evm_rpc_url = Column(String)
+    related_pr = Column(Integer)
+    network_id = Column(Integer)
+    triggered_at = Column(DateTime, nullable=False)
+    run_id = Column(Integer, nullable=False)
+
+class ComparisonDeployment(Base):
+    """Association table for many-to-many relationship between comparisons and test deployments"""
+    __tablename__ = "comparison_deployments"
+
+    id = Column(Integer, primary_key=True)
+    comparison_id = Column(Integer, ForeignKey("comparisons.id"), nullable=False)
+    deployment_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    label = Column(String)
+    
+    comparison = relationship("Comparison", back_populates="test_deployments")
+    deployment = relationship("Deployment")
+
+class Comparison(Base):
+    __tablename__ = "comparisons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ref_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    description = Column(String)
+    thread_link = Column(String)
+    created_at = Column(DateTime, nullable=False)
+    ref_label = Column(String)
+    passed = Column(Boolean)
+
+    ref_deployment = relationship("Deployment", foreign_keys=[ref_id])
+    test_deployments = relationship("ComparisonDeployment", back_populates="comparison")
+    
+    # Instead of association_proxy, we can access deployments through the relationship
+    @property
+    def test_environments(self):
+        return [(cd.deployment, cd.label) for cd in self.test_deployments]
 
 @dataclass
 class ComparisonSummary:
     id: int
-    test_name: str
-    ref_name: str
-    thread_link: Optional[str]
-    passed: Optional[bool]
+    title: str
     created_at: datetime
-    result_recorded_at: Optional[datetime] 
+    thread_link: Optional[str]
+    description: Optional[str]
+
+class SmokeTestResult(Base):
+    __tablename__ = "smoke_test_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    deployment_id = Column(Integer, ForeignKey("deployments.id"), nullable=False)
+    results = Column(JSON, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+
+    deployment = relationship("Deployment", backref="smoke_test_results")
