@@ -365,32 +365,7 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
     if "network-name" not in config:
         raise KeyError("network-name")
     
-    node_counts = [
-        "peer-cache-node-count",
-        "generic-node-count", 
-        "private-node-count",
-        "downloader-count",
-        "uploader-count"
-    ]
-    
-    vm_counts = [
-        "peer-cache-vm-count",
-        "generic-vm-count",
-        "private-vm-count",
-        "uploader-vm-count"
-    ]
-    
-    node_count_values = [str(config.get(count, 0)) for count in node_counts]
-    vm_count_values = [str(config.get(count, 0)) for count in vm_counts]
-    desired_counts = f"({', '.join(node_count_values)}), ({', '.join(vm_count_values)})"
-    
     _print_workflow_banner()
-    
-    testnet_deploy_repo_ref = None
-    if "testnet-deploy-branch" in config and "testnet-deploy-repo-owner" in config:
-        testnet_deploy_repo_ref = f"{config['testnet-deploy-repo-owner']}/{config['testnet-deploy-branch']}"
-    elif bool(config.get("testnet-deploy-branch")) != bool(config.get("testnet-deploy-repo-owner")):
-        raise ValueError("testnet-deploy-branch and testnet-deploy-repo-owner must be used together")
         
     workflow = UpscaleNetworkWorkflow(
         owner=REPO_OWNER,
@@ -399,14 +374,7 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         personal_access_token=get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
-        desired_counts=desired_counts,
-        ant_version=config.get("ant-version"),
-        antnode_version=config.get("antnode-version"),
-        antctl_version=config.get("antctl-version"),
-        infra_only=config.get("infra-only"),
-        interval=config.get("interval"),
-        plan=config.get("plan"),
-        testnet_deploy_repo_ref=testnet_deploy_repo_ref
+        config=config
     )
     _execute_workflow(workflow, force)
 
