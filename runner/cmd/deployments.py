@@ -109,13 +109,21 @@ def ls(show_details: bool = False) -> None:
 
                 print("-" * 61)
         else:
-            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15}")
-            print("-" * 60)
+            print(f"{'ID':<5} {'Name':<7} {'Deployed':<20} {'PR#':<15} {'Smoke Test':<10}")
+            print("-" * 70)
             
             for deployment in deployments:
                 related_pr = f"#{deployment.related_pr}" if deployment.related_pr else "-"
                 timestamp = deployment.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
-                rprint(f"{deployment.id:<5} [green]{deployment.name:<7}[/green] {timestamp:<20} {related_pr:<15}")
+                
+                smoke_test = repo.get_smoke_test_result(deployment.id)
+                if not smoke_test:
+                    smoke_status = "-"
+                else:
+                    has_failures = any(answer == "No" for answer in smoke_test.results.values())
+                    smoke_status = "[red]✗[/red]" if has_failures else "[green]✓[/green]"
+                
+                rprint(f"{deployment.id:<5} [green]{deployment.name:<7}[/green] {timestamp:<20} {related_pr:<15} {smoke_status:<10}")
                 print(f"  https://github.com/{REPO_OWNER}/{REPO_NAME}/actions/runs/{deployment.run_id}")
                 
         print("\nAll times are in UTC")
@@ -212,6 +220,13 @@ def smoke_test(deployment_id: int) -> None:
             return
             
         results[question] = answer
+        
+        if answer == "No":
+            should_continue = questionary.confirm("Abandon the test?").ask()
+            if not should_continue:
+                for remaining_question in questions[questions.index(question) + 1:]:
+                    results[remaining_question] = "N/A"
+            break
 
     repo.record_smoke_test_result(deployment_id, results)
     print("\nRecorded results")
