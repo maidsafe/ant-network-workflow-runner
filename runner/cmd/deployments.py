@@ -153,7 +153,7 @@ def post(deployment_id: int) -> None:
         print(f"Error posting to Slack: {e}")
         sys.exit(1)
 
-def print(deployment_id: int) -> None:
+def print_deployment(deployment_id: int) -> None:
     """Print detailed information about a specific deployment.
     
     Args:

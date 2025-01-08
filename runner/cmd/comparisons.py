@@ -11,6 +11,10 @@ from rich import print as rprint
 from runner.db import ComparisonRepository, DeploymentRepository
 from runner.models import Comparison, Deployment
 
+REPO_OWNER = "maidsafe"
+REPO_NAME = "sn-testnet-workflows"
+AUTONOMI_REPO_NAME = "autonomi"
+
 def add_thread(comparison_id: int, thread_link: str) -> None:
     """Add or update the thread link for a comparison.
     

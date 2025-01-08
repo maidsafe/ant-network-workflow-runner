@@ -437,7 +437,7 @@ def main():
         elif args.deployments_command == "post":
             deployments.post(args.id)
         elif args.deployments_command == "print":
-            deployments.print(args.id)
+            deployments.print_deployment(args.id)
         elif args.deployments_command == "smoke-test":
             deployments.smoke_test(args.id)
         else:
