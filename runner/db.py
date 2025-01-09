@@ -232,7 +232,7 @@ class DeploymentRepository(BaseRepository[Deployment]):
         self.db.add(smoke_test)
         self.db.commit()
 
-    def get_smoke_test_result(self, deployment_id: int) -> list[SmokeTestResult]:
+    def get_smoke_test_result(self, deployment_id: int) -> Optional[SmokeTestResult]:
         return self.db.query(SmokeTestResult).filter(SmokeTestResult.deployment_id == deployment_id).first()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):

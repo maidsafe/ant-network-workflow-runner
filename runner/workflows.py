@@ -548,47 +548,66 @@ class KillDropletsWorkflow(WorkflowRun):
 class UpscaleNetworkWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,
-                 network_name: str, desired_counts: str,
-                 ant_version: Optional[str] = None,
-                 antnode_version: Optional[str] = None,
-                 antctl_version: Optional[str] = None,
-                 infra_only: Optional[bool] = None,
-                 interval: Optional[int] = None,
-                 plan: Optional[bool] = None,
-                 testnet_deploy_repo_ref: Optional[str] = None):
+                 network_name: str, config: Dict[str, Any]):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upscale Network")
         self.network_name = network_name
-        self.desired_counts = desired_counts
-        self.ant_version = ant_version
-        self.antnode_version = antnode_version
-        self.antctl_version = antctl_version
-        self.infra_only = infra_only
-        self.interval = interval
-        self.plan = plan
-        self.testnet_deploy_repo_ref = testnet_deploy_repo_ref
+        self.config = config
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get inputs specific to the upscale network workflow."""
         inputs = {
             "network-name": self.network_name,
-            "desired-counts": self.desired_counts
         }
-        
-        if self.ant_version is not None:
-            inputs["ant-version"] = self.ant_version
-        if self.antnode_version is not None:
-            inputs["antnode-version"] = self.antnode_version
-        if self.antctl_version is not None:
-            inputs["antctl-version"] = self.antctl_version
-        if self.infra_only is not None:
-            inputs["infra-only"] = str(self.infra_only).lower()
-        if self.interval is not None:
-            inputs["interval"] = str(self.interval)
-        if self.plan is not None:
-            inputs["plan"] = str(self.plan).lower()
-        if self.testnet_deploy_repo_ref is not None:
-            inputs["testnet-deploy-repo-ref"] = self.testnet_deploy_repo_ref
+
+        upscale_args = []
+        upscale_arg_mappings = {
+            "ansible-verbose": "--ansible-verbose",
+            "antctl-version": "--antctl-version",
+            "antnode-version": "--antnode-version",
+            "ant-version": "--ant-version",
+            "branch": "--branch",
+            "desired-node-count": "--desired-node-count",
+            "desired-node-vm-count": "--desired-node-vm-count",
+            "desired-peer-cache-node-count": "--desired-peer-cache-node-count",
+            "desired-peer-cache-node-vm-count": "--desired-peer-cache-node-vm-count",
+            "desired-private-node-count": "--desired-private-node-count",
+            "desired-private-node-vm-count": "--desired-private-node-vm-count",
+            "desired-uploader-vm-count": "--desired-uploader-vm-count",
+            "desired-uploaders-count": "--desired-uploaders-count",
+            "funding-wallet-secret-key": "--funding-wallet-secret-key",
+            "infra-only": "--infra-only",
+            "interval": "--interval",
+            "max-archived-log-files": "--max-archived-log-files",
+            "max-log-files": "--max-log-files",
+            "plan": "--plan",
+            "provider": "--provider",
+            "public-rpc": "--public-rpc",
+            "repo-owner": "--repo-owner"
+        }
+
+        for config_key, arg_name in upscale_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        upscale_args.append(arg_name)
+                else:
+                    upscale_args.append(f"{arg_name} {value}")
+
+        if upscale_args:
+            inputs["upscale-args"] = " ".join(upscale_args)
+
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in self.config:
+            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in self.config:
+            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in self.config:
+            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
             
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+
         return inputs
 
 class DepositFundsWorkflow(WorkflowRun):
