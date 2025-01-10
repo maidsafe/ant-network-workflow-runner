@@ -52,16 +52,31 @@ def ls() -> None:
 
 def new() -> None:
     """Create a new comparison using interactive prompts."""
+    repo = DeploymentRepository()
+    recent_deployments = repo.get_recent_deployments()
+    
+    if not recent_deployments:
+        print("No deployments found")
+        return
+
+    choices = [
+        f"{d.name} ({d.created_at.strftime('%Y-%m-%d %H:%M:%S')})"
+        for d in recent_deployments
+    ]
 
     description = questionary.text(
         "Description (optional):",
     ).ask()
 
-    ref_id = questionary.text(
-        "What is the ID of the reference deployment?",
-        validate=lambda text: text.isdigit() and int(text) > 0 or "Please enter a valid deployment ID"
+    ref_choice = questionary.select(
+        "Select the reference deployment:",
+        choices=choices
     ).ask()
-    ref_id = int(ref_id)
+    
+    ref_index = choices.index(ref_choice)
+    ref_deployment = recent_deployments[ref_index]
+    ref_id = ref_deployment.id
+    print(f"Reference deployment ID: {ref_id}")
 
     ref_label = questionary.text(
         "What is the label for the reference environment? (e.g. version number/PR#/branch ref)",
@@ -79,11 +94,15 @@ def new() -> None:
         print(f"\nTest Environment #{i+1}")
         print("-" * 20)
         
-        test_id = questionary.text(
-            "What is the ID of this test deployment?",
-            validate=lambda text: text.isdigit() and int(text) > 0 or "Please enter a valid deployment ID"
+        test_choice = questionary.select(
+            "Select the test deployment:",
+            choices=choices
         ).ask()
-        test_id = int(test_id)
+        
+        test_index = choices.index(test_choice)
+        test_deployment = recent_deployments[test_index]
+        test_id = test_deployment.id
+        print(f"Test deployment ID: {test_id}")
 
         test_label = questionary.text(
             "What is the label for this test environment? (e.g. version number or PR#)",
@@ -91,12 +110,11 @@ def new() -> None:
 
         test_envs.append((test_id, test_label))
 
-
-    repo = ComparisonRepository()
-    repo.create_comparison(ref_id, test_envs, ref_label, description if description else None)
+    comparison_repo = ComparisonRepository()
+    comparison_repo.create_comparison(ref_id, test_envs, ref_label, description if description else None)
     print(f"\nComparison created")
 
-def post_comparison(comparison_id: int) -> None:
+def post(comparison_id: int) -> None:
     """Post a comparison report to Slack.
     
     Args:
@@ -135,7 +153,7 @@ def post_comparison(comparison_id: int) -> None:
         print(f"Error posting to Slack: {e}")
         sys.exit(1)
 
-def print(comparison_id: int) -> None:
+def print_comparison(comparison_id: int) -> None:
     """Print detailed information about a specific comparison."""
     try:
         repo = ComparisonRepository()

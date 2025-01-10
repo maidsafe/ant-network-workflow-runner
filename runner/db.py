@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, TypeVar, Generic, Type
 from .database import get_db
-from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment, SmokeTestResult
+from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment, SmokeTestResult, RecentDeployment
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
@@ -234,6 +234,36 @@ class DeploymentRepository(BaseRepository[Deployment]):
 
     def get_smoke_test_result(self, deployment_id: int) -> Optional[SmokeTestResult]:
         return self.db.query(SmokeTestResult).filter(SmokeTestResult.deployment_id == deployment_id).first()
+
+    def get_recent_deployments(self) -> list[RecentDeployment]:
+        """Get the 10 most recent deployments.
+        
+        Returns:
+            List of RecentDeployment view models, ordered by triggered_at descending
+        """
+        try:
+            rows = list(
+                self.db.query(
+                    Deployment.id,
+                    Deployment.name,
+                    WorkflowRun.triggered_at
+                )
+                .join(WorkflowRun, Deployment.workflow_run_id == WorkflowRun.run_id)
+                .order_by(WorkflowRun.triggered_at.desc())
+                .limit(10)
+                .all()
+            )
+            
+            return [
+                RecentDeployment(
+                    id=row.id,
+                    name=row.name,
+                    created_at=row.triggered_at
+                )
+                for row in rows
+            ]
+        finally:
+            self.db.close()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):

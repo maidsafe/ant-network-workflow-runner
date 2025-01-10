@@ -425,7 +425,7 @@ def main():
         elif args.comparisons_command == "post":
             comparisons.post(args.id)
         elif args.comparisons_command == "print":
-            comparisons.print(args.id)
+            comparisons.print_comparison(args.id)
         elif args.comparisons_command == "record-results":
             comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
         else:

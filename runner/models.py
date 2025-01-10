@@ -104,3 +104,9 @@ class SmokeTestResult(Base):
     created_at = Column(DateTime, nullable=False)
 
     deployment = relationship("Deployment", backref="smoke_test_results")
+
+@dataclass
+class RecentDeployment:
+    id: int
+    name: str
+    created_at: datetime
