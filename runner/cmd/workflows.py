@@ -80,7 +80,7 @@ ENVIRONMENT_DEFAULTS = {
     }
 }
 
-def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def bootstrap_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Bootstrap a new network."""
     _print_workflow_banner()
     
@@ -97,7 +97,7 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> No
     )
     
     try:
-        workflow_run_id = workflow.run(force=force)
+        workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         repo = DeploymentRepository()
@@ -112,7 +112,7 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False) -> No
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
 
-def deposit_funds(config: Dict, branch_name: str, force: bool = False) -> None:
+def deposit_funds(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Deposit funds to network nodes."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -136,9 +136,9 @@ def deposit_funds(config: Dict, branch_name: str, force: bool = False) -> None:
         tokens_to_transfer=config.get("tokens-to-transfer"),
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def destroy_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def destroy_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -155,9 +155,9 @@ def destroy_network(config: Dict, branch_name: str, force: bool = False) -> None
         network_name=config["network-name"],
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def drain_funds(config: Dict, branch_name: str, force: bool = False) -> None:
+def drain_funds(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Drain funds from network nodes."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -176,9 +176,9 @@ def drain_funds(config: Dict, branch_name: str, force: bool = False) -> None:
         to_address=config.get("to-address"),
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def kill_droplets(config: Dict, branch_name: str, force: bool = False) -> None:
+def kill_droplets(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Kill specified droplets."""
     if "droplet-names" not in config:
         raise KeyError("droplet-names")
@@ -194,9 +194,9 @@ def kill_droplets(config: Dict, branch_name: str, force: bool = False) -> None:
         network_name=config["network-name"],
         droplet_names=config["droplet-names"]
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def launch_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Launch a new network."""
     _print_workflow_banner()
     
@@ -211,7 +211,7 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
     )
     
     try:
-        workflow_run_id = workflow.run(force=force)
+        workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         repo = DeploymentRepository()
@@ -226,7 +226,7 @@ def launch_network(config: Dict, branch_name: str, force: bool = False) -> None:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
 
-def launch_legacy_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def launch_legacy_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Launch a new legacy network."""
     _print_workflow_banner()
     
@@ -241,7 +241,7 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False) -
     )
     
     try:
-        workflow_run_id = workflow.run(force=force)
+        workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         
@@ -293,7 +293,7 @@ def ls(show_details: bool = False) -> None:
     
     print("\nAll times are in UTC")
 
-def network_status(config: Dict, branch_name: str, force: bool = False) -> None:
+def network_status(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Check status of nodes in a testnet network."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -312,10 +312,10 @@ def network_status(config: Dict, branch_name: str, force: bool = False) -> None:
         ansible_forks=config.get("ansible-forks"),
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
 
-def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Reset network to run specified number of nodes."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -345,9 +345,9 @@ def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False) -> Non
         version=config.get("version"),
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+def stop_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -369,9 +369,9 @@ def stop_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def start_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
+def start_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Start nodes in a testnet network."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -393,9 +393,9 @@ def start_nodes(config: Dict, branch_name: str, force: bool = False) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def start_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
+def start_uploaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Start uploaders in a testnet network."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -413,9 +413,9 @@ def start_uploaders(config: Dict, branch_name: str, force: bool = False) -> None
         network_name=config["network-name"],
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def start_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
+def start_telegraf(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -436,9 +436,9 @@ def start_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
+def stop_telegraf(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -459,9 +459,9 @@ def stop_telegraf(config: Dict, branch_name: str, force: bool = False) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def stop_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
+def stop_uploaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Stop uploaders in a testnet network."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -479,9 +479,9 @@ def stop_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
         network_name=config["network-name"],
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def upgrade_antctl(config: Dict, branch_name: str, force: bool = False) -> None:
+def upgrade_antctl(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Upgrade antctl version."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -504,9 +504,9 @@ def upgrade_antctl(config: Dict, branch_name: str, force: bool = False) -> None:
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def upgrade_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def upgrade_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Trigger the upgrade network workflow."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -532,9 +532,9 @@ def upgrade_network(config: Dict, branch_name: str, force: bool = False) -> None
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def update_peer(config: Dict, branch_name: str, force: bool = False) -> None:
+def update_peer(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Trigger the update peer workflow."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -554,9 +554,9 @@ def update_peer(config: Dict, branch_name: str, force: bool = False) -> None:
         custom_inventory=config.get("custom-inventory"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False) -> None:
+def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Trigger the upgrade uploaders workflow."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -577,9 +577,9 @@ def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False) -> No
         version=config["version"],
         testnet_deploy_args=testnet_deploy_args
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None:
+def upscale_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Upscale an existing network."""
     if "network-name" not in config:
         raise KeyError("network-name")
@@ -595,18 +595,19 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False) -> None
         network_name=config["network-name"],
         config=config
     )
-    _execute_workflow(workflow, force)
+    _execute_workflow(workflow, force, wait)
 
-def _execute_workflow(workflow, force: bool = False) -> None:
+def _execute_workflow(workflow, force: bool = False, wait: bool = False) -> None:
     """
     Common function to execute a workflow and handle its output and errors.
     
     Args:
         workflow: The workflow instance to execute
         force: If True, skip confirmation prompt
+        wait: If True, wait for workflow completion
     """
     try:
-        workflow.run(force=force)
+        workflow.run(force=force, wait=wait)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
