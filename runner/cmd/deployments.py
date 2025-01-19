@@ -193,6 +193,7 @@ def smoke_test(deployment_id: int) -> None:
 
     questions = [
         "Are all nodes running?",
+        "Are the bootstrap cache files available?",
         "Is the main dashboard receiving data?",
         "Do nodes on generic hosts have open connections and connected peers?",
         "Do nodes on peer cache hosts have open connections and connected peers?",
@@ -201,7 +202,6 @@ def smoke_test(deployment_id: int) -> None:
         "Is `antctl` on the correct version?",
         "Is `antnode` on the correct version?",
         "Are the correct reserved IPs allocated?",
-        "Are the bootstrap cache files available?",
         "Is the uploader dashboard receiving data?",
         "Do uploader wallets have funds?",
         "Is `ant` on the correct version?",

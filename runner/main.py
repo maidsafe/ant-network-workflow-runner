@@ -158,6 +158,11 @@ def main():
 
 
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
+    workflows_parser.add_argument(
+        "--wait",
+        action="store_true",
+        help="Wait for the workflow run to complete"
+    )
     workflows_subparsers = workflows_parser.add_subparsers(dest="workflows_command", help="Available workflow commands")
 
     bootstrap_network_parser = workflows_subparsers.add_parser("bootstrap-network", help="Bootstrap a new network")
@@ -425,7 +430,7 @@ def main():
         elif args.comparisons_command == "post":
             comparisons.post(args.id)
         elif args.comparisons_command == "print":
-            comparisons.print(args.id)
+            comparisons.print_comparison(args.id)
         elif args.comparisons_command == "record-results":
             comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
         else:
@@ -446,66 +451,66 @@ def main():
     elif args.command == "workflows":
         if args.workflows_command == "bootstrap-network":
             config = load_yaml_config(args.path)
-            workflows.bootstrap_network(config, args.branch, args.force)
+            workflows.bootstrap_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "deposit-funds":
             config = load_yaml_config(args.path)
-            workflows.deposit_funds(config, args.branch, args.force)
+            workflows.deposit_funds(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "destroy-network":
             config = load_yaml_config(args.path)
-            workflows.destroy_network(config, args.branch, args.force)
+            workflows.destroy_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "drain-funds":
             config = load_yaml_config(args.path)
-            workflows.drain_funds(config, args.branch, args.force)
+            workflows.drain_funds(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "kill-droplets":
             config = load_yaml_config(args.path)
-            workflows.kill_droplets(config, args.branch, args.force)
+            workflows.kill_droplets(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "launch-legacy-network":
             config = load_yaml_config(args.path)
-            workflows.launch_legacy_network(config, "main", args.force)
+            workflows.launch_legacy_network(config, "main", args.force, args.wait)
         elif args.workflows_command == "launch-network":
             config = load_yaml_config(args.path)
-            workflows.launch_network(config, args.branch, args.force)
+            workflows.launch_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "ls":
             workflows.ls(show_details=args.details)
         elif args.workflows_command == "network-status":
             config = load_yaml_config(args.path)
-            workflows.network_status(config, args.branch, args.force)
+            workflows.network_status(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "start-nodes":
             config = load_yaml_config(args.path)
-            workflows.start_nodes(config, args.branch, args.force)
+            workflows.start_nodes(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "start-telegraf":
             config = load_yaml_config(args.path)
-            workflows.start_telegraf(config, args.branch, args.force)
+            workflows.start_telegraf(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "start-uploaders":
             config = load_yaml_config(args.path)
-            workflows.start_uploaders(config, args.branch, args.force)
+            workflows.start_uploaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-nodes":
             config = load_yaml_config(args.path)
-            workflows.stop_nodes(config, args.branch, args.force)
+            workflows.stop_nodes(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-telegraf":
             config = load_yaml_config(args.path)
-            workflows.stop_telegraf(config, args.branch, args.force)
+            workflows.stop_telegraf(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-uploaders":
             config = load_yaml_config(args.path)
-            workflows.stop_uploaders(config, args.branch, args.force)
+            workflows.stop_uploaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "update-peer":
             config = load_yaml_config(args.path)
-            workflows.update_peer(config, args.branch, args.force)
+            workflows.update_peer(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upgrade-antctl":
             config = load_yaml_config(args.path)
-            workflows.upgrade_antctl(config, args.branch, args.force)
+            workflows.upgrade_antctl(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upgrade-network":
             config = load_yaml_config(args.path)
-            workflows.upgrade_network(config, args.branch, args.force)
+            workflows.upgrade_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upgrade-uploaders":
             config = load_yaml_config(args.path)
-            workflows.upgrade_uploaders(config, args.branch, args.force)
+            workflows.upgrade_uploaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
-            workflows.upscale_network(config, args.branch, args.force)
+            workflows.upscale_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "reset-to-n-nodes":
             config = load_yaml_config(args.path)
-            workflows.reset_to_n_nodes(config, args.branch, args.force)
+            workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)
         else:
             workflows_parser.print_help()
             sys.exit(1)

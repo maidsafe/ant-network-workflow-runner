@@ -50,6 +50,10 @@ class WorkflowRun:
         self.personal_access_token = personal_access_token
         self.branch_name = branch_name
         self.name = name
+        self.headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "Authorization": f"token {personal_access_token}"
+        }
 
     def _trigger_workflow(self) -> requests.Response:
         """Trigger the workflow via GitHub API."""
@@ -103,24 +107,97 @@ class WorkflowRun:
             task = progress.add_task("Waiting for workflow run to be available...", total=None)
             time.sleep(seconds)
 
-    def run(self, force: bool = False) -> int:
+    def run(self, force: bool = False, wait: bool = False) -> int:
         """
-        Trigger the workflow run and record it in the database.
+        Trigger the workflow run.
         
         Args:
             force: If True, skip confirmation prompt
+            wait: If True, wait for workflow completion
+            
+        Returns:
+            int: The workflow run ID
+            
+        Raises:
+            requests.exceptions.RequestException: If the API request fails
+        """
+        if not force:
+            self._confirm_workflow()
+            
+        run_id = self._dispatch_workflow()
+        
+        if wait:
+            self._wait_for_completion(run_id)
+            
+        return run_id
+
+    def _wait_for_completion(self, run_id: int, poll_interval: int = 30) -> None:
+        """
+        Wait for the workflow run to complete.
+        
+        Args:
+            run_id: The workflow run ID to monitor
+            poll_interval: Time in seconds between status checks
+        """
+        print(f"\nWaiting for workflow run {run_id} to complete...")
+        
+        while True:
+            status = self._get_run_status(run_id)
+            if status in ["completed", "failed", "cancelled"]:
+                print(f"\nWorkflow run {run_id} {status}")
+                if status != "completed":
+                    sys.exit(1)
+                break
+                
+            print(".", end="", flush=True)
+            time.sleep(poll_interval)
+
+    def _get_run_status(self, run_id: int) -> Optional[str]:
+        """
+        Get the current status of a workflow run.
+        
+        Args:
+            run_id: The workflow run ID
+            
+        Returns:
+            str: The current status of the run
+            
+        Raises:
+            requests.exceptions.RequestException: If the API request fails
+        """
+        url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json().get("status")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get workflow-specific inputs. Should be overridden by subclasses."""
+        return {}
+
+    def _confirm_workflow(self) -> None:
+        """
+        Display workflow information and prompt for confirmation.
+        
+        Raises:
+            SystemExit: If user does not confirm
+        """
+        inputs = self.get_workflow_inputs()
+        if not confirm_workflow_dispatch(self.name, inputs):
+            sys.exit(0)
+        else:
+            rprint(f"Dispatching the [green]{self.name}[/green] workflow...")
+
+    def _dispatch_workflow(self) -> int:
+        """
+        Trigger the workflow and get its run ID.
         
         Returns:
             int: The workflow run ID
+            
+        Raises:
+            requests.exceptions.RequestException: If the API request fails
+            RuntimeError: If unable to get workflow run ID after multiple attempts
         """
-        inputs = self.get_workflow_inputs()
-        
-        if not force:
-            if not confirm_workflow_dispatch(self.name, inputs):
-                sys.exit(0)
-        else:
-            rprint(f"Dispatching the [green]{self.name}[/green] workflow...")
-        
         response = self._trigger_workflow()
         response.raise_for_status()
         
@@ -144,7 +221,7 @@ class WorkflowRun:
             triggered_at=datetime.now(UTC),
             branch_name=self.branch_name,
             network_name=self.network_name,
-            inputs=inputs,
+            inputs=self.get_workflow_inputs(),
             run_id=run_id
         )
         repo.save(workflow_run)
@@ -155,10 +232,6 @@ class WorkflowRun:
         print()
         
         return run_id
-
-    def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get workflow-specific inputs. Should be overridden by subclasses."""
-        return {}
 
 class StopNodesWorkflowRun(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int, 

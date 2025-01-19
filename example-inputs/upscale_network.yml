@@ -14,6 +14,7 @@ repo-owner: maidsafe
 #
 # Binary versions
 #
+# The ant version will only be required for upscaling uploaders.
 ant-version: 0.1.0
 antnode-version: 0.1.0
 antctl-version: 0.1.0
@@ -44,6 +45,9 @@ plan: false
 # Interval to apply between starting each node, if nodes are being upscaled.
 # Units are milliseconds.
 interval: 10000
+
+# Required when upscaling uploaders.
+funding-wallet-secret-key: <your secret key>
 
 #
 # testnet-deploy options
