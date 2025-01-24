@@ -53,6 +53,7 @@ class Deployment(Base):
     evm_rpc_url = Column(String)
     related_pr = Column(Integer)
     network_id = Column(Integer)
+    description = Column(String)
     triggered_at = Column(DateTime, nullable=False)
     run_id = Column(Integer, nullable=False)
 

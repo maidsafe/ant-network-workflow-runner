@@ -208,6 +208,7 @@ class DeploymentRepository(BaseRepository[Deployment]):
             evm_rpc_url=config.get("evm-rpc-url"),
             related_pr=config.get("related-pr"),
             network_id=config.get("network-id") if not is_legacy else None,
+            description=config.get("description"),
             triggered_at=datetime.now(UTC),
             run_id=workflow_run_id
         )

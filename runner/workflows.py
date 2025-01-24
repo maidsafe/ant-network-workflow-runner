@@ -549,7 +549,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         deploy_args = []
         deploy_arg_mappings = {
-            "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
             "branch": "--branch",
             "chunk-size": "--chunk-size",
             "evm-network-type": "--evm-network-type",
@@ -560,8 +559,10 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
+            "nat-gateway-vm-size": "--nat-gateway-vm-size",
             "network-id": "--network-id",
             "node-vm-size": "--node-vm-size",
+            "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
             "public-rpc": "--public-rpc",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",

@@ -12,6 +12,9 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# A short sentence describing the purpose of the deployment.
+description: Private node upscaling test
+
 # Populate this if you want to link the deployment to a pull request.
 related-pr: 1234
 
@@ -65,6 +68,7 @@ uploader-vm-count: 2
 # If they are not specified, they will be determined by the environment type.
 peer-cache-node-vm-size: s-4vcpu-8gb
 node-vm-size: s-4vcpu-8gb
+nat-gateway-vm-size: s-2vcpu-4gb
 uploader-vm-size: s-4vcpu-8gb
 evm-node-vm-size: s-4vcpu-8gb
 
