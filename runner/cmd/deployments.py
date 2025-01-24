@@ -32,6 +32,8 @@ def ls(show_details: bool = False) -> None:
                 rprint(f"Name: [green]{deployment.name}[/green]")
                 print(f"ID: {deployment.id}")
                 print(f"Deployed: {timestamp}")
+                if deployment.description:
+                    print(f"Description: {deployment.description}")
                 evm_type_display = {
                     "anvil": "Anvil",
                     "arbitrum-one": "Arbitrum One",
@@ -242,7 +244,12 @@ def _build_deployment_and_smoke_test_report(deployment: Deployment) -> str:
     """
     lines = []
     lines.append(f"*{deployment.name}*")
+    lines.append("")
+
+    if deployment.description:
+        lines.append(f"{deployment.description}")
     
+    lines.append("")
     lines.append("```")
     lines.extend(_build_deployment_report(deployment))
     lines.append("```")
