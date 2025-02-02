@@ -59,8 +59,8 @@ ENVIRONMENT_DEFAULTS = {
         "private_vm_count": 1,
         "uploader_vm_count": 2,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
-        "generic_node_vm_size": "s-4vcpu-8gb",
-        "private_node_vm_size": "s-4vcpu-8gb",
+        "generic_node_vm_size": "s-2vcpu-4gb",
+        "private_node_vm_size": "s-2vcpu-4gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "production": {
