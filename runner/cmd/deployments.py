@@ -193,6 +193,15 @@ def smoke_test(deployment_id: int) -> None:
     print(f"\nSmoke test for {deployment.name}")
     print("-" * 40)
 
+    if deployment.ant_version:
+        print(f"Versions:")
+        print(f"  ant: {deployment.ant_version}")
+        print(f"  antnode: {deployment.antnode_version}")
+        print(f"  antctl: {deployment.antctl_version}")
+    elif deployment.branch:
+        print(f"Branch: {deployment.repo_owner}/{deployment.branch}")
+    print()
+
     questions = [
         "Are all nodes running?",
         "Are the bootstrap cache files available?",
