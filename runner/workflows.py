@@ -592,6 +592,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if "environment-vars" in self.config:
             inputs["environment-vars"] = self.config["environment-vars"]
 
+        if "stop-uploaders" in self.config:
+            inputs["stop-uploaders"] = self.config["stop-uploaders"]
         testnet_deploy_args = []
         if "testnet-deploy-branch" in self.config:
             testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")

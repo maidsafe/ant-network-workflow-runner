@@ -12,6 +12,10 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# Set this to stop the uploaders after the network is launched.
+# It can be useful for comparisons.
+stop-uploaders: false
+
 # A short sentence describing the purpose of the deployment.
 description: Private node upscaling test
 
