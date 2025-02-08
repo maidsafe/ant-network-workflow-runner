@@ -143,9 +143,15 @@ class WorkflowRun:
         
         while True:
             status = self._get_run_status(run_id)
-            if status in ["completed", "failed", "cancelled"]:
-                print(f"\nWorkflow run {run_id} {status}")
-                if status != "completed":
+            if status == "completed":
+                url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                conclusion = response.json().get("conclusion")
+                
+                print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
+                if conclusion != "success":
+                    print("Workflow run failed")
                     sys.exit(1)
                 break
                 
@@ -594,6 +600,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         if "stop-uploaders" in self.config:
             inputs["stop-uploaders"] = self.config["stop-uploaders"]
+
         testnet_deploy_args = []
         if "testnet-deploy-branch" in self.config:
             testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
