@@ -102,6 +102,12 @@ evm-data-payments-address: <data-payments-address>
 evm-payment-token-address: <payment-token-address>
 evm-rpc-url: <rpc-url>
 
+# Use these options to avoid having to run an additional funding workflow.
+# Initial gas to transfer to the uploaders (this value is 0.1 ETH)
+initial-gas: "100000000000000000"
+# Initial tokens to transfer to the uploaders (this value is 1 token)
+initial-tokens: "1000000000000000000"
+
 #
 # testnet-deploy options
 #

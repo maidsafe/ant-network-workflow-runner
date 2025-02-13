@@ -562,6 +562,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "evm-node-vm-size": "--evm-node-vm-size",
             "evm-payment-token-address": "--evm-payment-token-address",
             "evm-rpc-url": "--evm-rpc-url",
+            "initial-gas": "--initial-gas",
+            "initial-tokens": "--initial-tokens",
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
