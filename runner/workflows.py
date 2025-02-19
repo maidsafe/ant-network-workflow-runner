@@ -247,6 +247,7 @@ class StopNodesWorkflowRun(WorkflowRun):
                  delay: Optional[int] = None, 
                  interval: Optional[int] = None,
                  node_type: Optional[NodeType] = None,
+                 service_names: Optional[List[str]] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Nodes")
         self.network_name = network_name
@@ -255,6 +256,7 @@ class StopNodesWorkflowRun(WorkflowRun):
         self.delay = delay
         self.interval = interval
         self.node_type = node_type
+        self.service_names = service_names
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
@@ -273,6 +275,8 @@ class StopNodesWorkflowRun(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
+        if self.service_names is not None:
+            inputs["service-names"] = ",".join(self.service_names)
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             

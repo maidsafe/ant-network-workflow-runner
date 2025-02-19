@@ -390,6 +390,7 @@ def stop_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool =
         delay=config.get("delay"),
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        service_names=config.get("service-names"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
