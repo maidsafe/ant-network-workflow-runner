@@ -71,12 +71,15 @@ def ls(show_details: bool = False) -> None:
                 print(f"==================")
                 print(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
                 print(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
-                print(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+                print(f"Full cone private nodes: {deployment.full_cone_private_vm_count}x{deployment.full_cone_private_node_count} [{deployment.full_cone_nat_gateway_vm_size}]")
+                print(f"Symmetric private nodes: {deployment.symmetric_private_vm_count}x{deployment.symmetric_private_node_count} [{deployment.symmetric_nat_gateway_vm_size}]")
                 total_nodes = deployment.generic_vm_count * deployment.generic_node_count
                 if deployment.peer_cache_vm_count and deployment.peer_cache_node_count:
                     total_nodes += deployment.peer_cache_vm_count * deployment.peer_cache_node_count
-                if deployment.private_vm_count and deployment.private_node_count:
-                    total_nodes += deployment.private_vm_count * deployment.private_node_count
+                if deployment.full_cone_private_vm_count and deployment.full_cone_private_node_count:
+                    total_nodes += deployment.full_cone_private_vm_count * deployment.full_cone_private_node_count
+                if deployment.symmetric_private_vm_count and deployment.symmetric_private_node_count:
+                    total_nodes += deployment.symmetric_private_vm_count * deployment.symmetric_private_node_count
                 print(f"Total: {total_nodes}")
 
                 if deployment.uploader_vm_count and deployment.uploader_count and deployment.uploader_vm_size:
@@ -193,13 +196,23 @@ def smoke_test(deployment_id: int) -> None:
     print(f"\nSmoke test for {deployment.name}")
     print("-" * 40)
 
+    if deployment.ant_version:
+        print(f"Versions:")
+        print(f"  ant: {deployment.ant_version}")
+        print(f"  antnode: {deployment.antnode_version}")
+        print(f"  antctl: {deployment.antctl_version}")
+    elif deployment.branch:
+        print(f"Branch: {deployment.repo_owner}/{deployment.branch}")
+    print()
+
     questions = [
         "Are all nodes running?",
         "Are the bootstrap cache files available?",
         "Is the main dashboard receiving data?",
         "Do nodes on generic hosts have open connections and connected peers?",
         "Do nodes on peer cache hosts have open connections and connected peers?",
-        "Do private nodes have open connections and connected peers?",
+        "Do symmetric NAT private nodes have open connections and connected peers?",
+        "Do full cone NAT private nodes have open connections and connected peers?",
         "Is ELK receiving logs?",
         "Is `antctl` on the correct version?",
         "Is `antnode` on the correct version?",
@@ -324,10 +337,12 @@ def _build_deployment_report(deployment: Deployment) -> List[str]:
     lines.append(f"==================")
     lines.append(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
     lines.append(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
-    lines.append(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+    lines.append(f"Full cone private nodes: {deployment.full_cone_private_vm_count}x{deployment.full_cone_private_node_count} [{deployment.full_cone_nat_gateway_vm_size}]")
+    lines.append(f"Symmetric private nodes: {deployment.symmetric_private_vm_count}x{deployment.symmetric_private_node_count} [{deployment.symmetric_nat_gateway_vm_size}]")
     total_nodes = (deployment.peer_cache_vm_count * deployment.peer_cache_node_count + 
                    deployment.generic_vm_count * deployment.generic_node_count +
-                   deployment.private_vm_count * deployment.private_node_count)
+                   deployment.full_cone_private_vm_count * deployment.full_cone_private_node_count +
+                   deployment.symmetric_private_vm_count * deployment.symmetric_private_node_count)
     lines.append(f"Total: {total_nodes}")
 
     lines.append(f"======================")

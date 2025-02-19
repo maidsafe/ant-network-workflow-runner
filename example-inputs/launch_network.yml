@@ -12,6 +12,10 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# Set this to stop the uploaders after the network is launched.
+# It can be useful for comparisons.
+stop-uploaders: false
+
 # A short sentence describing the purpose of the deployment.
 description: Private node upscaling test
 
@@ -40,6 +44,7 @@ antnode-features:
   - feature1
   - feature2
 
+# Important note: if you want to override either the node or vm counts, you must specify them all.
 #
 # Node counts
 #
@@ -47,7 +52,8 @@ antnode-features:
 # If they are not specified, they will be determined by the environment type.
 peer-cache-node-count: 5
 generic-node-count: 25
-private-node-count: 25
+full-cone-private-node-count: 15
+symmetric-private-node-count: 10
 downloader-count: 0
 uploader-count: 1
 
@@ -58,7 +64,8 @@ uploader-count: 1
 # If they are not specified, they will be determined by the environment type.
 peer-cache-vm-count: 5
 generic-vm-count: 10
-private-vm-count: 1
+full-cone-private-vm-count: 1
+symmetric-private-vm-count: 1
 uploader-vm-count: 2
 
 #
@@ -68,9 +75,9 @@ uploader-vm-count: 2
 # If they are not specified, they will be determined by the environment type.
 peer-cache-node-vm-size: s-4vcpu-8gb
 node-vm-size: s-4vcpu-8gb
-nat-gateway-vm-size: s-2vcpu-4gb
+full-cone-nat-gateway-vm-size: s-4vcpu-8gb
+symmetric-nat-gateway-vm-size: s-4vcpu-8gb
 uploader-vm-size: s-4vcpu-8gb
-evm-node-vm-size: s-4vcpu-8gb
 
 #
 # Misc options
@@ -97,6 +104,12 @@ evm-network-type: custom
 evm-data-payments-address: <data-payments-address>
 evm-payment-token-address: <payment-token-address>
 evm-rpc-url: <rpc-url>
+
+# Use these options to avoid having to run an additional funding workflow.
+# Initial gas to transfer to the uploaders (this value is 0.1 ETH)
+initial-gas: "100000000000000000"
+# Initial tokens to transfer to the uploaders (this value is 1 token)
+initial-tokens: "1000000000000000000"
 
 #
 # testnet-deploy options

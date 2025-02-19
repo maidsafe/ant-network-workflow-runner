@@ -4,6 +4,7 @@ import sys
 
 from typing import Dict
 
+import questionary
 from rich import print as rprint
 
 from runner.db import DeploymentRepository, WorkflowRunRepository
@@ -36,46 +37,61 @@ ENVIRONMENT_DEFAULTS = {
     "development": {
         "peer_cache_node_count": 5,
         "generic_node_count": 25,
-        "private_node_count": 25,
+        "full_cone_private_node_count": 25,
+        "symmetric_private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 10,
-        "private_vm_count": 1,
+        "full_cone_nat_gateway_vm_count": 1,
+        "full_cone_private_vm_count": 1,
+        "symmetric_nat_gateway_vm_count": 1,
+        "symmetric_private_vm_count": 1,
         "uploader_vm_count": 1,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
-        "private_node_vm_size": "s-4vcpu-8gb",
+        "full_cone_nat_gateway_vm_size": "s-4vcpu-8gb",
+        "symmetric_nat_gateway_vm_size": "s-4vcpu-8gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "staging": {
         "peer_cache_node_count": 5,
         "generic_node_count": 25,
-        "private_node_count": 25,
+        "full_cone_private_node_count": 25,
+        "symmetric_private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
-        "private_vm_count": 1,
+        "full_cone_nat_gateway_vm_count": 1,
+        "full_cone_private_vm_count": 1,
+        "symmetric_nat_gateway_vm_count": 1,
+        "symmetric_private_vm_count": 1,
         "uploader_vm_count": 2,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
-        "generic_node_vm_size": "s-4vcpu-8gb",
-        "private_node_vm_size": "s-4vcpu-8gb",
+        "generic_node_vm_size": "s-2vcpu-4gb",
+        "full_cone_nat_gateway_vm_size": "s-2vcpu-4gb",
+        "symmetric_nat_gateway_vm_size": "s-2vcpu-4gb",
         "uploader_vm_size": "s-2vcpu-4gb"
     },
     "production": {
         "peer_cache_node_count": 5,
         "generic_node_count": 25,
-        "private_node_count": 25,
+        "full_cone_private_node_count": 25,
+        "symmetric_private_node_count": 25,
         "downloader_count": 0,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
-        "private_vm_count": 1,
+        "full_cone_nat_gateway_vm_count": 1,
+        "full_cone_private_vm_count": 1,
+        "symmetric_nat_gateway_vm_count": 1,
+        "symmetric_private_vm_count": 1,
         "uploader_vm_count": 2,
         "peer_cache_node_vm_size": "s-8vcpu-16gb",
         "generic_node_vm_size": "s-8vcpu-16gb",
-        "private_node_vm_size": "s-8vcpu-16gb",
+        "full_cone_nat_gateway_vm_size": "s-8vcpu-16gb",
+        "symmetric_nat_gateway_vm_size": "s-8vcpu-16gb",
         "uploader_vm_size": "s-8vcpu-16gb"
     }
 }
@@ -139,6 +155,13 @@ def deposit_funds(config: Dict, branch_name: str, force: bool = False, wait: boo
     _execute_workflow(workflow, force, wait)
 
 def destroy_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Destroy a network."""
+    if not questionary.confirm(
+        "Have you drained funds from this network?",
+        default=False
+    ).ask():
+        print("Error: Please drain funds from the network before destroying it")
+        sys.exit(1)
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -367,6 +390,7 @@ def stop_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool =
         delay=config.get("delay"),
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        service_names=config.get("service-names"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)

@@ -57,6 +57,14 @@ class Deployment(Base):
     triggered_at = Column(DateTime, nullable=False)
     run_id = Column(Integer, nullable=False)
 
+    full_cone_private_node_count = Column(Integer)
+    full_cone_private_vm_count = Column(Integer)
+    full_cone_nat_gateway_vm_size = Column(String)
+
+    symmetric_private_node_count = Column(Integer)
+    symmetric_private_vm_count = Column(Integer)
+    symmetric_nat_gateway_vm_size = Column(String)
+
 class ComparisonDeployment(Base):
     """Association table for many-to-many relationship between comparisons and test deployments"""
     __tablename__ = "comparison_deployments"

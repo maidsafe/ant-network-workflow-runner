@@ -20,6 +20,10 @@ delay: 30
 custom-inventory:
   - DEV-02-node-1
   - DEV-02-node-2
+# Specify which services to stop. If not provided, all services will be stopped.
+service-names:
+  - antnode2
+  - antnode3
 # Applies an interval between each node being stopped. To slowly stop nodes over several machines,
 # set `ansible-forks` to 1 and then apply a large value here, like one or two minutes. Units are
 # in milliseconds.

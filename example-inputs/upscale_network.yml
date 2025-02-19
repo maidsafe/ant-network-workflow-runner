@@ -24,7 +24,8 @@ antctl-version: 0.1.0
 # Any other counts will remain the same.
 desired-peer-cache-node-count: 10
 desired-node-count: 12
-desired-private-node-count: 10
+desired-full-cone-private-node-count: 5
+desired-symmetric-private-node-count: 5
 desired-uploaders-count: 2
 
 # Desired VM counts
@@ -32,7 +33,8 @@ desired-uploaders-count: 2
 # Any other counts will remain the same.
 desired-peer-cache-node-vm-count: 10
 desired-node-vm-count: 12
-desired-private-node-vm-count: 1
+desired-full-cone-private-node-vm-count: 1
+desired-symmetric-private-node-vm-count: 1
 desired-uploader-vm-count: 2
 
 # Set to only run Terraform and not Ansible.

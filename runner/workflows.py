@@ -143,9 +143,15 @@ class WorkflowRun:
         
         while True:
             status = self._get_run_status(run_id)
-            if status in ["completed", "failed", "cancelled"]:
-                print(f"\nWorkflow run {run_id} {status}")
-                if status != "completed":
+            if status == "completed":
+                url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                conclusion = response.json().get("conclusion")
+                
+                print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
+                if conclusion != "success":
+                    print("Workflow run failed")
                     sys.exit(1)
                 break
                 
@@ -241,6 +247,7 @@ class StopNodesWorkflowRun(WorkflowRun):
                  delay: Optional[int] = None, 
                  interval: Optional[int] = None,
                  node_type: Optional[NodeType] = None,
+                 service_names: Optional[List[str]] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Nodes")
         self.network_name = network_name
@@ -249,6 +256,7 @@ class StopNodesWorkflowRun(WorkflowRun):
         self.delay = delay
         self.interval = interval
         self.node_type = node_type
+        self.service_names = service_names
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
@@ -267,6 +275,8 @@ class StopNodesWorkflowRun(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
+        if self.service_names is not None:
+            inputs["service-names"] = ",".join(self.service_names)
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
@@ -533,14 +543,14 @@ class LaunchNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['ant-version']},{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
-        for count_type in ["peer-cache-node-count", "generic-node-count", "private-node-count", 
-                          "downloader-count", "uploader-count"]:
+        for count_type in ["peer-cache-node-count", "generic-node-count", "full-cone-private-node-count", 
+                          "symmetric-private-node-count", "downloader-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
-        for count_type in ["peer-cache-vm-count", "generic-vm-count", "private-vm-count", 
-                          "uploader-vm-count"]:
+        for count_type in ["peer-cache-vm-count", "generic-vm-count", "full-cone-private-vm-count", 
+                          "symmetric-private-vm-count", "uploader-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 
@@ -556,6 +566,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "evm-node-vm-size": "--evm-node-vm-size",
             "evm-payment-token-address": "--evm-payment-token-address",
             "evm-rpc-url": "--evm-rpc-url",
+            "initial-gas": "--initial-gas",
+            "initial-tokens": "--initial-tokens",
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
@@ -591,6 +603,9 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         if "environment-vars" in self.config:
             inputs["environment-vars"] = self.config["environment-vars"]
+
+        if "stop-uploaders" in self.config:
+            inputs["stop-uploaders"] = self.config["stop-uploaders"]
 
         testnet_deploy_args = []
         if "testnet-deploy-branch" in self.config:
@@ -644,8 +659,10 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "desired-node-vm-count": "--desired-node-vm-count",
             "desired-peer-cache-node-count": "--desired-peer-cache-node-count",
             "desired-peer-cache-node-vm-count": "--desired-peer-cache-node-vm-count",
-            "desired-private-node-count": "--desired-private-node-count",
-            "desired-private-node-vm-count": "--desired-private-node-vm-count",
+            "desired-full-cone-private-node-count": "--desired-full-cone-private-node-count",
+            "desired-full-cone-private-node-vm-count": "--desired-full-cone-private-node-vm-count",
+            "desired-symmetric-private-node-count": "--desired-symmetric-private-node-count",
+            "desired-symmetric-private-node-vm-count": "--desired-symmetric-private-node-vm-count",
             "desired-uploader-vm-count": "--desired-uploader-vm-count",
             "desired-uploaders-count": "--desired-uploaders-count",
             "funding-wallet-secret-key": "--funding-wallet-secret-key",
