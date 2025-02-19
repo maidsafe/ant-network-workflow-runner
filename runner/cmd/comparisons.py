@@ -308,10 +308,12 @@ def _build_deployment_report(deployment: Deployment) -> List[str]:
     lines.append(f"==================")
     lines.append(f"Peer cache nodes: {deployment.peer_cache_vm_count}x{deployment.peer_cache_node_count} [{deployment.peer_cache_node_vm_size}]")
     lines.append(f"Generic nodes: {deployment.generic_vm_count}x{deployment.generic_node_count} [{deployment.generic_node_vm_size}]")
-    lines.append(f"Private nodes: {deployment.private_vm_count}x{deployment.private_node_count} [{deployment.private_node_vm_size}]")
+    lines.append(f"Full cone private nodes: {deployment.full_cone_private_vm_count}x{deployment.full_cone_private_node_count} [{deployment.full_cone_nat_gateway_vm_size}]")
+    lines.append(f"Symmetric private nodes: {deployment.symmetric_private_vm_count}x{deployment.symmetric_private_node_count} [{deployment.symmetric_nat_gateway_vm_size}]")
     total_nodes = (deployment.peer_cache_vm_count * deployment.peer_cache_node_count + 
                    deployment.generic_vm_count * deployment.generic_node_count +
-                   deployment.private_vm_count * deployment.private_node_count)
+                   deployment.full_cone_private_vm_count * deployment.full_cone_private_node_count +
+                   deployment.symmetric_private_vm_count * deployment.symmetric_private_node_count)
     lines.append(f"Total: {total_nodes}")
 
     lines.append(f"======================")

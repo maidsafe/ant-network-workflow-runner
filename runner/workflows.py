@@ -539,14 +539,14 @@ class LaunchNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['ant-version']},{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
-        for count_type in ["peer-cache-node-count", "generic-node-count", "private-node-count", 
-                          "downloader-count", "uploader-count"]:
+        for count_type in ["peer-cache-node-count", "generic-node-count", "full-cone-private-node-count", 
+                          "symmetric-private-node-count", "downloader-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
-        for count_type in ["peer-cache-vm-count", "generic-vm-count", "private-vm-count", 
-                          "uploader-vm-count"]:
+        for count_type in ["peer-cache-vm-count", "generic-vm-count", "full-cone-private-vm-count", 
+                          "symmetric-private-vm-count", "uploader-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 
@@ -655,8 +655,10 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "desired-node-vm-count": "--desired-node-vm-count",
             "desired-peer-cache-node-count": "--desired-peer-cache-node-count",
             "desired-peer-cache-node-vm-count": "--desired-peer-cache-node-vm-count",
-            "desired-private-node-count": "--desired-private-node-count",
-            "desired-private-node-vm-count": "--desired-private-node-vm-count",
+            "desired-full-cone-private-node-count": "--desired-full-cone-private-node-count",
+            "desired-full-cone-private-node-vm-count": "--desired-full-cone-private-node-vm-count",
+            "desired-symmetric-private-node-count": "--desired-symmetric-private-node-count",
+            "desired-symmetric-private-node-vm-count": "--desired-symmetric-private-node-vm-count",
             "desired-uploader-vm-count": "--desired-uploader-vm-count",
             "desired-uploaders-count": "--desired-uploaders-count",
             "funding-wallet-secret-key": "--funding-wallet-secret-key",
