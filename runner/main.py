@@ -255,6 +255,14 @@ def main():
         action="store_true",
         help="Show detailed information for each workflow run"
     )
+    ls_parser.add_argument(
+        "--name",
+        help="Filter workflow runs by workflow name"
+    )
+    ls_parser.add_argument(
+        "--network-name",
+        help="Filter workflow runs by network name"
+    )
 
     network_status_parser = workflows_subparsers.add_parser("network-status", help="Check status of testnet nodes")
     network_status_parser.add_argument(
@@ -471,7 +479,7 @@ def main():
             config = load_yaml_config(args.path)
             workflows.launch_network(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "ls":
-            workflows.ls(show_details=args.details)
+            workflows.ls(show_details=args.details, workflow_name=args.name, network_name=args.network_name)
         elif args.workflows_command == "network-status":
             config = load_yaml_config(args.path)
             workflows.network_status(config, args.branch, args.force, args.wait)

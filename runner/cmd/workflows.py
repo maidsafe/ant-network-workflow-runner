@@ -280,13 +280,21 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False, w
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
 
-def ls(show_details: bool = False) -> None:
+def ls(show_details: bool = False, workflow_name: str = None, network_name: str = None) -> None:
     """List all recorded workflow runs."""
 
     repo = WorkflowRunRepository()
     runs = repo.list_workflow_runs()
     if not runs:
         print("No workflow runs found.")
+        return
+    
+    if workflow_name:
+        runs = [run for run in runs if workflow_name.lower() in run.workflow_name.lower()]
+    if network_name:
+        runs = [run for run in runs if network_name.lower() in run.network_name.lower()]
+    if not runs:
+        print("No matching workflow runs found.")
         return
         
     print("=" * 61)
