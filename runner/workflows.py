@@ -18,7 +18,7 @@ class NodeType(Enum):
     PEER_CACHE = "peer-cache"
     GENESIS = "genesis"
     GENERIC = "generic"
-    PRIVATE = "private"
+    SYMMETRIC_PRIVATE = "symmetric-private"
     
     def __str__(self) -> str:
         return self.value
