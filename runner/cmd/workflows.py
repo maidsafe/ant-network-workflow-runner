@@ -562,6 +562,7 @@ def upgrade_network(config: Dict, branch_name: str, force: bool = False, wait: b
         delay=config.get("delay"),
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        force=config.get("force"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)

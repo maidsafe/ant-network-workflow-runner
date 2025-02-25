@@ -31,6 +31,9 @@ node-type: generic
 custom-inventory:
   - DEV-02-node-1
   - DEV-02-node-2
+# Force the upgrade to run without considering the target version.
+# Can be useful for testing or downgrading.
+force: false
 # Use these inputs if you want some custom version of `testnet-deploy` to be
 # used in the run. It can either be a branch on a fork, or a specific version.
 # If you want to use a branch, both the `testnet-deploy-branch` and

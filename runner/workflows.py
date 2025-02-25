@@ -375,6 +375,7 @@ class UpgradeNetworkWorkflow(WorkflowRun):
                  delay: Optional[int] = None,
                  interval: Optional[int] = None,
                  node_type: Optional[NodeType] = None,
+                 force: Optional[bool] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Network")
         self.network_name = network_name
@@ -384,6 +385,7 @@ class UpgradeNetworkWorkflow(WorkflowRun):
         self.delay = delay
         self.interval = interval
         self.node_type = node_type
+        self.force = force
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
@@ -403,6 +405,8 @@ class UpgradeNetworkWorkflow(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
+        if self.force is not None:
+            inputs["force"] = str(self.force).lower()
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
