@@ -2,7 +2,6 @@ import json
 import logging
 import sys
 import time
-
 from datetime import datetime, UTC
 from enum import Enum
 from typing import List, Optional, Dict, Any
@@ -610,6 +609,9 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         if "stop-uploaders" in self.config:
             inputs["stop-uploaders"] = self.config["stop-uploaders"]
+
+        if "disable-telegraf" in self.config:
+            inputs["disable-telegraf"] = self.config["disable-telegraf"]
 
         testnet_deploy_args = []
         if "testnet-deploy-branch" in self.config:

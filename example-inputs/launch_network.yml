@@ -12,6 +12,9 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# If this is set the Telegraf service will not be started on the nodes or uploader hosts.
+disable-telegraf: true 
+
 # Set this to stop the uploaders after the network is launched.
 # It can be useful for comparisons.
 stop-uploaders: false
