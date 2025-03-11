@@ -604,8 +604,10 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if deploy_args:
             inputs["deploy-args"] = " ".join(deploy_args)
 
-        if "environment-vars" in self.config:
-            inputs["environment-vars"] = self.config["environment-vars"]
+        if "client-env" in self.config:
+            inputs["client-env"] = self.config["client-env"]
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
 
         if "stop-uploaders" in self.config:
             inputs["stop-uploaders"] = self.config["stop-uploaders"]

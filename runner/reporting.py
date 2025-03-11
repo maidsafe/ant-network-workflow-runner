@@ -74,14 +74,18 @@ def build_deployment_report(deployment: Deployment) -> List[str]:
     total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
     lines.append(f"Total: {total_uploaders}")
 
-    if deployment.max_log_files or deployment.max_archived_log_files:
+    if deployment.max_log_files or deployment.max_archived_log_files or deployment.client_env or deployment.node_env:
         lines.append(f"==================")
         lines.append(f"Misc Configuration")
         lines.append(f"==================")
+        if deployment.client_env:
+            lines.append(f"Client vars: {deployment.client_env}")
         if deployment.max_log_files:
             lines.append(f"Max log files: {deployment.max_log_files}")
         if deployment.max_archived_log_files:
             lines.append(f"Max archived log files: {deployment.max_archived_log_files}")
+        if deployment.node_env:
+            lines.append(f"Node vars: {deployment.node_env}")
         
     if any([deployment.evm_data_payments_address, 
             deployment.evm_payment_token_address, 
