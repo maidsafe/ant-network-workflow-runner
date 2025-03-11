@@ -156,12 +156,13 @@ def deposit_funds(config: Dict, branch_name: str, force: bool = False, wait: boo
 
 def destroy_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Destroy a network."""
-    if not questionary.confirm(
-        "Have you drained funds from this network?",
-        default=False
-    ).ask():
-        print("Error: Please drain funds from the network before destroying it")
-        sys.exit(1)
+    if not force:
+        if not questionary.confirm(
+            "Have you drained funds from this network?",
+            default=False
+        ).ask():
+            print("Error: Please drain funds from the network before destroying it")
+            sys.exit(1)
     if "network-name" not in config:
         raise KeyError("network-name")
     
