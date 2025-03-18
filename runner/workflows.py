@@ -1033,12 +1033,12 @@ class BootstrapNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
-        for count_type in ["private-node-count", "generic-node-count"]:
+        for count_type in ["full-cone-private-node-count", "symmetric-private-node-count", "generic-node-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
-        for count_type in ["private-vm-count", "generic-vm-count"]:
+        for count_type in ["full-cone-private-vm-count", "symmetric-private-vm-count", "generic-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 

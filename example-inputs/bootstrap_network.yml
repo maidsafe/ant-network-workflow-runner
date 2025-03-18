@@ -34,7 +34,8 @@ chunk-size: 4194304 # We are currently using 4MB chunks.
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 generic-node-count: 10
-private-node-count: 2
+full-cone-private-node-count: 2
+symmetric-private-node-count: 2
 
 #
 # VM counts
@@ -42,7 +43,8 @@ private-node-count: 2
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 generic-vm-count: 10
-private-vm-count: 1
+full-cone-private-vm-count: 1
+symmetric-private-vm-count: 1
 
 #
 # VM sizes
@@ -50,7 +52,7 @@ private-vm-count: 1
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 node-vm-size: s-4vcpu-8gb
-private-node-vm-size: s-4vcpu-8gb
+peer-cache-node-vm-size: s-4vcpu-8gb
 
 #
 # Misc options
