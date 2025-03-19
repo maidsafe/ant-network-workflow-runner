@@ -7,6 +7,8 @@ environment-type: development
 peer: /ip4/127.0.0.1/tcp/8080/p2p/12D3KooWRi6wF7yxWLuPSNskXc6kQ5cJ6eaymeMbCRdTnBJZ9TZJ
 # The EVM rewards address used by each `safenode` service.
 rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
+# The ID of the network being bootstrapped from. Use 1 for mainnet and any other number up to 255 for testnets.
+network-id: 42
 
 # Optional
 # Remove any you don't want to use.

@@ -1000,10 +1000,15 @@ class BootstrapNetworkWorkflow(WorkflowRun):
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address", "peer"]
+        required_fields = ["network-name", "environment-type", "rewards-address", "peer", "network-id"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
+                
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
                 
         has_versions = any([
             "antnode-version" in self.config,
@@ -1026,7 +1031,8 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         inputs = {
             "network-name": self.config["network-name"],
             "environment-type": self.config["environment-type"],
-            "peer": self.config["peer"]
+            "peer": self.config["peer"],
+            "network-id": str(self.config["network-id"])
         }
 
         if all(key in self.config for key in ["antnode-version", "antctl-version"]):
