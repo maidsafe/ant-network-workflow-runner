@@ -2,6 +2,10 @@
 # A value between 2 and 255 should be supplied for the network ID.
 # It is used to avoid cross-network interference.
 network-id: 2
+# Our monitoring infrastructure requires environment names to be restricted. The names should be in
+# the form `DEV-XX`, `STG-XX` or `PROD-XX`. For development environments, `DEV-01` through `DEV-08`
+# are available. Most environments will be in the development category. Staging will be reserved for
+# release candidates.
 network-name: DEV-03
 # The environment type determines the number and sizes of VMs for the environment.
 # Possible values: development, staging, production.
