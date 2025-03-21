@@ -217,6 +217,8 @@ class DeploymentRepository(BaseRepository[Deployment]):
             symmetric_private_node_count=config.get("symmetric-private-node-count", defaults["symmetric_private_node_count"]),
             symmetric_private_vm_count=config.get("symmetric-private-vm-count", defaults["symmetric_private_vm_count"]),
             symmetric_nat_gateway_vm_size=config.get("symmetric-nat-gateway-vm-size", defaults["symmetric_nat_gateway_vm_size"]),
+            client_env=config.get("client-env"),
+            node_env=config.get("node-env"),
         )
         self.save(deployment)
 

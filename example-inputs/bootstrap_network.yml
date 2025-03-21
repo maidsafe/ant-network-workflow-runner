@@ -3,13 +3,20 @@ network-name: DEV-03
 # The environment type determines the number and sizes of VMs for the environment.
 # Possible values: development, staging, production.
 environment-type: development
-# A peer from the network to bootstrap from. Should be in multiaddr format.
-peer: /ip4/127.0.0.1/tcp/8080/p2p/12D3KooWRi6wF7yxWLuPSNskXc6kQ5cJ6eaymeMbCRdTnBJZ9TZJ
 # The EVM rewards address used by each `safenode` service.
 rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
+# The ID of the network being bootstrapped from. Use 1 for mainnet and any other number up to 255 for testnets.
+network-id: 42
 
 # Optional
 # Remove any you don't want to use.
+
+# Peer information
+# Either peer or network-contacts-url must be provided. Both can be provided.
+# A peer from the network to bootstrap from. Should be in multiaddr format.
+peer: /ip4/127.0.0.1/tcp/8080/p2p/12D3KooWRi6wF7yxWLuPSNskXc6kQ5cJ6eaymeMbCRdTnBJZ9TZJ
+# Alternatively, a URL to a network contacts file can be provided.
+network-contacts-url: https://example.com/network-contacts.json
 
 #
 # Binary versions
@@ -34,7 +41,8 @@ chunk-size: 4194304 # We are currently using 4MB chunks.
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 generic-node-count: 10
-private-node-count: 2
+full-cone-private-node-count: 2
+symmetric-private-node-count: 2
 
 #
 # VM counts
@@ -42,7 +50,8 @@ private-node-count: 2
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 generic-vm-count: 10
-private-vm-count: 1
+full-cone-private-vm-count: 1
+symmetric-private-vm-count: 1
 
 #
 # VM sizes
@@ -50,7 +59,7 @@ private-vm-count: 1
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 node-vm-size: s-4vcpu-8gb
-private-node-vm-size: s-4vcpu-8gb
+peer-cache-node-vm-size: s-4vcpu-8gb
 
 #
 # Misc options

@@ -2,7 +2,6 @@ import json
 import logging
 import sys
 import time
-
 from datetime import datetime, UTC
 from enum import Enum
 from typing import List, Optional, Dict, Any
@@ -18,7 +17,7 @@ class NodeType(Enum):
     PEER_CACHE = "peer-cache"
     GENESIS = "genesis"
     GENERIC = "generic"
-    PRIVATE = "private"
+    SYMMETRIC_PRIVATE = "symmetric-private"
     
     def __str__(self) -> str:
         return self.value
@@ -375,6 +374,7 @@ class UpgradeNetworkWorkflow(WorkflowRun):
                  delay: Optional[int] = None,
                  interval: Optional[int] = None,
                  node_type: Optional[NodeType] = None,
+                 force: Optional[bool] = None,
                  testnet_deploy_args: Optional[str] = None):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Network")
         self.network_name = network_name
@@ -384,6 +384,7 @@ class UpgradeNetworkWorkflow(WorkflowRun):
         self.delay = delay
         self.interval = interval
         self.node_type = node_type
+        self.force = force
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
@@ -403,6 +404,8 @@ class UpgradeNetworkWorkflow(WorkflowRun):
             inputs["interval"] = str(self.interval)
         if self.node_type is not None:
             inputs["node-type"] = self.node_type.value
+        if self.force is not None:
+            inputs["force"] = str(self.force).lower()
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
@@ -601,11 +604,16 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if deploy_args:
             inputs["deploy-args"] = " ".join(deploy_args)
 
-        if "environment-vars" in self.config:
-            inputs["environment-vars"] = self.config["environment-vars"]
+        if "client-env" in self.config:
+            inputs["client-env"] = self.config["client-env"]
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
 
         if "stop-uploaders" in self.config:
             inputs["stop-uploaders"] = self.config["stop-uploaders"]
+
+        if "disable-telegraf" in self.config:
+            inputs["disable-telegraf"] = self.config["disable-telegraf"]
 
         testnet_deploy_args = []
         if "testnet-deploy-branch" in self.config:
@@ -982,20 +990,24 @@ class DrainFundsWorkflow(WorkflowRun):
 class BootstrapNetworkWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str, network_name: str,
-                 peer: str, environment_type: str, config: Dict[str, Any]):
+                 environment_type: str, config: Dict[str, Any]):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Bootstrap Network")
         self.network_name = network_name
-        self.peer = peer
         self.environment_type = environment_type
         self.config = config
         self._validate_config()
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address", "peer"]
+        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
+                
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
                 
         has_versions = any([
             "antnode-version" in self.config,
@@ -1018,19 +1030,25 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         inputs = {
             "network-name": self.config["network-name"],
             "environment-type": self.config["environment-type"],
-            "peer": self.config["peer"]
+            "network-id": str(self.config["network-id"])
         }
+
+        if "peer" not in self.config and "network-contacts-url" not in self.config:
+            raise ValueError("Either 'peer' or 'network-contacts-url' must be provided")
+        
+        if "peer" in self.config:
+            inputs["peer"] = self.config["peer"]
 
         if all(key in self.config for key in ["antnode-version", "antctl-version"]):
             inputs["bin-versions"] = f"{self.config['antnode-version']},{self.config['antctl-version']}"
 
         node_counts = []
-        for count_type in ["private-node-count", "generic-node-count"]:
+        for count_type in ["full-cone-private-node-count", "symmetric-private-node-count", "generic-node-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
-        for count_type in ["private-vm-count", "generic-vm-count"]:
+        for count_type in ["full-cone-private-vm-count", "symmetric-private-vm-count", "generic-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 
@@ -1060,6 +1078,9 @@ class BootstrapNetworkWorkflow(WorkflowRun):
                         bootstrap_args.append(arg_name)
                 else:
                     bootstrap_args.append(f"{arg_name} {value}")
+        
+        if "network-contacts-url" in self.config:
+            bootstrap_args.append(f"--network-contacts-url {self.config['network-contacts-url']}")
         
         if bootstrap_args:
             inputs["bootstrap-args"] = " ".join(bootstrap_args)

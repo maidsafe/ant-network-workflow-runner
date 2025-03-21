@@ -107,7 +107,6 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False, wait:
         personal_access_token=_get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
-        peer=config["peer"],
         environment_type=config["environment-type"],
         config=config
     )
@@ -156,12 +155,13 @@ def deposit_funds(config: Dict, branch_name: str, force: bool = False, wait: boo
 
 def destroy_network(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Destroy a network."""
-    if not questionary.confirm(
-        "Have you drained funds from this network?",
-        default=False
-    ).ask():
-        print("Error: Please drain funds from the network before destroying it")
-        sys.exit(1)
+    if not force:
+        if not questionary.confirm(
+            "Have you drained funds from this network?",
+            default=False
+        ).ask():
+            print("Error: Please drain funds from the network before destroying it")
+            sys.exit(1)
     if "network-name" not in config:
         raise KeyError("network-name")
     
@@ -562,6 +562,7 @@ def upgrade_network(config: Dict, branch_name: str, force: bool = False, wait: b
         delay=config.get("delay"),
         interval=config.get("interval"),
         node_type=NodeType(config["node-type"]) if "node-type" in config else None,
+        force=config.get("force"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)

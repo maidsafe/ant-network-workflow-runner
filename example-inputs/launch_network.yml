@@ -12,6 +12,9 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# If this is set the Telegraf service will not be started on the nodes or uploader hosts.
+disable-telegraf: true 
+
 # Set this to stop the uploaders after the network is launched.
 # It can be useful for comparisons.
 stop-uploaders: false
@@ -82,6 +85,8 @@ uploader-vm-size: s-4vcpu-8gb
 #
 # Misc options
 #
+# Environment variables to set for the `ant` binary on the uploaders.
+client-env: LOG_LEVEL=debug,RUST_LOG=info
 # Apply an interval between each node start. Value is in milliseconds.
 interval: 60000
 # Make the node manager RPC server public.
@@ -90,8 +95,8 @@ public-rpc: true
 max-archived-log-files: 1
 # Maximum number of log files `safenode` will keep.
 max-log-files: 1
-# Environment variables to set for `safenode` services.
-environment-vars: LOG_LEVEL=debug,RUST_LOG=info
+# Environment variables to set for `antnode` services.
+node-env: LOG_LEVEL=debug,RUST_LOG=info
 
 #
 # EVM options
