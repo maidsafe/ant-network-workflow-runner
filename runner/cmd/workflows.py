@@ -107,7 +107,6 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False, wait:
         personal_access_token=_get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],
-        peer=config["peer"],
         environment_type=config["environment-type"],
         config=config
     )

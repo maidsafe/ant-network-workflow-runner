@@ -990,17 +990,16 @@ class DrainFundsWorkflow(WorkflowRun):
 class BootstrapNetworkWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str, network_name: str,
-                 peer: str, environment_type: str, config: Dict[str, Any]):
+                 environment_type: str, config: Dict[str, Any]):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Bootstrap Network")
         self.network_name = network_name
-        self.peer = peer
         self.environment_type = environment_type
         self.config = config
         self._validate_config()
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address", "peer", "network-id"]
+        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
@@ -1031,9 +1030,14 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         inputs = {
             "network-name": self.config["network-name"],
             "environment-type": self.config["environment-type"],
-            "peer": self.config["peer"],
             "network-id": str(self.config["network-id"])
         }
+
+        if "peer" not in self.config and "network-contacts-url" not in self.config:
+            raise ValueError("Either 'peer' or 'network-contacts-url' must be provided")
+        
+        if "peer" in self.config:
+            inputs["peer"] = self.config["peer"]
 
         if all(key in self.config for key in ["antnode-version", "antctl-version"]):
             inputs["bin-versions"] = f"{self.config['antnode-version']},{self.config['antctl-version']}"
@@ -1074,6 +1078,9 @@ class BootstrapNetworkWorkflow(WorkflowRun):
                         bootstrap_args.append(arg_name)
                 else:
                     bootstrap_args.append(f"{arg_name} {value}")
+        
+        if "network-contacts-url" in self.config:
+            bootstrap_args.append(f"--network-contacts-url {self.config['network-contacts-url']}")
         
         if bootstrap_args:
             inputs["bootstrap-args"] = " ".join(bootstrap_args)
