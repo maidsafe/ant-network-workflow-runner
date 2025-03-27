@@ -29,8 +29,8 @@ STOP_TELEGRAF_WORKFLOW_ID = 109718824
 STOP_UPLOADERS_WORKFLOW_ID = 116345516
 UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_ANTCTL_WORKFLOW_ID = 134531916
+UPGRADE_CLIENTS_WORKFLOW_ID = 118769505
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
-UPGRADE_UPLOADERS_WORKFLOW_ID = 118769505
 UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 
 ENVIRONMENT_DEFAULTS = {
@@ -39,7 +39,7 @@ ENVIRONMENT_DEFAULTS = {
         "generic_node_count": 25,
         "full_cone_private_node_count": 25,
         "symmetric_private_node_count": 25,
-        "downloader_count": 0,
+        "enable_downloaders": 1,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 10,
@@ -47,19 +47,19 @@ ENVIRONMENT_DEFAULTS = {
         "full_cone_private_vm_count": 1,
         "symmetric_nat_gateway_vm_count": 1,
         "symmetric_private_vm_count": 1,
-        "uploader_vm_count": 1,
+        "client_vm_count": 1,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
         "full_cone_nat_gateway_vm_size": "s-4vcpu-8gb",
         "symmetric_nat_gateway_vm_size": "s-4vcpu-8gb",
-        "uploader_vm_size": "s-2vcpu-4gb"
+        "client_vm_size": "s-2vcpu-4gb"
     },
     "staging": {
         "peer_cache_node_count": 5,
         "generic_node_count": 25,
         "full_cone_private_node_count": 25,
         "symmetric_private_node_count": 25,
-        "downloader_count": 0,
+        "enable_downloaders": 1,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
@@ -67,19 +67,19 @@ ENVIRONMENT_DEFAULTS = {
         "full_cone_private_vm_count": 1,
         "symmetric_nat_gateway_vm_count": 1,
         "symmetric_private_vm_count": 1,
-        "uploader_vm_count": 2,
+        "client_vm_count": 2,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-2vcpu-4gb",
         "full_cone_nat_gateway_vm_size": "s-2vcpu-4gb",
         "symmetric_nat_gateway_vm_size": "s-2vcpu-4gb",
-        "uploader_vm_size": "s-2vcpu-4gb"
+        "client_vm_size": "s-2vcpu-4gb"
     },
     "production": {
         "peer_cache_node_count": 5,
         "generic_node_count": 25,
         "full_cone_private_node_count": 25,
         "symmetric_private_node_count": 25,
-        "downloader_count": 0,
+        "enable_downloaders": 0,
         "uploader_count": 1,
         "peer_cache_vm_count": 3,
         "generic_vm_count": 39,
@@ -87,12 +87,12 @@ ENVIRONMENT_DEFAULTS = {
         "full_cone_private_vm_count": 1,
         "symmetric_nat_gateway_vm_count": 1,
         "symmetric_private_vm_count": 1,
-        "uploader_vm_count": 2,
+        "client_vm_count": 2,
         "peer_cache_node_vm_size": "s-8vcpu-16gb",
         "generic_node_vm_size": "s-8vcpu-16gb",
         "full_cone_nat_gateway_vm_size": "s-8vcpu-16gb",
         "symmetric_nat_gateway_vm_size": "s-8vcpu-16gb",
-        "uploader_vm_size": "s-8vcpu-16gb"
+        "client_vm_size": "s-8vcpu-16gb"
     }
 }
 
@@ -589,8 +589,8 @@ def update_peer(config: Dict, branch_name: str, force: bool = False, wait: bool 
     )
     _execute_workflow(workflow, force, wait)
 
-def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
-    """Trigger the upgrade uploaders workflow."""
+def upgrade_clients(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Trigger the upgrade Clients workflow."""
     if "network-name" not in config:
         raise KeyError("network-name")
     if "version" not in config:
@@ -600,10 +600,10 @@ def upgrade_uploaders(config: Dict, branch_name: str, force: bool = False, wait:
     
     testnet_deploy_args = _build_testnet_deploy_args(config)
         
-    workflow = UpgradeUploadersWorkflow(
+    workflow = UpgradeClientsWorkflow(
         owner=REPO_OWNER,
         repo=REPO_NAME,
-        id=UPGRADE_UPLOADERS_WORKFLOW_ID,
+        id=UPGRADE_CLIENTS_WORKFLOW_ID,
         personal_access_token=_get_github_token(),
         branch_name=branch_name,
         network_name=config["network-name"],

@@ -67,11 +67,11 @@ def build_deployment_report(deployment: Deployment) -> List[str]:
         total_nodes += deployment.symmetric_private_vm_count * deployment.symmetric_private_node_count
     lines.append(f"Total: {total_nodes}")
 
-    lines.append(f"======================")
-    lines.append(f"Uploader Configuration")
-    lines.append(f"======================")
-    lines.append(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
-    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
+    lines.append(f"====================")
+    lines.append(f"Client Configuration")
+    lines.append(f"====================")
+    lines.append(f"{deployment.client_vm_count}x{deployment.uploader_count} [{deployment.client_vm_size}]")
+    total_uploaders = deployment.client_vm_count * deployment.uploader_count
     lines.append(f"Total: {total_uploaders}")
 
     if deployment.max_log_files or deployment.max_archived_log_files or deployment.client_env or deployment.node_env:

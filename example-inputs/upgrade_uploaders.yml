@@ -1,5 +1,5 @@
-# Inputs for running the `Upgrade Uploaders` workflow.
-# This workflow upgrades the autonomi version on the uploaders.
+# Inputs for running the `Upgrade Clients` workflow.
+# This workflow upgrades the autonomi version on the client vms.
 
 # Required
 network-name: DEV-02

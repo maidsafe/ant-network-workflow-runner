@@ -42,7 +42,7 @@ safenode-features:
 bootstrap-node-count: 5
 generic-node-count: 10
 private-node-count: 2
-downloader-count: 3
+enable-downloaders: 1
 uploader-count: 2
 
 #
@@ -51,9 +51,9 @@ uploader-count: 2
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 bootstrap-vm-count: 5
+client-vm-count: 2
 generic-vm-count: 10
 private-vm-count: 1
-uploader-vm-count: 2
 
 #
 # VM sizes
@@ -61,8 +61,8 @@ uploader-vm-count: 2
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
 bootstrap-node-vm-size: s-4vcpu-8gb
+client-vm-size: s-4vcpu-8gb
 node-vm-size: s-4vcpu-8gb
-uploader-vm-size: s-4vcpu-8gb
 evm-node-vm-size: s-4vcpu-8gb
 
 #

@@ -472,18 +472,18 @@ class UpdatePeerWorkflow(WorkflowRun):
             
         return inputs
 
-class UpgradeUploadersWorkflow(WorkflowRun):
+class UpgradeClientsWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,
                  network_name: str, version: str,
                  testnet_deploy_args: Optional[str] = None):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Uploaders")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Upgrade Clients")
         self.network_name = network_name
         self.version = version
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
-        """Get inputs specific to the upgrade uploaders workflow."""
+        """Get inputs specific to the upgrade clients workflow."""
         inputs = {
             "network-name": self.network_name,
             "version": self.version
@@ -547,13 +547,13 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         node_counts = []
         for count_type in ["peer-cache-node-count", "generic-node-count", "full-cone-private-node-count", 
-                          "symmetric-private-node-count", "downloader-count", "uploader-count"]:
+                          "symmetric-private-node-count", "enable-downloaders", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
         for count_type in ["peer-cache-vm-count", "generic-vm-count", "full-cone-private-vm-count", 
-                          "symmetric-private-vm-count", "uploader-vm-count"]:
+                          "symmetric-private-vm-count", "client-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 
@@ -564,6 +564,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
         deploy_arg_mappings = {
             "branch": "--branch",
             "chunk-size": "--chunk-size",
+            "client-vm-size": "--client-vm-size",
             "evm-network-type": "--evm-network-type",
             "evm-data-payments-address": "--evm-data-payments-address",
             "evm-node-vm-size": "--evm-node-vm-size",
@@ -581,7 +582,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "public-rpc": "--public-rpc",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",
-            "uploader-vm-size": "--uploader-vm-size"
         }
         
         for config_key, arg_name in deploy_arg_mappings.items():
@@ -663,6 +663,7 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "antnode-version": "--antnode-version",
             "ant-version": "--ant-version",
             "branch": "--branch",
+            "desired-client-vm-count": "--desired-client-vm-count",
             "desired-node-count": "--desired-node-count",
             "desired-node-vm-count": "--desired-node-vm-count",
             "desired-peer-cache-node-count": "--desired-peer-cache-node-count",
@@ -671,7 +672,6 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "desired-full-cone-private-node-vm-count": "--desired-full-cone-private-node-vm-count",
             "desired-symmetric-private-node-count": "--desired-symmetric-private-node-count",
             "desired-symmetric-private-node-vm-count": "--desired-symmetric-private-node-vm-count",
-            "desired-uploader-vm-count": "--desired-uploader-vm-count",
             "desired-uploaders-count": "--desired-uploaders-count",
             "funding-wallet-secret-key": "--funding-wallet-secret-key",
             "infra-only": "--infra-only",
@@ -826,13 +826,13 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
 
         node_counts = []
         for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
-                          "downloader-count", "uploader-count"]:
+                          "enable-downloaders", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
         vm_counts = []
         for count_type in ["bootstrap-vm-count", "generic-vm-count", "private-vm-count", 
-                          "uploader-vm-count"]:
+                          "client-vm-count"]:
             if count_type in self.config:
                 vm_counts.append(str(self.config[count_type]))
                 
@@ -844,6 +844,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             "bootstrap-node-vm-size": "--bootstrap-node-vm-size",
             "branch": "--branch",
             "chunk-size": "--chunk-size",
+            "client-vm-size": "--client-vm-size",
             "evm-network-type": "--evm-network-type",
             "evm-data-payments-address": "--evm-data-payments-address",
             "evm-node-vm-size": "--evm-node-vm-size",
@@ -855,8 +856,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             "node-vm-size": "--node-vm-size",
             "public-rpc": "--public-rpc",
             "repo-owner": "--repo-owner",
-            "rewards-address": "--rewards-address",
-            "uploader-vm-size": "--uploader-vm-size"
+            "rewards-address": "--rewards-address"
         }
         
         for config_key, arg_name in deploy_arg_mappings.items():
