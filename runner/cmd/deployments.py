@@ -1,6 +1,7 @@
 import os
 import requests
 import sys
+from datetime import datetime
 
 import questionary
 from rich import print as rprint
@@ -285,3 +286,65 @@ def _build_deployment_and_smoke_test_report(deployment: Deployment) -> str:
             }.get(answer, "?")
             lines.append(f"{status}  {question}")
     return "\n".join(lines)
+
+def upload_report(deployment_id: int) -> None:
+    """Upload a report for a deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to upload report for
+    """
+    try:
+        repo = DeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Deployment with ID {deployment_id} not found")
+
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+
+        total_uploaders = questionary.text(
+            "Total number of uploaders:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        successful_uploads = questionary.text(
+            "Number of successful uploads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        total_chunks = questionary.text(
+            "Total chunks uploaded:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        avg_upload_time = questionary.text(
+            "Average upload time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        chunk_proof_error_count = questionary.text(
+            "Number of chunk proof errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        not_enough_quotes_error_count = questionary.text(
+            "Number of not enough quotes errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+
+        print()
+        print("=======")
+        print("Uploads")
+        print("=======")
+        print(f"{deployment.name}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"- Total uploaders: {total_uploaders}")
+        print(f"- Successful uploads: {successful_uploads}")
+        print(f"- Total chunks uploaded: {total_chunks}")
+        print(f"- Average upload time: {avg_upload_time}s")
+        print(f"- Chunk proof errors: {chunk_proof_error_count}")
+        print(f"- Not enough quotes errors: {not_enough_quotes_error_count}")
+    except Exception as e:
+        print(f"Error uploading report: {e}")
+        sys.exit(1)
