@@ -160,21 +160,21 @@ class DeploymentRepository(BaseRepository[Deployment]):
             features = ",".join(features)
             
         if is_bootstrap:
+            client_vm_count = None
+            client_vm_size = None
             peer_cache_node_count = None
             peer_cache_vm_count = None
             peer_cache_node_vm_size = None
-            downloader_count = None
+            enable_downloaders = None
             uploader_count = None
-            uploader_vm_count = None
-            uploader_vm_size = None
         else:
+            client_vm_count = config.get("client-vm-count", defaults["client_vm_count"])
+            client_vm_size = config.get("client-vm-size", defaults["client_vm_size"])
             peer_cache_node_count = config.get("peer-cache-node-count", defaults["peer_cache_node_count"])
             peer_cache_vm_count = config.get("peer-cache-vm-count", defaults["peer_cache_vm_count"])
             peer_cache_node_vm_size = config.get("peer-cache-node-vm-size", defaults["peer_cache_node_vm_size"])
-            downloader_count = config.get("downloader-count", defaults["downloader_count"])
+            enable_downloaders = config.get("enable-downloaders", defaults["enable_downloaders"])
             uploader_count = config.get("uploader-count", defaults["uploader_count"])
-            uploader_vm_count = config.get("uploader-vm-count", defaults["uploader_vm_count"])
-            uploader_vm_size = config.get("uploader-vm-size", defaults["uploader_vm_size"])
 
         deployment = Deployment(
             workflow_run_id=workflow_run_id,
@@ -183,22 +183,22 @@ class DeploymentRepository(BaseRepository[Deployment]):
             antnode_version=antnode_version,
             antctl_version=antctl_version,
             branch=config.get("branch"),
+            client_vm_count=client_vm_count,
+            client_vm_size=client_vm_size,
             repo_owner=config.get("repo-owner"),
             chunk_size=config.get("chunk-size"),
             antnode_features=features,
             peer_cache_node_count=peer_cache_node_count,
             generic_node_count=config.get("generic-node-count", defaults["generic_node_count"]),
             private_node_count=None,
-            downloader_count=downloader_count,
+            enable_downloaders=enable_downloaders,
             uploader_count=uploader_count,
             peer_cache_vm_count=peer_cache_vm_count,
             generic_vm_count=config.get("generic-vm-count", defaults["generic_vm_count"]),
             private_vm_count=None,
-            uploader_vm_count=uploader_vm_count,
             peer_cache_node_vm_size=peer_cache_node_vm_size,
             generic_node_vm_size=config.get("node-vm-size", defaults["generic_node_vm_size"]),
             private_node_vm_size=None,
-            uploader_vm_size=uploader_vm_size,
             evm_network_type=config.get("evm-network-type", "custom"),
             rewards_address=config["rewards-address"],
             max_log_files=config.get("max-log-files"),

@@ -406,13 +406,13 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    upgrade_uploaders_parser = workflows_subparsers.add_parser("upgrade-uploaders", help="Upgrade the uploaders to the specified version of autonomi")
-    upgrade_uploaders_parser.add_argument(
+    upgrade_clients_parser = workflows_subparsers.add_parser("upgrade-clients", help="Upgrade the clients to the specified version of autonomi")
+    upgrade_clients_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
     )
-    upgrade_uploaders_parser.add_argument(
+    upgrade_clients_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -519,12 +519,12 @@ def main():
         elif args.workflows_command == "upgrade-antctl":
             config = load_yaml_config(args.path)
             workflows.upgrade_antctl(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "upgrade-clients":
+            config = load_yaml_config(args.path)
+            workflows.upgrade_clients(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upgrade-network":
             config = load_yaml_config(args.path)
             workflows.upgrade_network(config, args.branch, args.force, args.wait)
-        elif args.workflows_command == "upgrade-uploaders":
-            config = load_yaml_config(args.path)
-            workflows.upgrade_uploaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
             workflows.upscale_network(config, args.branch, args.force, args.wait)

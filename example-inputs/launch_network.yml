@@ -16,12 +16,12 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
-# If this is set the Telegraf service will not be started on the nodes or uploader hosts.
+# If this is set the Telegraf service will not be started on the nodes or client hosts.
 disable-telegraf: true 
 
-# Set this to stop the uploaders after the network is launched.
+# Set this to stop the uploaders and downloaders after the network is launched.
 # It can be useful for comparisons.
-stop-uploaders: false
+stop-clients: false
 
 # A short sentence describing the purpose of the deployment.
 description: Private node upscaling test
@@ -61,7 +61,7 @@ peer-cache-node-count: 5
 generic-node-count: 25
 full-cone-private-node-count: 15
 symmetric-private-node-count: 10
-downloader-count: 0
+enable-downloaders: 0
 uploader-count: 1
 
 #
@@ -69,27 +69,27 @@ uploader-count: 1
 #
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
+client-vm-count: 2
 peer-cache-vm-count: 5
 generic-vm-count: 10
 full-cone-private-vm-count: 1
 symmetric-private-vm-count: 1
-uploader-vm-count: 2
 
 #
 # VM sizes
 #
 # If these are used, they will override the values determined by the environment type.
 # If they are not specified, they will be determined by the environment type.
+client-vm-size: s-4vcpu-8gb
 peer-cache-node-vm-size: s-4vcpu-8gb
 node-vm-size: s-4vcpu-8gb
 full-cone-nat-gateway-vm-size: s-4vcpu-8gb
 symmetric-nat-gateway-vm-size: s-4vcpu-8gb
-uploader-vm-size: s-4vcpu-8gb
 
 #
 # Misc options
 #
-# Environment variables to set for the `ant` binary on the uploaders.
+# Environment variables to set for the `ant` binary on the client vms.
 client-env: LOG_LEVEL=debug,RUST_LOG=info
 # Apply an interval between each node start. Value is in milliseconds.
 interval: 60000
@@ -115,9 +115,9 @@ evm-payment-token-address: <payment-token-address>
 evm-rpc-url: <rpc-url>
 
 # Use these options to avoid having to run an additional funding workflow.
-# Initial gas to transfer to the uploaders (this value is 0.1 ETH)
+# Initial gas to transfer to the ant instances (this value is 0.1 ETH)
 initial-gas: "100000000000000000"
-# Initial tokens to transfer to the uploaders (this value is 1 token)
+# Initial tokens to transfer to the ant instances (this value is 1 token)
 initial-tokens: "1000000000000000000"
 
 #

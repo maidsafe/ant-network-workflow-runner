@@ -14,7 +14,7 @@ repo-owner: maidsafe
 #
 # Binary versions
 #
-# The ant version will only be required for upscaling uploaders.
+# The ant version will only be required for upscaling client vms.
 ant-version: 0.1.0
 antnode-version: 0.1.0
 antctl-version: 0.1.0
@@ -31,11 +31,11 @@ desired-uploaders-count: 2
 # Desired VM counts
 # Only supply inputs for the types you want to upscale, and remove the others.
 # Any other counts will remain the same.
+desired-client-vm-count: 2
 desired-peer-cache-node-vm-count: 10
 desired-node-vm-count: 12
 desired-full-cone-private-node-vm-count: 1
 desired-symmetric-private-node-vm-count: 1
-desired-uploader-vm-count: 2
 
 # Set to only run Terraform and not Ansible.
 infra-only: false
@@ -48,7 +48,7 @@ plan: false
 # Units are milliseconds.
 interval: 10000
 
-# Required when upscaling uploaders.
+# Required when upscaling clients.
 funding-wallet-secret-key: <your secret key>
 
 #

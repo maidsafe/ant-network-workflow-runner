@@ -83,12 +83,12 @@ def ls(show_details: bool = False) -> None:
                     total_nodes += deployment.symmetric_private_vm_count * deployment.symmetric_private_node_count
                 print(f"Total: {total_nodes}")
 
-                if deployment.uploader_vm_count and deployment.uploader_count and deployment.uploader_vm_size:
-                    print(f"======================")
-                    print(f"Uploader Configuration")
-                    print(f"======================")
-                    print(f"{deployment.uploader_vm_count}x{deployment.uploader_count} [{deployment.uploader_vm_size}]")
-                    total_uploaders = deployment.uploader_vm_count * deployment.uploader_count
+                if deployment.client_vm_count and deployment.uploader_count and deployment.client_vm_size:
+                    print(f"====================")
+                    print(f"Client Configuration")
+                    print(f"====================")
+                    print(f"{deployment.client_vm_count}x{deployment.uploader_count} [{deployment.client_vm_size}]")
+                    total_uploaders = deployment.client_vm_count * deployment.uploader_count
                     print(f"Total: {total_uploaders}")
 
                 if deployment.max_log_files or deployment.max_archived_log_files:
@@ -218,8 +218,8 @@ def smoke_test(deployment_id: int) -> None:
         "Is `antctl` on the correct version?",
         "Is `antnode` on the correct version?",
         "Are the correct reserved IPs allocated?",
-        "Is the uploader dashboard receiving data?",
-        "Do uploader wallets have funds?",
+        "Is the client dashboard receiving data?",
+        "Do client wallets have funds?",
         "Is `ant` on the correct version?",
         "Do the uploaders have no errors?"
     ]
