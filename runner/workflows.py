@@ -609,8 +609,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if "node-env" in self.config:
             inputs["node-env"] = self.config["node-env"]
 
-        if "stop-uploaders" in self.config:
-            inputs["stop-uploaders"] = self.config["stop-uploaders"]
+        if "stop-clients" in self.config:
+            inputs["stop-clients"] = self.config["stop-clients"]
 
         if "disable-telegraf" in self.config:
             inputs["disable-telegraf"] = self.config["disable-telegraf"]
