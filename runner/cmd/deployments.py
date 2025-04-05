@@ -303,7 +303,7 @@ def upload_report(deployment_id: int) -> None:
         end_time = questionary.text("End time:").ask()
 
         total_uploaders = questionary.text(
-            "Total number of uploaders:",
+            "Number of uploaders:",
             validate=lambda text: text.isdigit()
         ).ask()
         successful_uploads = questionary.text(
@@ -311,7 +311,7 @@ def upload_report(deployment_id: int) -> None:
             validate=lambda text: text.isdigit()
         ).ask()
         total_chunks = questionary.text(
-            "Total chunks uploaded:",
+            "Records uploaded:",
             validate=lambda text: text.isdigit()
         ).ask()
         avg_upload_time = questionary.text(
@@ -324,6 +324,10 @@ def upload_report(deployment_id: int) -> None:
         ).ask()
         not_enough_quotes_error_count = questionary.text(
             "Number of not enough quotes errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        other_error_count = questionary.text(
+            "Number of other errors:",
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
 
@@ -345,6 +349,7 @@ def upload_report(deployment_id: int) -> None:
         print(f"- Average upload time: {avg_upload_time}s")
         print(f"- Chunk proof errors: {chunk_proof_error_count}")
         print(f"- Not enough quotes errors: {not_enough_quotes_error_count}")
+        print(f"- Other errors: {other_error_count}")
     except Exception as e:
         print(f"Error uploading report: {e}")
         sys.exit(1)
