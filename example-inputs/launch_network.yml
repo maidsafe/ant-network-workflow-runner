@@ -16,6 +16,11 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # Optional
 # Remove any you don't want to use.
 
+# The region to deploy to.
+# For Digital Ocean, we currently support "lon1" and "ams3".
+# It will default to "lon1".
+region: lon1
+
 # If this is set the Telegraf service will not be started on the nodes or client hosts.
 disable-telegraf: true 
 

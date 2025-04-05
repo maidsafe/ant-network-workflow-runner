@@ -52,7 +52,8 @@ ENVIRONMENT_DEFAULTS = {
         "generic_node_vm_size": "s-4vcpu-8gb",
         "full_cone_nat_gateway_vm_size": "s-4vcpu-8gb",
         "symmetric_nat_gateway_vm_size": "s-4vcpu-8gb",
-        "client_vm_size": "s-2vcpu-4gb"
+        "client_vm_size": "s-2vcpu-4gb",
+        "region": "lon1"
     },
     "staging": {
         "peer_cache_node_count": 5,
@@ -72,7 +73,8 @@ ENVIRONMENT_DEFAULTS = {
         "generic_node_vm_size": "s-2vcpu-4gb",
         "full_cone_nat_gateway_vm_size": "s-2vcpu-4gb",
         "symmetric_nat_gateway_vm_size": "s-2vcpu-4gb",
-        "client_vm_size": "s-2vcpu-4gb"
+        "client_vm_size": "s-2vcpu-4gb",
+        "region": "lon1"
     },
     "production": {
         "peer_cache_node_count": 5,
@@ -92,7 +94,8 @@ ENVIRONMENT_DEFAULTS = {
         "generic_node_vm_size": "s-8vcpu-16gb",
         "full_cone_nat_gateway_vm_size": "s-8vcpu-16gb",
         "symmetric_nat_gateway_vm_size": "s-8vcpu-16gb",
-        "client_vm_size": "s-8vcpu-16gb"
+        "client_vm_size": "s-8vcpu-16gb",
+        "region": "lon1"
     }
 }
 

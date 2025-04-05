@@ -580,6 +580,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "node-vm-size": "--node-vm-size",
             "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
             "public-rpc": "--public-rpc",
+            "region": "--region",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",
         }
@@ -855,6 +856,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             "max-log-files": "--max-log-files",
             "node-vm-size": "--node-vm-size",
             "public-rpc": "--public-rpc",
+            "region": "--region",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address"
         }
@@ -1066,8 +1068,9 @@ class BootstrapNetworkWorkflow(WorkflowRun):
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
             "node-vm-size": "--node-vm-size",
+            "region": "--region",
             "repo-owner": "--repo-owner",
-            "rewards-address": "--rewards-address"
+            "rewards-address": "--rewards-address",
         }
         
         for config_key, arg_name in bootstrap_arg_mappings.items():
