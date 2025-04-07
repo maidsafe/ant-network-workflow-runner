@@ -113,6 +113,17 @@ def main():
         help="ID of the comparison to post"
     )
     
+    comparisons_upload_report_parser = comparisons_subparsers.add_parser(
+        "upload-report",
+        help="Generate a report for uploads on each environment in a comparison"
+    )
+    comparisons_upload_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the comparison"
+    )
+    
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
     
@@ -451,6 +462,8 @@ def main():
             comparisons.print_comparison(args.id)
         elif args.comparisons_command == "record-results":
             comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
+        elif args.comparisons_command == "upload-report":
+            comparisons.upload_report(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)
