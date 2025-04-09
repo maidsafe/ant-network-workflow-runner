@@ -22,16 +22,19 @@ LAUNCH_NETWORK_WORKFLOW_ID = 144945387
 NETWORK_STATUS_WORKFLOW_ID = 109501466
 RESET_TO_N_NODES_WORKFLOW_ID = 134957069
 START_NODES_WORKFLOW_ID = 109583089
-START_TELEGRAF_WORKFLOW_ID = 113666375
+START_TELEGRAF_WORKFLOW_ID = 154514010
 START_UPLOADERS_WORKFLOW_ID = 116345515
 STOP_NODES_WORKFLOW_ID = 126356854
-STOP_TELEGRAF_WORKFLOW_ID = 109718824
+STOP_TELEGRAF_WORKFLOW_ID = 154514011
 STOP_UPLOADERS_WORKFLOW_ID = 116345516
 UPDATE_PEER_WORKFLOW_ID = 127823614
 UPGRADE_ANTCTL_WORKFLOW_ID = 134531916
 UPGRADE_CLIENTS_WORKFLOW_ID = 118769505
 UPGRADE_NETWORK_WORKFLOW_ID = 109064529
 UPSCALE_NETWORK_WORKFLOW_ID = 105092652
+TELEGRAF_UPGRADE_CLIENT_CONFIG_WORKFLOW_ID = 154514012
+TELEGRAF_UPGRADE_GEOIP_CONFIG_WORKFLOW_ID = 154514013
+TELEGRAF_UPGRADE_NODE_CONFIG_WORKFLOW_ID = 154514014
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
@@ -630,6 +633,72 @@ def upscale_network(config: Dict, branch_name: str, force: bool = False, wait: b
         branch_name=branch_name,
         network_name=config["network-name"],
         config=config
+    )
+    _execute_workflow(workflow, force, wait)
+
+def telegraf_upgrade_client_config(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Upgrade Telegraf client configuration."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = TelegrafUpgradeClientConfigWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=TELEGRAF_UPGRADE_CLIENT_CONFIG_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        ansible_verbose=config.get("ansible-verbose"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def telegraf_upgrade_geoip_config(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Upgrade Telegraf GeoIP configuration."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = TelegrafUpgradeGeoipConfigWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=TELEGRAF_UPGRADE_GEOIP_CONFIG_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        ansible_verbose=config.get("ansible-verbose"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def telegraf_upgrade_node_config(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Upgrade Telegraf node configuration."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = TelegrafUpgradeNodeConfigWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=TELEGRAF_UPGRADE_NODE_CONFIG_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        ansible_verbose=config.get("ansible-verbose"),
+        testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
 
