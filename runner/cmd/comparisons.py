@@ -309,3 +309,95 @@ def _build_smoke_test_report(comparison: Comparison) -> str:
             lines.append(f"{status}  {question}")
     
     return "\n".join(lines)
+
+def upload_report(comparison_id: int) -> None:
+    """Upload a report for a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to upload report for
+    """
+    try:
+        repo = ComparisonRepository()
+        comparison = repo.get_by_id(comparison_id)
+        if not comparison:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+
+        environments = [(dep, label, f"TEST{i+1}") for i, (dep, label) in enumerate(comparison.test_environments)] + \
+                       [(comparison.ref_deployment, comparison.ref_label, "REF")]
+        
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+        
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+        
+        env_reports = []
+        
+        for deployment, label, env_name in environments:
+            print(f"\n{env_name} [{deployment.name}]:")
+            print("=" * 50)
+            
+            total_uploaders = questionary.text(
+                "Uploaders:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            successful_uploads = questionary.text(
+                "Successful uploads:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            records_uploaded = questionary.text(
+                "Records uploaded:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            avg_upload_time = questionary.text(
+                "Average upload time (seconds):",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            chunk_proof_error_count = questionary.text(
+                "Chunk proof errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            not_enough_quotes_error_count = questionary.text(
+                "Not enough quotes errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            other_error_count = questionary.text(
+                "Other errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            
+            env_reports.append({
+                "env_name": env_name,
+                "label": label,
+                "name": deployment.name,
+                "total_uploaders": total_uploaders,
+                "successful_uploads": successful_uploads,
+                "records_uploaded": records_uploaded,
+                "avg_upload_time": avg_upload_time,
+                "chunk_proof_error_count": chunk_proof_error_count,
+                "not_enough_quotes_error_count": not_enough_quotes_error_count,
+                "other_error_count": other_error_count
+            })
+        
+        print("\n\n")
+        print("=======")
+        print("Uploads")
+        print("=======")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        for report in env_reports:
+            print()
+            print(f"{report['env_name']} [{report['name']}]:")
+            print(f"  - Uploaders: {report['total_uploaders']}")
+            print(f"  - Successful uploads: {report['successful_uploads']}")
+            print(f"  - Records uploaded: {report['records_uploaded']}")
+            print(f"  - Average upload time: {report['avg_upload_time']}s")
+            print(f"  - Chunk proof errors: {report['chunk_proof_error_count']}")
+            print(f"  - Not enough quotes errors: {report['not_enough_quotes_error_count']}")
+            print(f"  - Other errors: {report['other_error_count']}")
+            
+    except Exception as e:
+        print(f"Error uploading report: {e}")
+        sys.exit(1)

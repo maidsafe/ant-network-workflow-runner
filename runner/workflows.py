@@ -580,6 +580,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "node-vm-size": "--node-vm-size",
             "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
             "public-rpc": "--public-rpc",
+            "region": "--region",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",
         }
@@ -609,8 +610,8 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if "node-env" in self.config:
             inputs["node-env"] = self.config["node-env"]
 
-        if "stop-uploaders" in self.config:
-            inputs["stop-uploaders"] = self.config["stop-uploaders"]
+        if "stop-clients" in self.config:
+            inputs["stop-clients"] = self.config["stop-clients"]
 
         if "disable-telegraf" in self.config:
             inputs["disable-telegraf"] = self.config["disable-telegraf"]
@@ -855,6 +856,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             "max-log-files": "--max-log-files",
             "node-vm-size": "--node-vm-size",
             "public-rpc": "--public-rpc",
+            "region": "--region",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address"
         }
@@ -1066,8 +1068,9 @@ class BootstrapNetworkWorkflow(WorkflowRun):
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
             "node-vm-size": "--node-vm-size",
+            "region": "--region",
             "repo-owner": "--repo-owner",
-            "rewards-address": "--rewards-address"
+            "rewards-address": "--rewards-address",
         }
         
         for config_key, arg_name in bootstrap_arg_mappings.items():
@@ -1147,6 +1150,84 @@ class ResetToNNodesWorkflow(WorkflowRun):
             inputs["stop-interval"] = str(self.stop_interval)
         if self.version is not None:
             inputs["version"] = self.version
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class TelegrafUpgradeClientConfigWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 ansible_verbose: Optional[bool] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Telegraf -- Upgrade Client Config")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.ansible_verbose = ansible_verbose
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.ansible_verbose is not None:
+            inputs["ansible-verbose"] = str(self.ansible_verbose).lower()
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class TelegrafUpgradeGeoipConfigWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 ansible_verbose: Optional[bool] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Telegraf -- Upgrade GeoIP Config")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.ansible_verbose = ansible_verbose
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.ansible_verbose is not None:
+            inputs["ansible-verbose"] = str(self.ansible_verbose).lower()
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class TelegrafUpgradeNodeConfigWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 ansible_verbose: Optional[bool] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Telegraf -- Upgrade Node Config")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.ansible_verbose = ansible_verbose
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.ansible_verbose is not None:
+            inputs["ansible-verbose"] = str(self.ansible_verbose).lower()
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             

@@ -11,6 +11,11 @@ network-id: 42
 # Optional
 # Remove any you don't want to use.
 
+# The region to deploy to.
+# For Digital Ocean, we currently support "lon1" and "ams3".
+# It will default to "lon1".
+region: lon1
+
 # Peer information
 # Either peer or network-contacts-url must be provided. Both can be provided.
 # A peer from the network to bootstrap from. Should be in multiaddr format.

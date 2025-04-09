@@ -56,6 +56,7 @@ class Deployment(Base):
     description = Column(String)
     triggered_at = Column(DateTime, nullable=False)
     run_id = Column(Integer, nullable=False)
+    region = Column(String, nullable=False, default="lon1")
 
     client_env = Column(String)
     node_env = Column(String)

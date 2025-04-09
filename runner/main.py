@@ -113,6 +113,17 @@ def main():
         help="ID of the comparison to post"
     )
     
+    comparisons_upload_report_parser = comparisons_subparsers.add_parser(
+        "upload-report",
+        help="Generate a report for uploads on each environment in a comparison"
+    )
+    comparisons_upload_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the comparison"
+    )
+    
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
     
@@ -430,6 +441,51 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    telegraf_upgrade_client_config_parser = workflows_subparsers.add_parser(
+        "telegraf-upgrade-client-config",
+        help="Upgrade Telegraf client configuration"
+    )
+    telegraf_upgrade_client_config_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    telegraf_upgrade_client_config_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    telegraf_upgrade_geoip_config_parser = workflows_subparsers.add_parser(
+        "telegraf-upgrade-geoip-config",
+        help="Upgrade Telegraf GeoIP configuration"
+    )
+    telegraf_upgrade_geoip_config_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    telegraf_upgrade_geoip_config_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    telegraf_upgrade_node_config_parser = workflows_subparsers.add_parser(
+        "telegraf-upgrade-node-config",
+        help="Upgrade Telegraf node configuration"
+    )
+    telegraf_upgrade_node_config_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    telegraf_upgrade_node_config_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -451,6 +507,8 @@ def main():
             comparisons.print_comparison(args.id)
         elif args.comparisons_command == "record-results":
             comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
+        elif args.comparisons_command == "upload-report":
+            comparisons.upload_report(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)
@@ -495,6 +553,9 @@ def main():
         elif args.workflows_command == "network-status":
             config = load_yaml_config(args.path)
             workflows.network_status(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "reset-to-n-nodes":
+            config = load_yaml_config(args.path)
+            workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "start-nodes":
             config = load_yaml_config(args.path)
             workflows.start_nodes(config, args.branch, args.force, args.wait)
@@ -513,6 +574,15 @@ def main():
         elif args.workflows_command == "stop-uploaders":
             config = load_yaml_config(args.path)
             workflows.stop_uploaders(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "telegraf-upgrade-client-config":
+            config = load_yaml_config(args.path)
+            workflows.telegraf_upgrade_client_config(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "telegraf-upgrade-geoip-config":
+            config = load_yaml_config(args.path)
+            workflows.telegraf_upgrade_geoip_config(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "telegraf-upgrade-node-config":
+            config = load_yaml_config(args.path)
+            workflows.telegraf_upgrade_node_config(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "update-peer":
             config = load_yaml_config(args.path)
             workflows.update_peer(config, args.branch, args.force, args.wait)
@@ -528,9 +598,6 @@ def main():
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
             workflows.upscale_network(config, args.branch, args.force, args.wait)
-        elif args.workflows_command == "reset-to-n-nodes":
-            config = load_yaml_config(args.path)
-            workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)
         else:
             workflows_parser.print_help()
             sys.exit(1)
