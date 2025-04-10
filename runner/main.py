@@ -65,6 +65,17 @@ def main():
         help="ID of the client deployment to print"
     )
 
+    client_deployments_smoke_test_parser = client_deployments_subparsers.add_parser(
+        "smoke-test", 
+        help="Smoke test a deployment"
+    )
+    client_deployments_smoke_test_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to smoke test"
+    )
+
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
@@ -532,6 +543,8 @@ def main():
             client_deployments.ls(show_details=args.details)
         elif args.client_deployments_command == "print":
             client_deployments.print_deployment(args.id)
+        elif args.client_deployments_command == "smoke-test":
+            client_deployments.smoke_test(args.id)
         else:
             client_deployments_parser.print_help()
             sys.exit(1)

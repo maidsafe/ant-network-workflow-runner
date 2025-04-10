@@ -141,14 +141,6 @@ class Comparison(Base):
     def test_environments(self):
         return [(cd.deployment, cd.label) for cd in self.test_deployments]
 
-@dataclass
-class ComparisonSummary:
-    id: int
-    title: str
-    created_at: datetime
-    thread_link: Optional[str]
-    description: Optional[str]
-
 class SmokeTestResult(Base):
     __tablename__ = "smoke_test_results"
 
@@ -159,8 +151,26 @@ class SmokeTestResult(Base):
 
     deployment = relationship("Deployment", backref="smoke_test_results")
 
+class ClientSmokeTestResult(Base):
+    __tablename__ = "client_smoke_test_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    deployment_id = Column(Integer, ForeignKey("client_deployments.id"), nullable=False)
+    results = Column(JSON, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+
+    deployment = relationship("ClientDeployment", backref="client_smoke_test_results")
+
 @dataclass
 class RecentDeployment:
     id: int
     name: str
     created_at: datetime
+
+@dataclass
+class ComparisonSummary:
+    id: int
+    title: str
+    created_at: datetime
+    thread_link: Optional[str]
+    description: Optional[str]

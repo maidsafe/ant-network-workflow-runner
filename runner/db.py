@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, TypeVar, Generic, Type
 from .database import get_db
 from .models import (
     ClientDeployment,
+    ClientSmokeTestResult,
     Comparison,
     ComparisonDeployment,
     ComparisonSummary,
@@ -345,6 +346,28 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
         
         self.save(deployment)
         self.close()
+
+    def record_smoke_test_result(self, deployment_id: int, results: dict) -> None:
+        """Record smoke test results for a deployment.
+        
+        Args:
+            deployment_id: ID of the deployment
+            results: Dictionary containing smoke test responses
+        """
+        deployment = self.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Client deployment with ID {deployment_id} not found")
+            
+        smoke_test = ClientSmokeTestResult(
+            deployment_id=deployment_id,
+            results=results,
+            created_at=datetime.now(UTC)
+        )
+        self.db.add(smoke_test)
+        self.db.commit()
+
+    def get_smoke_test_result(self, deployment_id: int) -> Optional[ClientSmokeTestResult]:
+        return self.db.query(ClientSmokeTestResult).filter(ClientSmokeTestResult.deployment_id == deployment_id).first()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):
