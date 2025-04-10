@@ -27,7 +27,12 @@ def ls(show_details: bool = False) -> None:
         
         if show_details:
             for deployment in deployments:
-                lines = build_client_deployment_report(deployment)
+                lines = []
+                lines.append(f"*{deployment.name}*")
+                lines.append("")
+                if deployment.description:
+                    lines.append(f"Description: {deployment.description}")
+                lines.extend(build_client_deployment_report(deployment))
                 rprint("\n".join(lines))
                 print("-" * 61)
         else:
@@ -52,6 +57,21 @@ def ls(show_details: bool = False) -> None:
     except Exception as e:
         print(f"Error: Failed to retrieve client deployments: {e}")
         sys.exit(1)
+
+def print_deployment(deployment_id: int) -> None:
+    """Print detailed information about a specific deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to print
+    """
+    repo = ClientDeploymentRepository()
+    deployment = repo.get_by_id(deployment_id)
+    if not deployment:
+        print(f"Error: client deployment with ID {deployment_id} not found")
+        sys.exit(1)
+        
+    report = _build_deployment_and_smoke_test_report(deployment)
+    print(report)
 
 def smoke_test(deployment_id: int) -> None:
     """Run a smoke test for a deployment.
@@ -107,3 +127,43 @@ def smoke_test(deployment_id: int) -> None:
 
     repo.record_smoke_test_result(deployment_id, results)
     print("\nRecorded results")
+
+def _build_deployment_and_smoke_test_report(deployment: ClientDeployment) -> str:
+    """Build a detailed report about a specific deployment.
+    
+    Args:
+        deployment: The deployment to format
+        
+    Returns:
+        str: The formatted deployment report
+    """
+    lines = []
+    lines.append(f"*{deployment.name}*")
+    lines.append("")
+
+    if deployment.description:
+        lines.append(f"{deployment.description}")
+    
+    lines.append("")
+    lines.append("```")
+    lines.extend(build_client_deployment_report(deployment))
+    lines.append("```")
+        
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("*SMOKE TEST RESULTS*")
+    
+    repo = ClientDeploymentRepository()
+    results = repo.get_smoke_test_result(deployment.id)
+    if not results:
+        lines.append("No smoke test results recorded")
+    else:
+        for question, answer in results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            lines.append(f"{status}  {question}")
+    return "\n".join(lines)

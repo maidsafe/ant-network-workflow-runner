@@ -113,10 +113,6 @@ def build_client_deployment_report(deployment: ClientDeployment) -> List[str]:
     """
     timestamp = deployment.triggered_at.strftime("%Y-%m-%d %H:%M:%S")
     lines = []
-    lines.append(f"*{deployment.name}*")
-    lines.append("")
-    if deployment.description:
-        lines.append(f"Description: {deployment.description}")
 
     lines.append(f"Deployed: {timestamp}")
     lines.append(f"Region: {deployment.region}")
@@ -148,7 +144,7 @@ def build_client_deployment_report(deployment: ClientDeployment) -> List[str]:
     lines.append(f"====================")
     lines.append(f"Client Configuration")
     lines.append(f"====================")
-    lines.append(f"VMs: {deployment.client_vm_count} \[{deployment.client_vm_size}]")
+    lines.append(f"VMs: {deployment.client_vm_count} [{deployment.client_vm_size}]")
     if deployment.disable_uploaders:
         lines.append(f"Uploaders: disabled")
     else:
