@@ -198,6 +198,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    client_deploy_parser = workflows_subparsers.add_parser("client-deploy", help="Deploy a client environment for testing")
+    client_deploy_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    client_deploy_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     deposit_funds_parser = workflows_subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
     deposit_funds_parser.add_argument(
         "--path",
@@ -530,6 +542,9 @@ def main():
         if args.workflows_command == "bootstrap-network":
             config = load_yaml_config(args.path)
             workflows.bootstrap_network(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "client-deploy":
+            config = load_yaml_config(args.path)
+            workflows.client_deploy(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "deposit-funds":
             config = load_yaml_config(args.path)
             workflows.deposit_funds(config, args.branch, args.force, args.wait)

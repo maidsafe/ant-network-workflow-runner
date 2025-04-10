@@ -7,13 +7,14 @@ from typing import Dict
 import questionary
 from rich import print as rprint
 
-from runner.db import DeploymentRepository, WorkflowRunRepository
+from runner.db import DeploymentRepository, WorkflowRunRepository, ClientDeploymentRepository
 from runner.workflows import *
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 BOOTSTRAP_NETWORK_WORKFLOW_ID = 117603859
+CLIENT_DEPLOY_WORKFLOW_ID = 155060032
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 DRAIN_FUNDS_WORKFLOW_ID = 125539749
@@ -350,7 +351,6 @@ def network_status(config: Dict, branch_name: str, force: bool = False, wait: bo
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
-
 
 def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Reset network to run specified number of nodes."""
@@ -701,6 +701,34 @@ def telegraf_upgrade_node_config(config: Dict, branch_name: str, force: bool = F
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
+
+def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Deploy clients to an existing network."""
+    _print_workflow_banner()
+    
+    workflow = ClientDeployWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=CLIENT_DEPLOY_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force, wait=wait)
+        repo = ClientDeploymentRepository()
+        repo.record_client_deployment(workflow_run_id, config)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
 
 def _execute_workflow(workflow, force: bool = False, wait: bool = False) -> None:
     """

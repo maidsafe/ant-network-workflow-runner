@@ -69,6 +69,47 @@ class Deployment(Base):
     symmetric_private_vm_count = Column(Integer)
     symmetric_nat_gateway_vm_size = Column(String)
 
+class ClientDeployment(Base):
+    __tablename__ = "client_deployments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workflow_run_id = Column(Integer, ForeignKey("workflow_runs.id"), nullable=False)
+    name = Column(String, nullable=False)
+    ant_version = Column(String)
+    branch = Column(String)
+    repo_owner = Column(String)
+    chunk_size = Column(Integer)
+    client_vm_count = Column(Integer)
+    client_vm_size = Column(String)
+    client_env = Column(String)
+    evm_network_type = Column(String, nullable=False)
+    evm_data_payments_address = Column(String)
+    evm_payment_token_address = Column(String)
+    evm_rpc_url = Column(String)
+    network_id = Column(Integer)
+    description = Column(String)
+    related_pr = Column(Integer)
+    triggered_at = Column(DateTime, nullable=False)
+    run_id = Column(Integer, nullable=False)
+    region = Column(String, nullable=False, default="lon1")
+    provider = Column(String, nullable=False, default="digital-ocean")
+    wallet_secret_key = Column(String)
+    environment_type = Column(String, nullable=False)
+    disable_download_verifier = Column(Boolean, default=False)
+    disable_performance_verifier = Column(Boolean, default=False)
+    disable_random_verifier = Column(Boolean, default=False)
+    disable_telegraf = Column(Boolean, default=False)
+    disable_uploaders = Column(Boolean, default=False)
+    expected_hash = Column(String)
+    expected_size = Column(String)
+    file_address = Column(String)
+    initial_gas = Column(String)
+    initial_tokens = Column(String)
+    max_uploads = Column(Integer)
+    network_contacts_url = Column(String)
+    peer = Column(String)
+    uploaders_count = Column(Integer)
+
 class ComparisonDeployment(Base):
     """Association table for many-to-many relationship between comparisons and test deployments"""
     __tablename__ = "comparison_deployments"

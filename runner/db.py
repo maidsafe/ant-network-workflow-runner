@@ -1,7 +1,16 @@
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, TypeVar, Generic, Type
 from .database import get_db
-from .models import WorkflowRun, Deployment, Comparison, ComparisonSummary, ComparisonDeployment, SmokeTestResult, RecentDeployment
+from .models import (
+    ClientDeployment,
+    Comparison,
+    ComparisonDeployment,
+    ComparisonSummary,
+    Deployment,
+    RecentDeployment,
+    SmokeTestResult,
+    WorkflowRun
+)
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
 
@@ -274,6 +283,68 @@ class DeploymentRepository(BaseRepository[Deployment]):
             ]
         finally:
             self.db.close()
+
+class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
+    def __init__(self):
+        super().__init__(ClientDeployment)
+
+    def list_client_deployments(self) -> list[ClientDeployment]:
+        try:
+            return self.db.query(self.model).order_by(self.model.triggered_at.desc()).all()
+        finally:
+            self.close()
+
+    def record_client_deployment(self, workflow_run_id: int, config: Dict[str, Any]) -> None:
+        """Record a client deployment in the database.
+        
+        Args:
+            workflow_run_id: ID of the workflow run
+            config: Configuration dictionary
+        """
+        workflow_run = self.db.query(WorkflowRun).filter(WorkflowRun.run_id == workflow_run_id).first()
+        if not workflow_run:
+            raise ValueError(f"Workflow run with ID {workflow_run_id} not found")
+        
+        deployment = ClientDeployment(
+            workflow_run_id=workflow_run_id,
+            name=config["network-name"],
+            triggered_at=workflow_run.triggered_at,
+            run_id=workflow_run.run_id,
+            network_id=config["network-id"],
+            environment_type=config["environment-type"],
+            evm_network_type=config.get("evm-network-type", "arbitrum-one"),
+            provider=config.get("provider", "digital-ocean"),
+            ant_version=config.get("ant-version"),
+            branch=config.get("branch"),
+            repo_owner=config.get("repo-owner"),
+            client_vm_count=config.get("client-vm-count"),
+            client_vm_size=config.get("client-vm-size"),
+            client_env=config.get("client-env"),
+            evm_data_payments_address=config.get("evm-data-payments-address"),
+            evm_payment_token_address=config.get("evm-payment-token-address"),
+            evm_rpc_url=config.get("evm-rpc-url"),
+            description=config.get("description"),
+            region=config.get("region"),
+            wallet_secret_key=config.get("wallet-secret-key"),
+            chunk_size=config.get("chunk-size"),
+            disable_download_verifier=config.get("disable-download-verifier"),
+            disable_performance_verifier=config.get("disable-performance-verifier"),
+            disable_random_verifier=config.get("disable-random-verifier"),
+            disable_telegraf=config.get("disable-telegraf"),
+            disable_uploaders=config.get("disable-uploaders"),
+            expected_hash=config.get("expected-hash"),
+            expected_size=config.get("expected-size"),
+            file_address=config.get("file-address"),
+            initial_gas=config.get("initial-gas"),
+            initial_tokens=config.get("initial-tokens"),
+            max_uploads=config.get("max-uploads"),
+            network_contacts_url=config.get("network-contacts-url"),
+            peer=config.get("peer"),
+            uploaders_count=config.get("uploaders-count")
+        )
+        
+        self.save(deployment)
+        self.close()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):
