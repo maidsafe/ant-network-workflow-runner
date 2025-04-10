@@ -79,8 +79,8 @@ class ClientDeployment(Base):
     branch = Column(String)
     repo_owner = Column(String)
     chunk_size = Column(Integer)
-    client_vm_count = Column(Integer)
-    client_vm_size = Column(String)
+    client_vm_count = Column(Integer, nullable=False, default=1)
+    client_vm_size = Column(String, nullable=False, default="s-4vcpu-8gb")
     client_env = Column(String)
     evm_network_type = Column(String, nullable=False)
     evm_data_payments_address = Column(String)
@@ -108,7 +108,7 @@ class ClientDeployment(Base):
     max_uploads = Column(Integer)
     network_contacts_url = Column(String)
     peer = Column(String)
-    uploaders_count = Column(Integer)
+    uploaders_count = Column(Integer, nullable=False, default=1)
 
 class ComparisonDeployment(Base):
     """Association table for many-to-many relationship between comparisons and test deployments"""

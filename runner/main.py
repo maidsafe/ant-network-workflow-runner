@@ -5,8 +5,7 @@ from typing import Dict
 
 import yaml
 
-from runner import cmd
-from runner.cmd import comparisons, deployments, workflows
+from runner.cmd import client_deployments, comparisons, deployments, workflows
 
 def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
@@ -44,6 +43,27 @@ def main():
     )
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    client_deployments_parser = subparsers.add_parser("client-deployments", help="Manage client deployments")
+    client_deployments_subparsers = client_deployments_parser.add_subparsers(dest="client_deployments_command", help="Available client deployment commands")
+
+    client_deployments_ls_parser = client_deployments_subparsers.add_parser("ls", help="List all client deployments")
+    client_deployments_ls_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show detailed information for each client deployment"
+    )
+
+    client_deployments_print_parser = client_deployments_subparsers.add_parser(
+        "print", 
+        help="Print details of a specific client deployment"
+    )
+    client_deployments_print_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to print"
+    )
 
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
@@ -123,6 +143,7 @@ def main():
         required=True,
         help="The ID of the comparison"
     )
+
     
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
@@ -506,7 +527,15 @@ def main():
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
     
-    if args.command == "comparisons":
+    if args.command == "client-deployments":
+        if args.client_deployments_command == "ls":
+            client_deployments.ls(show_details=args.details)
+        elif args.client_deployments_command == "print":
+            client_deployments.print_deployment(args.id)
+        else:
+            client_deployments_parser.print_help()
+            sys.exit(1)
+    elif args.command == "comparisons":
         if args.comparisons_command == "add-thread":
             comparisons.add_thread(args.id, args.link)
         elif args.comparisons_command == "ls":

@@ -1,8 +1,8 @@
 """provide client deployments
 
-Revision ID: 6526b815e7aa
+Revision ID: bda96cb83924
 Revises: 95f7dbfb8326
-Create Date: 2025-04-10 18:39:14.959312
+Create Date: 2025-04-10 19:59:49.467552
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6526b815e7aa'
+revision = 'bda96cb83924'
 down_revision = '95f7dbfb8326'
 branch_labels = None
 depends_on = None
@@ -26,8 +26,8 @@ def upgrade() -> None:
     sa.Column('branch', sa.String(), nullable=True),
     sa.Column('repo_owner', sa.String(), nullable=True),
     sa.Column('chunk_size', sa.Integer(), nullable=True),
-    sa.Column('client_vm_count', sa.Integer(), nullable=True),
-    sa.Column('client_vm_size', sa.String(), nullable=True),
+    sa.Column('client_vm_count', sa.Integer(), nullable=False),
+    sa.Column('client_vm_size', sa.String(), nullable=False),
     sa.Column('client_env', sa.String(), nullable=True),
     sa.Column('evm_network_type', sa.String(), nullable=False),
     sa.Column('evm_data_payments_address', sa.String(), nullable=True),
@@ -55,7 +55,7 @@ def upgrade() -> None:
     sa.Column('max_uploads', sa.Integer(), nullable=True),
     sa.Column('network_contacts_url', sa.String(), nullable=True),
     sa.Column('peer', sa.String(), nullable=True),
-    sa.Column('uploaders_count', sa.Integer(), nullable=True),
+    sa.Column('uploaders_count', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['workflow_run_id'], ['workflow_runs.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

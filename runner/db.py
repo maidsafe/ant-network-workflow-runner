@@ -310,7 +310,7 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
             name=config["network-name"],
             triggered_at=workflow_run.triggered_at,
             run_id=workflow_run.run_id,
-            network_id=config["network-id"],
+            network_id=config.get("network-id"),
             environment_type=config["environment-type"],
             evm_network_type=config.get("evm-network-type", "arbitrum-one"),
             provider=config.get("provider", "digital-ocean"),

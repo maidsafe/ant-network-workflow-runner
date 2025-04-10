@@ -683,10 +683,10 @@ class ClientDeployWorkflow(WorkflowRun):
         if "ant-version" in self.config:
             inputs["ant-version"] = self.config["ant-version"]
         if "network-id" in self.config:
-            network_id = str(self.config["network-id"])
+            network_id = self.config["network-id"]
             if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
                 raise ValueError("network-id must be an integer between 1 and 255")
-            inputs["network-id"] = str(self.config["network-id"])
+            inputs["network-id"] = str(network_id)
         if "provider" in self.config:
             inputs["provider"] = self.config["provider"]
         if "wallet-secret-keys" in self.config:
