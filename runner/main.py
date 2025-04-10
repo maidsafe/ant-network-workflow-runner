@@ -54,6 +54,17 @@ def main():
         help="Show detailed information for each client deployment"
     )
 
+    client_deployments_post_parser = client_deployments_subparsers.add_parser(
+        "post", 
+        help="Post details of a specific client deployment to Slack"
+    )
+    client_deployments_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to post"
+    )
+
     client_deployments_print_parser = client_deployments_subparsers.add_parser(
         "print", 
         help="Print details of a specific client deployment"
@@ -543,6 +554,8 @@ def main():
             client_deployments.ls(show_details=args.details)
         elif args.client_deployments_command == "print":
             client_deployments.print_deployment(args.id)
+        elif args.client_deployments_command == "post":
+            client_deployments.post(args.id)
         elif args.client_deployments_command == "smoke-test":
             client_deployments.smoke_test(args.id)
         else:

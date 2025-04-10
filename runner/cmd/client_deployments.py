@@ -1,3 +1,5 @@
+import requests
+import os
 import sys
 from datetime import datetime
 
@@ -72,6 +74,36 @@ def print_deployment(deployment_id: int) -> None:
         
     report = _build_deployment_and_smoke_test_report(deployment)
     print(report)
+
+def post(deployment_id: int) -> None:
+    """Post deployment information to Slack.
+    
+    Args:
+        deployment_id: ID of the deployment to post
+    """
+    webhook_url = os.getenv("ANT_RUNNER_COMPARISON_WEBHOOK_URL")
+    if not webhook_url:
+        print("Error: ANT_RUNNER_COMPARISON_WEBHOOK_URL environment variable is not set")
+        sys.exit(1)
+        
+    try:
+        repo = ClientDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Client deployment with ID {deployment_id} not found")
+
+        report = _build_deployment_and_smoke_test_report(deployment)
+        
+        response = requests.post(
+            webhook_url,
+            json={"text": report},
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        print(f"Posted deployment report to Slack")
+    except requests.exceptions.RequestException as e:
+        print(f"Error posting to Slack: {e}")
+        sys.exit(1)
 
 def smoke_test(deployment_id: int) -> None:
     """Run a smoke test for a deployment.
