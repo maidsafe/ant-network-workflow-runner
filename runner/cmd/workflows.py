@@ -249,6 +249,15 @@ def launch_network(config: Dict, branch_name: str, force: bool = False, wait: bo
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
+    except WorkflowRunFailedError as e:
+        # The workflow run failed while waiting for it to complete, but we want the deployment to
+        # be recorded anyway, because we can possibly re-run the workflow and it will succeed.
+        env_type = config.get("environment-type", "development")
+        defaults = ENVIRONMENT_DEFAULTS[env_type]
+        repo = NetworkDeploymentRepository()
+        repo.record_deployment(e.run_id, config, defaults)
+        print(f"Error: Workflow run failed with conclusion: {e.conclusion}")
+        sys.exit(1)
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)

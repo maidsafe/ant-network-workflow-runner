@@ -40,6 +40,13 @@ def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> boo
     response = input().lower()
     return response in ["y", "yes"]
 
+class WorkflowRunFailedError(Exception):
+    """Exception raised when a workflow run fails."""
+    def __init__(self, run_id, conclusion):
+        self.run_id = run_id
+        self.conclusion = conclusion
+        super().__init__(f"Workflow run {run_id} failed with conclusion: {conclusion}")
+
 class WorkflowRun:
     def __init__(self, owner: str, repo: str, id: int, 
                  personal_access_token: str, branch_name: str, name: str):
@@ -119,6 +126,7 @@ class WorkflowRun:
             
         Raises:
             requests.exceptions.RequestException: If the API request fails
+            WorkflowRunFailedError: If waiting for completion and the workflow fails
         """
         if not force:
             self._confirm_workflow()
@@ -137,6 +145,9 @@ class WorkflowRun:
         Args:
             run_id: The workflow run ID to monitor
             poll_interval: Time in seconds between status checks
+            
+        Raises:
+            WorkflowRunFailedError: If the workflow run completes with a non-success conclusion
         """
         print(f"\nWaiting for workflow run {run_id} to complete...")
         
@@ -150,8 +161,7 @@ class WorkflowRun:
                 
                 print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
                 if conclusion != "success":
-                    print("Workflow run failed")
-                    sys.exit(1)
+                    raise WorkflowRunFailedError(run_id, conclusion)
                 break
                 
             print(".", end="", flush=True)
