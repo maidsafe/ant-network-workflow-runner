@@ -1,11 +1,66 @@
 from typing import List
-from runner.models import ClientDeployment, Deployment
+from runner.db import ClientDeploymentRepository, NetworkDeploymentRepository
+from runner.models import ClientDeployment, Comparison, DeploymentType, NetworkDeployment
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
 
-def build_deployment_report(deployment: Deployment) -> List[str]:
+def build_comparison_report(comparison: Comparison) -> str:
+    """Build a detailed report about a specific comparison.
+    
+    Args:
+        comparison: The comparison with the data for the report
+        
+    Returns:
+        str: The formatted comparison report
+    """
+    comparison_type = "ENVIRONMENT" if comparison.deployment_type == DeploymentType.NETWORK else "CLIENT"
+    lines = []
+    lines.append(f"*{comparison_type} COMPARISON*")
+    lines.append("")
+
+    if comparison.description:
+        lines.append(f"{comparison.description}")
+        lines.append("")
+
+    if comparison.thread_link:
+        lines.append(f"Slack thread: {comparison.thread_link}")
+
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
+    n = 1
+    for test_deployment in comparison.test_environments:
+        (deployment, label) = test_deployment
+        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
+        n += 1
+
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    n = 1
+    for test_deployment in comparison.test_environments:
+        (deployment, label) = test_deployment
+        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
+        lines.append("```")
+        if comparison.deployment_type == DeploymentType.NETWORK:
+            lines.extend(build_deployment_report(deployment))
+        else:
+            lines.extend(build_client_deployment_report(deployment))
+        lines.append("```")
+        lines.append("")
+        n += 1
+
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
+    lines.append("```")
+    if comparison.deployment_type == DeploymentType.NETWORK:
+        lines.extend(build_deployment_report(comparison.ref_deployment))
+    else:
+        lines.extend(build_client_deployment_report(comparison.ref_deployment))
+    lines.append("```")
+
+    return "\n".join(lines)
+
+def build_deployment_report(deployment: NetworkDeployment) -> List[str]:
     """Build a detailed report about a specific deployment.
     
     Args:
@@ -197,3 +252,55 @@ def build_client_deployment_report(deployment: ClientDeployment) -> List[str]:
         lines.append(f"Initial Tokens: {deployment.initial_tokens}")
 
     return lines
+
+def build_comparison_smoke_test_report(comparison: Comparison) -> str:
+    """Build a smoke test report for a comparison.
+    
+    Args:
+        comparison: The comparison to build the report for
+        
+    Returns:
+        str: The formatted smoke test report
+    """
+    lines = []
+    lines.append("*SMOKE TEST RESULTS*")
+    lines.append("")
+    
+    repo = NetworkDeploymentRepository() if comparison.deployment_type == DeploymentType.NETWORK else ClientDeploymentRepository()
+    
+    n = 1
+    for test_deployment, label in comparison.test_environments:
+        results = repo.get_smoke_test_result(test_deployment.id)
+        if not results:
+            lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
+            lines.append("No smoke test results recorded")
+            lines.append("")
+            continue
+            
+        lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
+        for question, answer in results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            lines.append(f"{status}  {question}")
+        lines.append("")
+        lines.append(f"---")
+        lines.append("")
+        n += 1
+    
+    ref_results = repo.get_smoke_test_result(comparison.ref_deployment.id)
+    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
+    if not ref_results:
+        lines.append("No smoke test results recorded")
+    else:
+        for question, answer in ref_results.results.items():
+            status = {
+                "Yes": "✅ ",
+                "No": "❌ ",
+                "N/A": "N/A"
+            }.get(answer, "?")
+            lines.append(f"{status}  {question}")
+    
+    return "\n".join(lines)

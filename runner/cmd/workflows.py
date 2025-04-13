@@ -7,7 +7,7 @@ from typing import Dict
 import questionary
 from rich import print as rprint
 
-from runner.db import DeploymentRepository, WorkflowRunRepository, ClientDeploymentRepository
+from runner.db import ClientDeploymentRepository, NetworkDeploymentRepository, WorkflowRunRepository
 from runner.workflows import *
 
 REPO_OWNER = "maidsafe"
@@ -122,7 +122,7 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False, wait:
         workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults, is_bootstrap=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
@@ -244,7 +244,7 @@ def launch_network(config: Dict, branch_name: str, force: bool = False, wait: bo
         workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
@@ -275,7 +275,7 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False, w
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults, is_legacy=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():

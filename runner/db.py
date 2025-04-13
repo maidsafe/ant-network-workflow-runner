@@ -7,10 +7,11 @@ from .models import (
     Comparison,
     ComparisonDeployment,
     ComparisonSummary,
-    Deployment,
+    DeploymentType,
     RecentDeployment,
     SmokeTestResult,
-    WorkflowRun
+    WorkflowRun,
+    NetworkDeployment,
 )
 from sqlalchemy import select
 from sqlalchemy.orm import aliased
@@ -48,7 +49,8 @@ class ComparisonRepository(BaseRepository[Comparison]):
 
     def create_comparison(
             self, ref_id: int, test_ids: list[tuple[int, Optional[str]]],
-            ref_label: Optional[str] = None, description: Optional[str] = None) -> None:
+            ref_label: Optional[str] = None, description: Optional[str] = None,
+            deployment_type: DeploymentType = DeploymentType.NETWORK) -> None:
         """Create a new comparison between multiple deployments.
         
         Args:
@@ -56,18 +58,25 @@ class ComparisonRepository(BaseRepository[Comparison]):
             test_ids: List of tuples containing (deployment_id, label) for test environments
             ref_label: Optional label for the reference deployment
             description: Optional description of the comparison
+            deployment_type: Type of deployment (network or client)
         """
-        ref_deployment = self.db.query(Deployment).filter(Deployment.id == ref_id).first()
+        if deployment_type == DeploymentType.NETWORK:
+            deployment_model = NetworkDeployment
+        else:
+            deployment_model = ClientDeployment
+        
+        ref_deployment = self.db.query(deployment_model).filter(deployment_model.id == ref_id).first()
         if not ref_deployment:
-            raise ValueError(f"Deployment with ID {ref_id} not found")
+            raise ValueError(f"{deployment_type.value} deployment with ID {ref_id} not found")
         
         for test_id, _ in test_ids:
-            test_deployment = self.db.query(Deployment).filter(Deployment.id == test_id).first()
+            test_deployment = self.db.query(deployment_model).filter(deployment_model.id == test_id).first()
             if not test_deployment:
-                raise ValueError(f"Deployment with ID {test_id} not found")
+                raise ValueError(f"{deployment_type.value} deployment with ID {test_id} not found")
 
         comparison = Comparison(
             ref_deployment=ref_deployment,
+            deployment_type=deployment_type,
             created_at=datetime.now(UTC),
             ref_label=ref_label,
             description=description
@@ -89,14 +98,14 @@ class ComparisonRepository(BaseRepository[Comparison]):
             stmt = (
                 select(
                     Comparison.id,
-                    Deployment.name.label('ref_name'),
+                    NetworkDeployment.name.label('ref_name'),
                     Comparison.ref_label,
                     Comparison.thread_link,
                     Comparison.description,
                     Comparison.passed,
                     Comparison.created_at,
                 )
-                .join(Deployment, Comparison.ref_id == Deployment.id)
+                .join(NetworkDeployment, Comparison.ref_id == NetworkDeployment.id)
                 .order_by(Comparison.created_at.asc())
             )
             
@@ -105,8 +114,8 @@ class ComparisonRepository(BaseRepository[Comparison]):
             summaries = []
             for row in results:
                 test_envs = (
-                    self.db.query(Deployment.name, ComparisonDeployment.label)
-                    .join(ComparisonDeployment, Deployment.id == ComparisonDeployment.deployment_id)
+                    self.db.query(NetworkDeployment.name, ComparisonDeployment.label)
+                    .join(ComparisonDeployment, NetworkDeployment.id == ComparisonDeployment.deployment_id)
                     .filter(ComparisonDeployment.comparison_id == row.id)
                     .all()
                 )
@@ -127,11 +136,11 @@ class ComparisonRepository(BaseRepository[Comparison]):
         finally:
             self.db.close()
 
-class DeploymentRepository(BaseRepository[Deployment]):
+class NetworkDeploymentRepository(BaseRepository[NetworkDeployment]):
     def __init__(self):
-        super().__init__(Deployment)
+        super().__init__(NetworkDeployment)
 
-    def list_deployments(self) -> list[Deployment]:
+    def list_deployments(self) -> list[NetworkDeployment]:
         """
         Retrieve all deployments from the database using SQLAlchemy.
         
@@ -140,8 +149,8 @@ class DeploymentRepository(BaseRepository[Deployment]):
         """
         try:
             return (
-                self.db.query(Deployment)
-                .join(WorkflowRun, Deployment.workflow_run_id == WorkflowRun.run_id)
+                self.db.query(NetworkDeployment)
+                .join(WorkflowRun, NetworkDeployment.workflow_run_id == WorkflowRun.run_id)
                 .order_by(WorkflowRun.triggered_at.asc())
                 .all()
             )
@@ -186,7 +195,7 @@ class DeploymentRepository(BaseRepository[Deployment]):
             enable_downloaders = config.get("enable-downloaders", defaults["enable_downloaders"])
             uploader_count = config.get("uploader-count", defaults["uploader_count"])
 
-        deployment = Deployment(
+        deployment = NetworkDeployment(
             workflow_run_id=workflow_run_id,
             name=config["network-name"],
             ant_version=ant_version,
@@ -264,11 +273,11 @@ class DeploymentRepository(BaseRepository[Deployment]):
         try:
             rows = list(
                 self.db.query(
-                    Deployment.id,
-                    Deployment.name,
+                    NetworkDeployment.id,
+                    NetworkDeployment.name,
                     WorkflowRun.triggered_at
                 )
-                .join(WorkflowRun, Deployment.workflow_run_id == WorkflowRun.run_id)
+                .join(WorkflowRun, NetworkDeployment.workflow_run_id == WorkflowRun.run_id)
                 .order_by(WorkflowRun.triggered_at.desc())
                 .limit(10)
                 .all()
@@ -291,7 +300,7 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
 
     def list_client_deployments(self) -> list[ClientDeployment]:
         try:
-            return self.db.query(self.model).order_by(self.model.triggered_at.desc()).all()
+            return self.db.query(self.model).order_by(self.model.triggered_at.asc()).all()
         finally:
             self.close()
 
@@ -368,6 +377,36 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
 
     def get_smoke_test_result(self, deployment_id: int) -> Optional[ClientSmokeTestResult]:
         return self.db.query(ClientSmokeTestResult).filter(ClientSmokeTestResult.deployment_id == deployment_id).first()
+
+    def get_recent_deployments(self) -> list[RecentDeployment]:
+        """Get the 10 most recent deployments.
+        
+        Returns:
+            List of RecentDeployment view models, ordered by triggered_at descending
+        """
+        try:
+            rows = list(
+                self.db.query(
+                    ClientDeployment.id,
+                    ClientDeployment.name,
+                    WorkflowRun.triggered_at
+                )
+                .join(WorkflowRun, ClientDeployment.workflow_run_id == WorkflowRun.run_id)
+                .order_by(WorkflowRun.triggered_at.desc())
+                .limit(10)
+                .all()
+            )
+            
+            return [
+                RecentDeployment(
+                    id=row.id,
+                    name=row.name,
+                    created_at=row.triggered_at
+                )
+                for row in rows
+            ]
+        finally:
+            self.db.close()
 
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self):

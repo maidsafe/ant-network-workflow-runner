@@ -104,8 +104,15 @@ def main():
         help="URL of the thread where the comparison was posted"
     )
 
+    comparisons_new_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
+    comparisons_new_parser.add_argument(
+        "--deployment-type",
+        choices=["network", "client"],
+        default="network",
+        help="Type of deployment to compare (network or client)"
+    )
+
     comparisons_subparsers.add_parser("ls", help="List all comparisons")
-    comparisons_subparsers.add_parser("new", help="Create a new comparison")
     
     comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
     comparisons_print_parser.add_argument(
@@ -567,7 +574,7 @@ def main():
         elif args.comparisons_command == "ls":
             comparisons.ls()
         elif args.comparisons_command == "new":
-            comparisons.new()
+            comparisons.new(args.deployment_type)
         elif args.comparisons_command == "post":
             comparisons.post(args.id)
         elif args.comparisons_command == "print":

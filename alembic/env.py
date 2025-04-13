@@ -8,7 +8,13 @@ from alembic import context
 from runner.database import Base
 # These are not referenced, but including them seems to be necessary for Alembic to generate the
 # migrations correctly.
-from runner.models import WorkflowRun, Deployment, Comparison, ComparisonDeployment
+from runner.models import (
+    ClientDeployment,
+    Comparison,
+    ComparisonDeployment,
+    NetworkDeployment,
+    WorkflowRun
+)
 
 config = context.config
 
