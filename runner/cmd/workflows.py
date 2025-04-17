@@ -36,6 +36,8 @@ UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 TELEGRAF_UPGRADE_CLIENT_CONFIG_WORKFLOW_ID = 154514012
 TELEGRAF_UPGRADE_GEOIP_CONFIG_WORKFLOW_ID = 154514013
 TELEGRAF_UPGRADE_NODE_CONFIG_WORKFLOW_ID = 154514014
+START_DOWNLOADERS_WORKFLOW_ID = 155894274
+STOP_DOWNLOADERS_WORKFLOW_ID = 155894275
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
@@ -738,6 +740,46 @@ def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: boo
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to trigger workflow: {e}")
         sys.exit(1)
+
+def start_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Start downloaders in a network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def stop_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Stop downloaders in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StopDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=STOP_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
 
 def _execute_workflow(workflow, force: bool = False, wait: bool = False) -> None:
     """

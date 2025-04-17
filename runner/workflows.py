@@ -1333,3 +1333,44 @@ class TelegrafUpgradeNodeConfigWorkflow(WorkflowRun):
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs
+
+class StartDownloadersWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Start Downloaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        if self.testnet_deploy_args:
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+        return inputs
+
+class StopDownloadersWorkflow(WorkflowRun):
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        id: int,
+        personal_access_token: str,
+        branch_name: str,
+        network_name: str,
+        testnet_deploy_args: Optional[str] = None
+    ):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, "Stop Downloaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network_name": self.network_name,
+        }
+        
+        if self.testnet_deploy_args:
+            inputs["testnet_deploy_args"] = self.testnet_deploy_args
+            
+        return inputs

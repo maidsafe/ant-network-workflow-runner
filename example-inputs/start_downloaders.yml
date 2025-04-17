@@ -1,0 +1,12 @@
+# Network name is required
+network-name: DEV-02
+
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0

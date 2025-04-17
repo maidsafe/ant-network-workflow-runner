@@ -407,6 +407,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    start_downloaders_parser = workflows_subparsers.add_parser("start-downloaders", help="Start downloaders on testnet nodes")
+    start_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     stop_nodes_parser = workflows_subparsers.add_parser("stop-nodes", help="Stop testnet nodes")
     stop_nodes_parser.add_argument(
         "--path",
@@ -548,6 +560,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    stop_downloaders_parser = workflows_subparsers.add_parser("stop-downloaders", help="Stop downloaders on testnet nodes")
+    stop_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    stop_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -642,6 +666,9 @@ def main():
         elif args.workflows_command == "start-uploaders":
             config = load_yaml_config(args.path)
             workflows.start_uploaders(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "start-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.start_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-nodes":
             config = load_yaml_config(args.path)
             workflows.stop_nodes(config, args.branch, args.force, args.wait)
@@ -675,6 +702,9 @@ def main():
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
             workflows.upscale_network(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "stop-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.stop_downloaders(config, args.branch, args.force, args.wait)
         else:
             workflows_parser.print_help()
             sys.exit(1)
