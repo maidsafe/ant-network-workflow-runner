@@ -44,6 +44,9 @@ infra-only: false
 # For production infrastructure, ALWAYS run with a plan first.
 plan: false
 
+# Environment variables to set for `antnode` services.
+node-env: LOG_LEVEL=debug,RUST_LOG=info
+
 # Interval to apply between starting each node, if nodes are being upscaled.
 # Units are milliseconds.
 interval: 10000

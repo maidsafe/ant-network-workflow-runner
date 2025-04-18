@@ -816,6 +816,8 @@ class UpscaleNetworkWorkflow(WorkflowRun):
                 else:
                     upscale_args.append(f"{arg_name} {value}")
 
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
         if upscale_args:
             inputs["upscale-args"] = " ".join(upscale_args)
 
