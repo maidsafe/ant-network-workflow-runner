@@ -40,6 +40,13 @@ def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> boo
     response = input().lower()
     return response in ["y", "yes"]
 
+class WorkflowRunFailedError(Exception):
+    """Exception raised when a workflow run fails."""
+    def __init__(self, run_id, conclusion):
+        self.run_id = run_id
+        self.conclusion = conclusion
+        super().__init__(f"Workflow run {run_id} failed with conclusion: {conclusion}")
+
 class WorkflowRun:
     def __init__(self, owner: str, repo: str, id: int, 
                  personal_access_token: str, branch_name: str, name: str):
@@ -119,6 +126,7 @@ class WorkflowRun:
             
         Raises:
             requests.exceptions.RequestException: If the API request fails
+            WorkflowRunFailedError: If waiting for completion and the workflow fails
         """
         if not force:
             self._confirm_workflow()
@@ -137,6 +145,9 @@ class WorkflowRun:
         Args:
             run_id: The workflow run ID to monitor
             poll_interval: Time in seconds between status checks
+            
+        Raises:
+            WorkflowRunFailedError: If the workflow run completes with a non-success conclusion
         """
         print(f"\nWaiting for workflow run {run_id} to complete...")
         
@@ -150,8 +161,7 @@ class WorkflowRun:
                 
                 print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
                 if conclusion != "success":
-                    print("Workflow run failed")
-                    sys.exit(1)
+                    raise WorkflowRunFailedError(run_id, conclusion)
                 break
                 
             print(".", end="", flush=True)
@@ -237,6 +247,28 @@ class WorkflowRun:
         print()
         
         return run_id
+
+    def _build_testnet_deploy_args(self, config: Dict[str, Any]) -> Optional[str]:
+        """
+        Build testnet-deploy-args string from config inputs.
+        
+        Args:
+            config: Dictionary containing configuration values
+            
+        Returns:
+            str: The constructed testnet-deploy-args string
+        """
+        testnet_deploy_args = []
+        if "testnet-deploy-branch" in config:
+            testnet_deploy_args.append(f"--branch {config['testnet-deploy-branch']}")
+        if "testnet-deploy-repo-owner" in config:
+            testnet_deploy_args.append(f"--repo-owner {config['testnet-deploy-repo-owner']}")
+        if "testnet-deploy-version" in config:
+            testnet_deploy_args.append(f"--version {config['testnet-deploy-version']}")
+            
+        if testnet_deploy_args:
+            return " ".join(testnet_deploy_args)
+        return None
 
 class StopNodesWorkflowRun(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int, 
@@ -616,16 +648,106 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if "disable-telegraf" in self.config:
             inputs["disable-telegraf"] = self.config["disable-telegraf"]
 
-        testnet_deploy_args = []
-        if "testnet-deploy-branch" in self.config:
-            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
-        if "testnet-deploy-repo-owner" in self.config:
-            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
-        if "testnet-deploy-version" in self.config:
-            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
-            
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
-            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+            inputs["testnet-deploy-args"] = testnet_deploy_args
+
+        return inputs
+
+class ClientDeployWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, network_name: str,
+                 config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Client Deploy")
+        self.network_name = network_name
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["network-name", "environment-type"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        has_version = "ant-version" in self.config
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_version and has_build_config:
+            raise ValueError("Cannot specify both binary version and build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the client deploy workflow."""
+        inputs = {
+            "name": self.network_name,
+            "environment-type": self.config["environment-type"],
+        }
+
+        if "ant-version" in self.config:
+            inputs["ant-version"] = self.config["ant-version"]
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
+            inputs["network-id"] = str(network_id)
+        if "provider" in self.config:
+            inputs["provider"] = self.config["provider"]
+        if "wallet-secret-keys" in self.config:
+            inputs["wallet-secret-key"] = ",".join(self.config["wallet-secret-keys"])
+
+        client_deploy_args = []
+        client_deploy_arg_mappings = {
+            "ansible-forks": "--ansible-forks",
+            "ansible-verbose": "--ansible-verbose",
+            "branch": "--branch",
+            "chunk-size": "--chunk-size",
+            "client-env": "--client-env",
+            "client-vm-count": "--client-vm-count",
+            "client-vm-size": "--client-vm-size",
+            "disable-download-verifier": "--disable-download-verifier",
+            "disable-performance-verifier": "--disable-performance-verifier",
+            "disable-random-verifier": "--disable-random-verifier",
+            "disable-telegraf": "--disable-telegraf",
+            "disable-uploaders": "--disable-uploaders",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-network-type": "--evm-network-type",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "expected-hash": "--expected-hash",
+            "expected-size": "--expected-size",
+            "file-address": "--file-address",
+            "initial-gas": "--initial-gas",
+            "initial-tokens": "--initial-tokens",
+            "max-uploads": "--max-uploads",
+            "network-contacts-url": "--network-contacts-url",
+            "peer": "--peer",
+            "region": "--region",
+            "repo-owner": "--repo-owner",
+            "uploaders-count": "--uploaders-count"
+        }
+        
+        for config_key, arg_name in client_deploy_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        client_deploy_args.append(arg_name)
+                else:
+                    client_deploy_args.append(f"{arg_name} {value}")
+                    
+        if client_deploy_args:
+            inputs["client-deploy-args"] = " ".join(client_deploy_args)
+
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = testnet_deploy_args
 
         return inputs
 
@@ -694,19 +816,14 @@ class UpscaleNetworkWorkflow(WorkflowRun):
                 else:
                     upscale_args.append(f"{arg_name} {value}")
 
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
         if upscale_args:
             inputs["upscale-args"] = " ".join(upscale_args)
 
-        testnet_deploy_args = []
-        if "testnet-deploy-branch" in self.config:
-            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
-        if "testnet-deploy-repo-owner" in self.config:
-            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
-        if "testnet-deploy-version" in self.config:
-            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
-            
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
-            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+            inputs["testnet-deploy-args"] = testnet_deploy_args
 
         return inputs
 
@@ -884,16 +1001,9 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
         if "environment-vars" in self.config:
             inputs["environment-vars"] = self.config["environment-vars"]
 
-        testnet_deploy_args = []
-        if "testnet-deploy-branch" in self.config:
-            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
-        if "testnet-deploy-repo-owner" in self.config:
-            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
-        if "testnet-deploy-version" in self.config:
-            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
-            
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
-            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+            inputs["testnet-deploy-args"] = testnet_deploy_args
 
         return inputs
 
@@ -1094,16 +1204,9 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         if "interval" in self.config:
             inputs["interval"] = str(self.config["interval"])
 
-        testnet_deploy_args = []
-        if "testnet-deploy-branch" in self.config:
-            testnet_deploy_args.append(f"--branch {self.config['testnet-deploy-branch']}")
-        if "testnet-deploy-repo-owner" in self.config:
-            testnet_deploy_args.append(f"--repo-owner {self.config['testnet-deploy-repo-owner']}")
-        if "testnet-deploy-version" in self.config:
-            testnet_deploy_args.append(f"--version {self.config['testnet-deploy-version']}")
-            
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
-            inputs["testnet-deploy-args"] = " ".join(testnet_deploy_args)
+            inputs["testnet-deploy-args"] = testnet_deploy_args
 
         return inputs
 
@@ -1230,5 +1333,46 @@ class TelegrafUpgradeNodeConfigWorkflow(WorkflowRun):
             inputs["ansible-verbose"] = str(self.ansible_verbose).lower()
         if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
             inputs["testnet-deploy-args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class StartDownloadersWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Start Downloaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        if self.testnet_deploy_args:
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
+        return inputs
+
+class StopDownloadersWorkflow(WorkflowRun):
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        id: int,
+        personal_access_token: str,
+        branch_name: str,
+        network_name: str,
+        testnet_deploy_args: Optional[str] = None
+    ):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, "Stop Downloaders")
+        self.network_name = network_name
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network_name": self.network_name,
+        }
+        
+        if self.testnet_deploy_args:
+            inputs["testnet_deploy_args"] = self.testnet_deploy_args
             
         return inputs

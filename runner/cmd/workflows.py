@@ -7,13 +7,14 @@ from typing import Dict
 import questionary
 from rich import print as rprint
 
-from runner.db import DeploymentRepository, WorkflowRunRepository
+from runner.db import ClientDeploymentRepository, NetworkDeploymentRepository, WorkflowRunRepository
 from runner.workflows import *
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 
 BOOTSTRAP_NETWORK_WORKFLOW_ID = 117603859
+CLIENT_DEPLOY_WORKFLOW_ID = 155060032
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 DRAIN_FUNDS_WORKFLOW_ID = 125539749
@@ -35,6 +36,8 @@ UPSCALE_NETWORK_WORKFLOW_ID = 105092652
 TELEGRAF_UPGRADE_CLIENT_CONFIG_WORKFLOW_ID = 154514012
 TELEGRAF_UPGRADE_GEOIP_CONFIG_WORKFLOW_ID = 154514013
 TELEGRAF_UPGRADE_NODE_CONFIG_WORKFLOW_ID = 154514014
+START_DOWNLOADERS_WORKFLOW_ID = 155894274
+STOP_DOWNLOADERS_WORKFLOW_ID = 155894275
 
 ENVIRONMENT_DEFAULTS = {
     "development": {
@@ -121,7 +124,7 @@ def bootstrap_network(config: Dict, branch_name: str, force: bool = False, wait:
         workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults, is_bootstrap=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
@@ -243,11 +246,20 @@ def launch_network(config: Dict, branch_name: str, force: bool = False, wait: bo
         workflow_run_id = workflow.run(force=force, wait=wait)
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
+    except WorkflowRunFailedError as e:
+        # The workflow run failed while waiting for it to complete, but we want the deployment to
+        # be recorded anyway, because we can possibly re-run the workflow and it will succeed.
+        env_type = config.get("environment-type", "development")
+        defaults = ENVIRONMENT_DEFAULTS[env_type]
+        repo = NetworkDeploymentRepository()
+        repo.record_deployment(e.run_id, config, defaults)
+        print(f"Error: Workflow run failed with conclusion: {e.conclusion}")
+        sys.exit(1)
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -274,7 +286,7 @@ def launch_legacy_network(config: Dict, branch_name: str, force: bool = False, w
         env_type = config.get("environment-type", "development")
         defaults = ENVIRONMENT_DEFAULTS[env_type]
         
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         repo.record_deployment(workflow_run_id, config, defaults, is_legacy=True)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
@@ -350,7 +362,6 @@ def network_status(config: Dict, branch_name: str, force: bool = False, wait: bo
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
-
 
 def reset_to_n_nodes(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
     """Reset network to run specified number of nodes."""
@@ -698,6 +709,74 @@ def telegraf_upgrade_node_config(config: Dict, branch_name: str, force: bool = F
         network_name=config["network-name"],
         ansible_forks=config.get("ansible-forks"),
         ansible_verbose=config.get("ansible-verbose"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Deploy clients to an existing network."""
+    _print_workflow_banner()
+    
+    workflow = ClientDeployWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=CLIENT_DEPLOY_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force, wait=wait)
+        repo = ClientDeploymentRepository()
+        repo.record_client_deployment(workflow_run_id, config)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
+
+def start_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Start downloaders in a network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StartDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=START_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def stop_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Stop downloaders in a testnet network."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = StopDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=STOP_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)

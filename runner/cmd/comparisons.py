@@ -8,9 +8,9 @@ from typing import List
 import questionary
 from rich import print as rprint
 
-from runner.db import ComparisonRepository, DeploymentRepository
-from runner.models import Comparison
-from runner.reporting import build_deployment_report
+from runner.db import ClientDeploymentRepository, ComparisonRepository, NetworkDeploymentRepository
+from runner.models import DeploymentType
+from runner.reporting import build_comparison_report, build_comparison_smoke_test_report
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -51,13 +51,21 @@ def ls() -> None:
         
     print("\nAll times are in UTC")
 
-def new() -> None:
+def new(deployment_type: str = "network") -> None:
     """Create a new comparison using interactive prompts."""
-    repo = DeploymentRepository()
+
+    dep_type = DeploymentType.NETWORK if deployment_type == "network" else DeploymentType.CLIENT
+    if dep_type == DeploymentType.NETWORK:
+        repo = NetworkDeploymentRepository()
+        deployment_name = "network deployment"
+    else:
+        repo = ClientDeploymentRepository()
+        deployment_name = "client deployment"
+        
     recent_deployments = repo.get_recent_deployments()
     
     if not recent_deployments:
-        print("No deployments found")
+        print(f"No {deployment_name}s found")
         return
 
     choices = [
@@ -112,7 +120,7 @@ def new() -> None:
         test_envs.append((test_id, test_label))
 
     comparison_repo = ComparisonRepository()
-    comparison_repo.create_comparison(ref_id, test_envs, ref_label, description if description else None)
+    comparison_repo.create_comparison(ref_id, test_envs, ref_label, description, dep_type)
     print(f"\nComparison created")
 
 def post(comparison_id: int) -> None:
@@ -132,24 +140,35 @@ def post(comparison_id: int) -> None:
         if not comparison:
             raise ValueError(f"Comparison with ID {comparison_id} not found")
 
-        report = _build_comparison_report(comparison)
-        smoke_test_report = _build_smoke_test_report(comparison)
+        report = build_comparison_report(comparison)
+        smoke_test_report = build_comparison_smoke_test_report(comparison)
         
-        response = requests.post(
-            webhook_url,
-            json={"text": report},
-            headers={"Content-Type": "application/json"}
-        )
-        response.raise_for_status()
-        print(f"Posted comparison report to Slack")
+        if comparison.deployment_type == DeploymentType.NETWORK:
+            response = requests.post(
+                webhook_url,
+                json={"text": report},
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            print(f"Posted comparison report to Slack")
 
-        response = requests.post(
-            webhook_url,
-            json={"text": smoke_test_report},
-            headers={"Content-Type": "application/json"}
-        )
-        response.raise_for_status()
-        print(f"Posted smoke test report to Slack")
+            response = requests.post(
+                webhook_url,
+                json={"text": smoke_test_report},
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            print(f"Posted smoke test report to Slack")
+        elif comparison.deployment_type == DeploymentType.CLIENT:
+            response = requests.post(
+                webhook_url,
+                json={"text": report + "\n\n" + smoke_test_report},
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            print(f"Posted comparison report to Slack")
+        else:
+            print(f"Skipping smoke test report for client deployment")
     except requests.exceptions.RequestException as e:
         print(f"Error posting to Slack: {e}")
         sys.exit(1)
@@ -161,8 +180,8 @@ def print_comparison(comparison_id: int) -> None:
         comparison = repo.get_by_id(comparison_id)
         if not comparison:
             raise ValueError(f"Comparison with ID {comparison_id} not found")
-        report = _build_comparison_report(comparison)
-        smoke_test_report = _build_smoke_test_report(comparison)
+        report = build_comparison_report(comparison)
+        smoke_test_report = build_comparison_smoke_test_report(comparison)
         full_report = f"{report}\n\n{smoke_test_report}"
         print(full_report)
     except ValueError as e:
@@ -210,105 +229,6 @@ def record_results(comparison_id: int, started_at: str, ended_at: str, report_pa
     comparison.result_recorded_at = datetime.now(UTC)
     comparison.passed = passed
     repo.save(comparison)
-
-def _build_comparison_report(comparison: Comparison) -> str:
-    """Build a detailed report about a specific comparison.
-    
-    Args:
-        comparison_id: ID of the comparison to report on
-        
-    Returns:
-        str: The formatted comparison report
-    """
-    lines = []
-    lines.append("*ENVIRONMENT COMPARISON*")
-    lines.append("")
-
-    if comparison.description:
-        lines.append(f"{comparison.description}")
-        lines.append("")
-
-    if comparison.thread_link:
-        lines.append(f"Slack thread: {comparison.thread_link}")
-
-    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
-    n = 1
-    for test_deployment in comparison.test_environments:
-        (deployment, label) = test_deployment
-        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
-        n += 1
-
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    n = 1
-    for test_deployment in comparison.test_environments:
-        (deployment, label) = test_deployment
-        lines.append(f"*TEST{n}*: {label} [`{deployment.name}`]")
-        lines.append("```")
-        lines.extend(build_deployment_report(deployment))
-        lines.append("```")
-        lines.append("")
-        n += 1
-
-    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
-    lines.append("```")
-    lines.extend(build_deployment_report(comparison.ref_deployment))
-    lines.append("```")
-
-    return "\n".join(lines)
-
-def _build_smoke_test_report(comparison: Comparison) -> str:
-    """Build a smoke test report for a comparison.
-    
-    Args:
-        comparison: The comparison to build the report for
-        
-    Returns:
-        str: The formatted smoke test report
-    """
-    lines = []
-    lines.append("*SMOKE TEST RESULTS*")
-    lines.append("")
-    
-    repo = DeploymentRepository()
-    
-    n = 1
-    for test_deployment, label in comparison.test_environments:
-        results = repo.get_smoke_test_result(test_deployment.id)
-        if not results:
-            lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
-            lines.append("No smoke test results recorded")
-            lines.append("")
-            continue
-            
-        lines.append(f"*TEST{n}*: {label} [`{test_deployment.name}`]")
-        for question, answer in results.results.items():
-            status = {
-                "Yes": "✅ ",
-                "No": "❌ ",
-                "N/A": "N/A"
-            }.get(answer, "?")
-            lines.append(f"{status}  {question}")
-        lines.append("")
-        lines.append(f"---")
-        lines.append("")
-        n += 1
-    
-    ref_results = repo.get_smoke_test_result(comparison.ref_deployment.id)
-    lines.append(f"*REF*: {comparison.ref_label} [`{comparison.ref_deployment.name}`]")
-    if not ref_results:
-        lines.append("No smoke test results recorded")
-    else:
-        for question, answer in ref_results.results.items():
-            status = {
-                "Yes": "✅ ",
-                "No": "❌ ",
-                "N/A": "N/A"
-            }.get(answer, "?")
-            lines.append(f"{status}  {question}")
-    
-    return "\n".join(lines)
 
 def upload_report(comparison_id: int) -> None:
     """Upload a report for a comparison.

@@ -6,8 +6,8 @@ from datetime import datetime
 import questionary
 from rich import print as rprint
 
-from runner.db import DeploymentRepository
-from runner.models import Deployment
+from runner.db import NetworkDeploymentRepository
+from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
 
 REPO_OWNER = "maidsafe"
@@ -17,7 +17,7 @@ AUTONOMI_REPO_NAME = "autonomi"
 def ls(show_details: bool = False) -> None:
     """List all recorded deployments."""
     try:
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         deployments = repo.list_deployments()
         if not deployments:
             print("No deployments found.")
@@ -149,7 +149,7 @@ def post(deployment_id: int) -> None:
         sys.exit(1)
         
     try:
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         deployment = repo.get_by_id(deployment_id)
         if not deployment:
             raise ValueError(f"Deployment with ID {deployment_id} not found")
@@ -173,7 +173,7 @@ def print_deployment(deployment_id: int) -> None:
     Args:
         deployment_id: ID of the deployment to print
     """
-    repo = DeploymentRepository()
+    repo = NetworkDeploymentRepository()
     deployment = repo.get_by_id(deployment_id)
     if not deployment:
         print(f"Error: Deployment with ID {deployment_id} not found")
@@ -188,7 +188,7 @@ def smoke_test(deployment_id: int) -> None:
     Args:
         deployment_id: ID of the deployment to test
     """
-    repo = DeploymentRepository()
+    repo = NetworkDeploymentRepository()
     deployment = repo.get_by_id(deployment_id)
     if not deployment:
         print(f"Error: Deployment with ID {deployment_id} not found")
@@ -247,7 +247,7 @@ def smoke_test(deployment_id: int) -> None:
     repo.record_smoke_test_result(deployment_id, results)
     print("\nRecorded results")
 
-def _build_deployment_and_smoke_test_report(deployment: Deployment) -> str:
+def _build_deployment_and_smoke_test_report(deployment: NetworkDeployment) -> str:
     """Build a detailed report about a specific deployment.
     
     Args:
@@ -273,7 +273,7 @@ def _build_deployment_and_smoke_test_report(deployment: Deployment) -> str:
     lines.append("")
     lines.append("*SMOKE TEST RESULTS*")
     
-    repo = DeploymentRepository()
+    repo = NetworkDeploymentRepository()
     results = repo.get_smoke_test_result(deployment.id)
     if not results:
         lines.append("No smoke test results recorded")
@@ -294,7 +294,7 @@ def upload_report(deployment_id: int) -> None:
         deployment_id: ID of the deployment to upload report for
     """
     try:
-        repo = DeploymentRepository()
+        repo = NetworkDeploymentRepository()
         deployment = repo.get_by_id(deployment_id)
         if not deployment:
             raise ValueError(f"Deployment with ID {deployment_id} not found")

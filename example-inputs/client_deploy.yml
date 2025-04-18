@@ -1,0 +1,114 @@
+# Required
+# Our monitoring infrastructure requires environment names to be restricted. The names should be in
+# the form `DEV-XX`, `STG-XX` or `PROD-XX`. For development environments, `DEV-01` through `DEV-08`
+# are available. Most environments will be in the development category. Staging will be reserved for
+# release candidates.
+network-name: DEV-01
+# The environment type determines the number and sizes of VMs for the environment.
+# Possible values: development, staging, production.
+environment-type: development
+
+# Optional
+# Remove any you don't want to use.
+
+# A value between 2 and 255 should be supplied for the network ID.
+# It is used to avoid cross-network interference.
+# If you are testing against the production network, you don't need to supply this.
+network-id: 2
+
+# The region to deploy to.
+# For Digital Ocean, we currently support "lon1" and "ams3".
+# It will default to "lon1".
+region: lon1
+provider: digital-ocean
+
+# A short sentence describing the purpose of the deployment.
+description: Private node upscaling test
+
+# Populate this if you want to link the deployment to a pull request.
+related-pr: 1234
+
+#
+# Binary versions
+#
+# If these are not specified, the latest versions will be used.
+# They are mutually exclusive with the build configuration below.
+ant-version: 0.3.11
+
+#
+# Build configuration
+#
+# These options are mutually exclusive with the binary versions above.
+# You either use versioned, released binaries, or you build your own.
+branch: experimental
+repo-owner: maidsafe
+chunk-size: 4194304 # We are currently using 4MB chunks.
+
+# VM configuration
+client-vm-count: 2
+client-vm-size: s-4vcpu-8gb
+# The number of uploader services on each client VM.
+uploaders-count: 1
+
+# Miscellaneous options
+# Environment variables to set for the `ant` binary on the client VMs.
+client-env: LOG_LEVEL=debug,RUST_LOG=info
+# Disable the download verifier.
+disable-download-verifier: false
+# Disable the performance verifier.
+disable-performance-verifier: false
+# Disable the random verifier.
+disable-random-verifier: false
+# Disable telegraf from running on the client VMs.
+# This can be useful for development work when the Telegraf configuration needs to be changed.
+disable-telegraf: false
+# Disable the uploaders.
+# This can be useful for a client environment where you only want to test downloads.
+# You still need to have at least one uploader service specified because the uploader
+# sets up some context that is necessary for the downloaders.
+disable-uploaders: false
+
+# Options for downloading a particular file in performance mode.
+# Useful for testing the performance of downloads on the production network.
+file-address: <public-file-address>
+expected-hash: <sha256-hash>
+expected-size: <size-in-bytes>
+
+# The maximum number of uploads for the uploader service to perform.
+# This is useful for tests against the production network when real funds are being used.
+max-uploads: 10
+
+# Contact information for the network the client will be connecting to.
+# If you are running against the production network, you don't need to provide these.
+# Otherwise, either peer or network-contacts-url must be provided. Both can be used.
+peer: /ip4/127.0.0.1/tcp/8080/p2p/12D3KooWRi6wF7yxWLuPSNskXc6kQ5cJ6eaymeMbCRdTnBJZ9TZJ
+network-contacts-url: https://example.com/network-contacts.json
+
+# EVM/funding configuration
+
+# Possible values for the EVM network type are, `anvil`, `custom`, `arbitrum-one` or `arbitrum-sepolia`.
+# In the case of `custom`, you must specify the `evm-rpc-url`, the `evm-data-payments-address`,
+# and `evm-payment-token-address`. The custom network is mainly useful for providing overrides for the
+# token address.
+evm-network-type: custom
+evm-data-payments-address: 0x123abc456def789
+evm-payment-token-address: 0x789def456abc123
+evm-rpc-url: https://custom.rpc.url
+# The amount of gas and tokens to transfer to the wallet for each uploader service.
+initial-gas: "100000000000000000"
+initial-tokens: "1000000000000000000"
+# Secret keys for pre-funded wallets for each uploader service.
+# This is useful for tests against the production network.
+wallet-secret-keys:
+  - key1
+  - key2
+
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0 

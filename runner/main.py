@@ -5,8 +5,7 @@ from typing import Dict
 
 import yaml
 
-from runner import cmd
-from runner.cmd import comparisons, deployments, workflows
+from runner.cmd import client_deployments, comparisons, deployments, workflows
 
 def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
@@ -45,6 +44,49 @@ def main():
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    client_deployments_parser = subparsers.add_parser("client-deployments", help="Manage client deployments")
+    client_deployments_subparsers = client_deployments_parser.add_subparsers(dest="client_deployments_command", help="Available client deployment commands")
+
+    client_deployments_ls_parser = client_deployments_subparsers.add_parser("ls", help="List all client deployments")
+    client_deployments_ls_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show detailed information for each client deployment"
+    )
+
+    client_deployments_post_parser = client_deployments_subparsers.add_parser(
+        "post", 
+        help="Post details of a specific client deployment to Slack"
+    )
+    client_deployments_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to post"
+    )
+
+    client_deployments_print_parser = client_deployments_subparsers.add_parser(
+        "print", 
+        help="Print details of a specific client deployment"
+    )
+    client_deployments_print_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to print"
+    )
+
+    client_deployments_smoke_test_parser = client_deployments_subparsers.add_parser(
+        "smoke-test", 
+        help="Smoke test a deployment"
+    )
+    client_deployments_smoke_test_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to smoke test"
+    )
+
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
@@ -62,8 +104,15 @@ def main():
         help="URL of the thread where the comparison was posted"
     )
 
+    comparisons_new_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
+    comparisons_new_parser.add_argument(
+        "--deployment-type",
+        choices=["network", "client"],
+        default="network",
+        help="Type of deployment to compare (network or client)"
+    )
+
     comparisons_subparsers.add_parser("ls", help="List all comparisons")
-    comparisons_subparsers.add_parser("new", help="Create a new comparison")
     
     comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
     comparisons_print_parser.add_argument(
@@ -123,6 +172,7 @@ def main():
         required=True,
         help="The ID of the comparison"
     )
+
     
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
@@ -193,6 +243,18 @@ def main():
         help="Path to the inputs file"
     )
     bootstrap_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    client_deploy_parser = workflows_subparsers.add_parser("client-deploy", help="Deploy a client environment for testing")
+    client_deploy_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    client_deploy_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -345,6 +407,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    start_downloaders_parser = workflows_subparsers.add_parser("start-downloaders", help="Start downloaders on testnet nodes")
+    start_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     stop_nodes_parser = workflows_subparsers.add_parser("stop-nodes", help="Stop testnet nodes")
     stop_nodes_parser.add_argument(
         "--path",
@@ -486,6 +560,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    stop_downloaders_parser = workflows_subparsers.add_parser("stop-downloaders", help="Stop downloaders on testnet nodes")
+    stop_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    stop_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -494,13 +580,25 @@ def main():
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
     
-    if args.command == "comparisons":
+    if args.command == "client-deployments":
+        if args.client_deployments_command == "ls":
+            client_deployments.ls(show_details=args.details)
+        elif args.client_deployments_command == "print":
+            client_deployments.print_deployment(args.id)
+        elif args.client_deployments_command == "post":
+            client_deployments.post(args.id)
+        elif args.client_deployments_command == "smoke-test":
+            client_deployments.smoke_test(args.id)
+        else:
+            client_deployments_parser.print_help()
+            sys.exit(1)
+    elif args.command == "comparisons":
         if args.comparisons_command == "add-thread":
             comparisons.add_thread(args.id, args.link)
         elif args.comparisons_command == "ls":
             comparisons.ls()
         elif args.comparisons_command == "new":
-            comparisons.new()
+            comparisons.new(args.deployment_type)
         elif args.comparisons_command == "post":
             comparisons.post(args.id)
         elif args.comparisons_command == "print":
@@ -530,6 +628,9 @@ def main():
         if args.workflows_command == "bootstrap-network":
             config = load_yaml_config(args.path)
             workflows.bootstrap_network(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "client-deploy":
+            config = load_yaml_config(args.path)
+            workflows.client_deploy(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "deposit-funds":
             config = load_yaml_config(args.path)
             workflows.deposit_funds(config, args.branch, args.force, args.wait)
@@ -565,6 +666,9 @@ def main():
         elif args.workflows_command == "start-uploaders":
             config = load_yaml_config(args.path)
             workflows.start_uploaders(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "start-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.start_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-nodes":
             config = load_yaml_config(args.path)
             workflows.stop_nodes(config, args.branch, args.force, args.wait)
@@ -598,6 +702,9 @@ def main():
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
             workflows.upscale_network(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "stop-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.stop_downloaders(config, args.branch, args.force, args.wait)
         else:
             workflows_parser.print_help()
             sys.exit(1)
