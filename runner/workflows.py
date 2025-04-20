@@ -730,7 +730,8 @@ class ClientDeployWorkflow(WorkflowRun):
             "peer": "--peer",
             "region": "--region",
             "repo-owner": "--repo-owner",
-            "uploaders-count": "--uploaders-count"
+            "uploaders-count": "--uploaders-count",
+            "upload-size": "--upload-size"
         }
         
         for config_key, arg_name in client_deploy_arg_mappings.items():

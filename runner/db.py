@@ -350,7 +350,8 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
             max_uploads=config.get("max-uploads"),
             network_contacts_url=config.get("network-contacts-url"),
             peer=config.get("peer"),
-            uploaders_count=config.get("uploaders-count")
+            uploaders_count=config.get("uploaders-count"),
+            upload_size=config.get("upload-size")
         )
         
         self.save(deployment)

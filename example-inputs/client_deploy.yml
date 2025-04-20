@@ -78,6 +78,10 @@ expected-size: <size-in-bytes>
 # This is useful for tests against the production network when real funds are being used.
 max-uploads: 10
 
+# The size in megabytes of the file that is continuously uploaded.
+# Default is 100MB.
+upload-size: 100
+
 # Contact information for the network the client will be connecting to.
 # If you are running against the production network, you don't need to provide these.
 # Otherwise, either peer or network-contacts-url must be provided. Both can be used.

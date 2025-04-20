@@ -204,6 +204,7 @@ def build_client_deployment_report(deployment: ClientDeployment) -> List[str]:
         lines.append(f"Uploaders: disabled")
     else:
         lines.append(f"Uploaders: {deployment.uploaders_count}")
+        lines.append(f"Upload size: {deployment.upload_size}MB")
     if deployment.disable_download_verifier:
         lines.append(f"Download verifier: disabled")
     else:

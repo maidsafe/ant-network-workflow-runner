@@ -119,7 +119,8 @@ class ClientDeployment(BaseDeployment):
     network_contacts_url = Column(String)
     peer = Column(String)
     uploaders_count = Column(Integer, nullable=False, default=1)
-    
+    upload_size = Column(Integer, nullable=False, default=100)
+
     __mapper_args__ = {
         "polymorphic_identity": DeploymentType.CLIENT,
     }
