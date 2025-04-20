@@ -579,7 +579,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         node_counts = []
         for count_type in ["peer-cache-node-count", "generic-node-count", "full-cone-private-node-count", 
-                          "symmetric-private-node-count", "enable-downloaders", "uploader-count"]:
+                          "symmetric-private-node-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
@@ -597,6 +597,10 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "branch": "--branch",
             "chunk-size": "--chunk-size",
             "client-vm-size": "--client-vm-size",
+            "disable-download-verifier": "--disable-download-verifier",
+            "disable-performance-verifier": "--disable-performance-verifier",
+            "disable-random-verifier": "--disable-random-verifier",
+            "disable-telegraf": "--disable-telegraf",
             "evm-network-type": "--evm-network-type",
             "evm-data-payments-address": "--evm-data-payments-address",
             "evm-node-vm-size": "--evm-node-vm-size",
@@ -644,9 +648,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         if "stop-clients" in self.config:
             inputs["stop-clients"] = self.config["stop-clients"]
-
-        if "disable-telegraf" in self.config:
-            inputs["disable-telegraf"] = self.config["disable-telegraf"]
 
         testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
@@ -944,8 +945,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['autonomi-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
 
         node_counts = []
-        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
-                          "enable-downloaders", "uploader-count"]:
+        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
