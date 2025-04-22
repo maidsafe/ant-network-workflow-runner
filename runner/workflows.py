@@ -579,7 +579,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         node_counts = []
         for count_type in ["peer-cache-node-count", "generic-node-count", "full-cone-private-node-count", 
-                          "symmetric-private-node-count", "enable-downloaders", "uploader-count"]:
+                          "symmetric-private-node-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
@@ -597,6 +597,10 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "branch": "--branch",
             "chunk-size": "--chunk-size",
             "client-vm-size": "--client-vm-size",
+            "disable-download-verifier": "--disable-download-verifier",
+            "disable-performance-verifier": "--disable-performance-verifier",
+            "disable-random-verifier": "--disable-random-verifier",
+            "disable-telegraf": "--disable-telegraf",
             "evm-network-type": "--evm-network-type",
             "evm-data-payments-address": "--evm-data-payments-address",
             "evm-node-vm-size": "--evm-node-vm-size",
@@ -608,6 +612,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
             "nat-gateway-vm-size": "--nat-gateway-vm-size",
+            "network-dashboard-branch": "--network-dashboard-branch",
             "network-id": "--network-id",
             "node-vm-size": "--node-vm-size",
             "peer-cache-node-vm-size": "--peer-cache-node-vm-size",
@@ -644,9 +649,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
         if "stop-clients" in self.config:
             inputs["stop-clients"] = self.config["stop-clients"]
-
-        if "disable-telegraf" in self.config:
-            inputs["disable-telegraf"] = self.config["disable-telegraf"]
 
         testnet_deploy_args = self._build_testnet_deploy_args(self.config)
         if testnet_deploy_args:
@@ -730,7 +732,8 @@ class ClientDeployWorkflow(WorkflowRun):
             "peer": "--peer",
             "region": "--region",
             "repo-owner": "--repo-owner",
-            "uploaders-count": "--uploaders-count"
+            "uploaders-count": "--uploaders-count",
+            "upload-size": "--upload-size"
         }
         
         for config_key, arg_name in client_deploy_arg_mappings.items():
@@ -801,6 +804,7 @@ class UpscaleNetworkWorkflow(WorkflowRun):
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
+            "network-dashboard-branch": "--network-dashboard-branch",
             "plan": "--plan",
             "provider": "--provider",
             "public-rpc": "--public-rpc",
@@ -943,8 +947,7 @@ class LaunchLegacyNetworkWorkflow(WorkflowRun):
             inputs["bin-versions"] = f"{self.config['autonomi-version']},{self.config['safenode-version']},{self.config['safenode-manager-version']}"
 
         node_counts = []
-        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", 
-                          "enable-downloaders", "uploader-count"]:
+        for count_type in ["bootstrap-node-count", "generic-node-count", "private-node-count", "uploader-count"]:
             if count_type in self.config:
                 node_counts.append(str(self.config[count_type]))
                 
@@ -1363,13 +1366,13 @@ class StopDownloadersWorkflow(WorkflowRun):
         network_name: str,
         testnet_deploy_args: Optional[str] = None
     ):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, "Stop Downloaders")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Downloaders")
         self.network_name = network_name
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         inputs = {
-            "network_name": self.network_name,
+            "network-name": self.network_name,
         }
         
         if self.testnet_deploy_args:

@@ -21,8 +21,17 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # It will default to "lon1".
 region: lon1
 
+# The downloaders will be running by default.
+# Use any of these three options to disable specific services.
+disable-download-verifier: false
+disable-performance-verifier: false
+disable-random-verifier: false
+
 # If this is set the Telegraf service will not be started on the nodes or client hosts.
 disable-telegraf: true 
+
+# Use this to test a branch of the network-dashboard repo, which provides the Telegraf configuration.
+network-dashboard-branch: main
 
 # Set this to stop the uploaders and downloaders after the network is launched.
 # It can be useful for comparisons.
@@ -66,7 +75,6 @@ peer-cache-node-count: 5
 generic-node-count: 25
 full-cone-private-node-count: 15
 symmetric-private-node-count: 10
-enable-downloaders: 0
 uploader-count: 1
 
 #

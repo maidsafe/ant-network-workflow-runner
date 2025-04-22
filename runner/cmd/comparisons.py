@@ -321,3 +321,115 @@ def upload_report(comparison_id: int) -> None:
     except Exception as e:
         print(f"Error uploading report: {e}")
         sys.exit(1)
+
+def download_report(comparison_id: int) -> None:
+    """Generate a report for downloads on each environment in a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to generate download report for
+    """
+    try:
+        repo = ComparisonRepository()
+        comparison = repo.get_by_id(comparison_id)
+        if not comparison:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+
+        environments = [(dep, label, f"TEST{i+1}") for i, (dep, label) in enumerate(comparison.test_environments)] + \
+                       [(comparison.ref_deployment, comparison.ref_label, "REF")]
+        
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+        
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+        
+        env_reports = []
+        
+        for deployment, label, env_name in environments:
+            print(f"\n{env_name} [{deployment.name}]:")
+            print("=" * 50)
+            
+            print("\nStandard Downloader:")
+            standard_successful = questionary.text(
+                "Successful downloads:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            standard_errors = questionary.text(
+                "Errors:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            standard_avg_time = questionary.text(
+                "Average download time (seconds):",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            
+            print("\nRandom Downloader:")
+            random_successful = questionary.text(
+                "Successful downloads:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            random_errors = questionary.text(
+                "Errors:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            random_avg_time = questionary.text(
+                "Average download time (seconds):",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            
+            print("\nPerformance Downloader:")
+            perf_successful = questionary.text(
+                "Successful downloads:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            perf_errors = questionary.text(
+                "Errors:",
+                validate=lambda text: text.isdigit()
+            ).ask()
+            perf_avg_time = questionary.text(
+                "Average download time (seconds):",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            
+            env_reports.append({
+                "env_name": env_name,
+                "label": label,
+                "name": deployment.name,
+                "standard_successful": standard_successful,
+                "standard_errors": standard_errors,
+                "standard_avg_time": standard_avg_time,
+                "random_successful": random_successful,
+                "random_errors": random_errors,
+                "random_avg_time": random_avg_time,
+                "perf_successful": perf_successful,
+                "perf_errors": perf_errors,
+                "perf_avg_time": perf_avg_time
+            })
+        
+        print("\n\n")
+        print("=========")
+        print("Downloads")
+        print("=========")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        for report in env_reports:
+            print()
+            print(f"{report['env_name']} [{report['name']}]:")
+            print("  Standard Downloader:")
+            print(f"    - Successful downloads: {report['standard_successful']}")
+            print(f"    - Errors: {report['standard_errors']}")
+            print(f"    - Average download time: {report['standard_avg_time']}s")
+            print("  Random Downloader:")
+            print(f"    - Successful downloads: {report['random_successful']}")
+            print(f"    - Errors: {report['random_errors']}")
+            print(f"    - Average download time: {report['random_avg_time']}s")
+            print("  Performance Downloader:")
+            print(f"    - Successful downloads: {report['perf_successful']}")
+            print(f"    - Errors: {report['perf_errors']}")
+            print(f"    - Average download time: {report['perf_avg_time']}s")
+            
+    except Exception as e:
+        print(f"Error generating download report: {e}")
+        sys.exit(1)
