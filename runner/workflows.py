@@ -1364,13 +1364,13 @@ class StopDownloadersWorkflow(WorkflowRun):
         network_name: str,
         testnet_deploy_args: Optional[str] = None
     ):
-        super().__init__(owner, repo, id, personal_access_token, branch_name, "Stop Downloaders")
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Stop Downloaders")
         self.network_name = network_name
         self.testnet_deploy_args = testnet_deploy_args
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         inputs = {
-            "network_name": self.network_name,
+            "network-name": self.network_name,
         }
         
         if self.testnet_deploy_args:
