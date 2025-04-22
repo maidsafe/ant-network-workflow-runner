@@ -30,6 +30,9 @@ disable-random-verifier: false
 # If this is set the Telegraf service will not be started on the nodes or client hosts.
 disable-telegraf: true 
 
+# Use this to test a branch of the network-dashboard repo, which provides the Telegraf configuration.
+network-dashboard-branch: main
+
 # Set this to stop the uploaders and downloaders after the network is launched.
 # It can be useful for comparisons.
 stop-clients: false
