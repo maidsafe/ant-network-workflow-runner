@@ -188,3 +188,4 @@ class ComparisonSummary:
     created_at: datetime
     thread_link: Optional[str]
     description: Optional[str]
+    deployment_type: str

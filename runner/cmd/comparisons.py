@@ -42,12 +42,12 @@ def ls() -> None:
     print(" " * 35 + "C O M P A R I S O N S" + " " * 35)
     print("=" * 100)
     
-    print(f"{'ID':<5} {'Title':<40} {'Created':<20}")
+    print(f"{'ID':<5} {'Title':<40} {'Created':<20} {'Type':<10}")
     print("-" * 100)
     
     for comparison in comparisons:
         created_at = comparison.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        rprint(f"{comparison.id:<5} {comparison.title:<40} {created_at:<20}")
+        rprint(f"{comparison.id:<5} {comparison.title:<40} {created_at:<20} {comparison.deployment_type:<10}")
         
     print("\nAll times are in UTC")
 
