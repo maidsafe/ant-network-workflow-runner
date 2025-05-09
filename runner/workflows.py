@@ -151,21 +151,42 @@ class WorkflowRun:
         """
         print(f"\nWaiting for workflow run {run_id} to complete...")
         
+        max_retries = 5
+        retry_delay = 5
+        
         while True:
-            status = self._get_run_status(run_id)
-            if status == "completed":
-                url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
-                response = requests.get(url, headers=self.headers)
-                response.raise_for_status()
-                conclusion = response.json().get("conclusion")
+            try:
+                status = self._get_run_status(run_id)
+                if status == "completed":
+                    url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
+                    
+                    for retry in range(max_retries):
+                        try:
+                            response = requests.get(url, headers=self.headers)
+                            response.raise_for_status()
+                            conclusion = response.json().get("conclusion")
+                            
+                            print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
+                            if conclusion != "success":
+                                raise WorkflowRunFailedError(run_id, conclusion)
+                            return
+                        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                                requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                            if retry < max_retries - 1:
+                                print(f"Error getting conclusion, retrying in {retry_delay} seconds: {str(e)}")
+                                time.sleep(retry_delay)
+                                retry_delay *= 1.5  # Exponential backoff
+                            else:
+                                print(f"Max retries exceeded when getting conclusion: {str(e)}")
+                                raise
                 
-                print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
-                if conclusion != "success":
-                    raise WorkflowRunFailedError(run_id, conclusion)
-                break
-                
-            print(".", end="", flush=True)
-            time.sleep(poll_interval)
+                print(".", end="", flush=True)
+                time.sleep(poll_interval)
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                    requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                print(f"\nNetwork error when checking status, retrying in {retry_delay} seconds: {str(e)}")
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 60)  # Exponential backoff with a maximum of 60 seconds
 
     def _get_run_status(self, run_id: int) -> Optional[str]:
         """
@@ -181,9 +202,24 @@ class WorkflowRun:
             requests.exceptions.RequestException: If the API request fails
         """
         url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json().get("status")
+        
+        max_retries = 3
+        retry_delay = 3
+        
+        for retry in range(max_retries):
+            try:
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                return response.json().get("status")
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                    requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                if retry < max_retries - 1:
+                    if retry > 0:  # Only log after the first failure
+                        print(f"\nError getting status, retrying in {retry_delay} seconds: {str(e)}")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    raise
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get workflow-specific inputs. Should be overridden by subclasses."""
