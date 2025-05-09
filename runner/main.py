@@ -87,6 +87,17 @@ def main():
         help="ID of the deployment to smoke test"
     )
 
+    client_deployments_upload_report_parser = client_deployments_subparsers.add_parser(
+        "upload-report",
+        help="Upload a report for a client deployment"
+    )
+    client_deployments_upload_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to generate report for"
+    )
+
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
@@ -600,6 +611,8 @@ def main():
             client_deployments.post(args.id)
         elif args.client_deployments_command == "smoke-test":
             client_deployments.smoke_test(args.id)
+        elif args.client_deployments_command == "upload-report":
+            client_deployments.upload_report(args.id)
         else:
             client_deployments_parser.print_help()
             sys.exit(1)
