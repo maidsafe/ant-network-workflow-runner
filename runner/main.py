@@ -250,6 +250,17 @@ def main():
         help="The ID of the deployment"
     )
 
+    deployments_download_report_parser = deployments_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on a deployment used for a test"
+    )
+    deployments_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the deployment"
+    )
+
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
     workflows_parser.add_argument(
         "--wait",
@@ -647,6 +658,8 @@ def main():
             deployments.smoke_test(args.id)
         elif args.deployments_command == "upload-report":
             deployments.upload_report(args.id)
+        elif args.deployments_command == "download-report":
+            deployments.download_report(args.id)
         else:
             deployments_parser.print_help()
             sys.exit(1)
