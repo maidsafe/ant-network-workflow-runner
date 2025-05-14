@@ -9,10 +9,41 @@ from rich import print as rprint
 from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
+from runner.cmd.workflows import launch_network
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
+
+def dev(network_name: str) -> None:
+    """Launch a development network with preset configuration.
+    
+    Args:
+        network_name: Name of the development environment (e.g. DEV-01)
+    """
+    if not network_name.startswith("DEV-"):
+        print("Error: Network name must start with 'DEV-'")
+        sys.exit(1)
+    
+    config = {
+        "description": f"Quick development network for experimentation",
+        "environment-type": "development",
+        "evm-data-payments-address": "0x7f0842a78f7d4085d975ba91d630d680f91b1295",
+        "evm-rpc-url": "https://sepolia-rollup.arbitrum.io/rpc",
+        "evm-network-type": "custom",
+        "evm-payment-token-address": "0x4bc1ace0e66170375462cb4e6af42ad4d5ec689c",
+        "initial-gas": "100000000000000000",  # 0.1 ETH
+        "initial-tokens": "1000000000000000000",  # 1 token
+        "interval": 5000,
+        "max-archived-log-files": 1,
+        "max-log-files": 1,
+        "network-id": 10,
+        "network-name": network_name,
+        "region": "lon1",
+        "rewards-address": "0x03B770D9cD32077cC0bF330c13C114a87643B124"
+    }
+    
+    launch_network(config, "main", force=False, wait=False)
 
 def ls(show_details: bool = False) -> None:
     """List all recorded deployments."""

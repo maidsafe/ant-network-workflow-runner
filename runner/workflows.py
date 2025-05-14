@@ -597,9 +597,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
         if has_versions and has_build_config:
             raise ValueError("Cannot specify both binary versions and build configuration")
             
-        if not has_versions and not has_build_config:
-            raise ValueError("Must specify either binary versions or build configuration")
-            
         if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
             raise ValueError("Both branch and repo-owner must be specified for build configuration")
 

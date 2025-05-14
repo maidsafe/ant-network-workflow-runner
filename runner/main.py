@@ -199,6 +199,15 @@ def main():
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
     
+    deployments_dev_parser = deployments_subparsers.add_parser(
+        "dev",
+        help="Launch a quick dev network with the latest binaries and Sepolia as the EVM provider")
+    deployments_dev_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the development environment (e.g. DEV-01)"
+    )
+    
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -648,7 +657,9 @@ def main():
             comparisons_parser.print_help()
             sys.exit(1)
     elif args.command == "deployments":
-        if args.deployments_command == "ls":
+        if args.deployments_command == "dev":
+            deployments.dev(args.name)
+        elif args.deployments_command == "ls":
             deployments.ls(show_details=args.details)
         elif args.deployments_command == "post":
             deployments.post(args.id)
