@@ -22,6 +22,13 @@ class NodeType(Enum):
     def __str__(self) -> str:
         return self.value
 
+NETWORK_IDS = {
+    "DEV-01": 3, "DEV-02": 4, "DEV-03": 5, "DEV-04": 6, "DEV-05": 7,
+    "DEV-06": 8, "DEV-07": 9, "DEV-08": 10, "DEV-09": 11, "DEV-10": 12,
+    "STG-01": 13, "STG-02": 14, "STG-03": 15, "STG-04": 16, "STG-05": 17,
+    "STG-06": 18, "STG-07": 19, "STG-08": 20, "STG-09": 21, "STG-10": 22
+}
+
 def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> bool:
     """
     Display workflow information and prompt for confirmation.
@@ -573,12 +580,16 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
+        required_fields = ["network-name", "environment-type", "rewards-address"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
                 
-        if "network-id" in self.config:
+        if "network-id" not in self.config:
+            if self.network_name not in NETWORK_IDS:
+                raise ValueError(f"Network name '{self.network_name}' not supported")
+            self.config["network-id"] = NETWORK_IDS[self.network_name]
+        else:
             network_id = self.config["network-id"]
             if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
                 raise ValueError("network-id must be an integer between 1 and 255")
