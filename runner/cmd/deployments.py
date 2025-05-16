@@ -9,7 +9,7 @@ from rich import print as rprint
 from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
-from runner.cmd.workflows import launch_network
+from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -470,3 +470,19 @@ def download_report(deployment_id: int) -> None:
     except Exception as e:
         print(f"Error generating download report: {e}")
         sys.exit(1)
+
+def start_clients(network_name: str) -> None:
+    """Start clients for a network.
+    
+    Args:
+        network_name: Name of the network to start clients in
+    """
+    config = {
+        "network-name": network_name
+    }
+    
+    print("\nStarting uploaders...")
+    start_uploaders(config, "main", force=True, wait=False)
+    
+    print("\nStarting downloaders...")
+    start_downloaders(config, "main", force=True, wait=False)

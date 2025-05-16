@@ -270,6 +270,16 @@ def main():
         help="The ID of the deployment"
     )
 
+    deployments_start_clients_parser = deployments_subparsers.add_parser(
+        "start-clients",
+        help="Start clients for a network"
+    )
+    deployments_start_clients_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the network"
+    )
+
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
     workflows_parser.add_argument(
         "--wait",
@@ -671,6 +681,8 @@ def main():
             deployments.upload_report(args.id)
         elif args.deployments_command == "download-report":
             deployments.download_report(args.id)
+        elif args.deployments_command == "start-clients":
+            deployments.start_clients(args.name)
         else:
             deployments_parser.print_help()
             sys.exit(1)
