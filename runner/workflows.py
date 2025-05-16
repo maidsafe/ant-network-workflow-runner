@@ -22,6 +22,13 @@ class NodeType(Enum):
     def __str__(self) -> str:
         return self.value
 
+NETWORK_IDS = {
+    "DEV-01": 3, "DEV-02": 4, "DEV-03": 5, "DEV-04": 6, "DEV-05": 7,
+    "DEV-06": 8, "DEV-07": 9, "DEV-08": 10, "DEV-09": 11, "DEV-10": 12,
+    "STG-01": 13, "STG-02": 14, "STG-03": 15, "STG-04": 16, "STG-05": 17,
+    "STG-06": 18, "STG-07": 19, "STG-08": 20, "STG-09": 21, "STG-10": 22
+}
+
 def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> bool:
     """
     Display workflow information and prompt for confirmation.
@@ -151,21 +158,42 @@ class WorkflowRun:
         """
         print(f"\nWaiting for workflow run {run_id} to complete...")
         
+        max_retries = 5
+        retry_delay = 5
+        
         while True:
-            status = self._get_run_status(run_id)
-            if status == "completed":
-                url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
-                response = requests.get(url, headers=self.headers)
-                response.raise_for_status()
-                conclusion = response.json().get("conclusion")
+            try:
+                status = self._get_run_status(run_id)
+                if status == "completed":
+                    url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}/attempts/1"
+                    
+                    for retry in range(max_retries):
+                        try:
+                            response = requests.get(url, headers=self.headers)
+                            response.raise_for_status()
+                            conclusion = response.json().get("conclusion")
+                            
+                            print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
+                            if conclusion != "success":
+                                raise WorkflowRunFailedError(run_id, conclusion)
+                            return
+                        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                                requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                            if retry < max_retries - 1:
+                                print(f"Error getting conclusion, retrying in {retry_delay} seconds: {str(e)}")
+                                time.sleep(retry_delay)
+                                retry_delay *= 1.5  # Exponential backoff
+                            else:
+                                print(f"Max retries exceeded when getting conclusion: {str(e)}")
+                                raise
                 
-                print(f"\nWorkflow run {run_id} completed with conclusion: {conclusion}")
-                if conclusion != "success":
-                    raise WorkflowRunFailedError(run_id, conclusion)
-                break
-                
-            print(".", end="", flush=True)
-            time.sleep(poll_interval)
+                print(".", end="", flush=True)
+                time.sleep(poll_interval)
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                    requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                print(f"\nNetwork error when checking status, retrying in {retry_delay} seconds: {str(e)}")
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 60)  # Exponential backoff with a maximum of 60 seconds
 
     def _get_run_status(self, run_id: int) -> Optional[str]:
         """
@@ -181,9 +209,24 @@ class WorkflowRun:
             requests.exceptions.RequestException: If the API request fails
         """
         url = f"https://api.github.com/repos/{self.owner}/{self.repo}/actions/runs/{run_id}"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json().get("status")
+        
+        max_retries = 3
+        retry_delay = 3
+        
+        for retry in range(max_retries):
+            try:
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                return response.json().get("status")
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError, 
+                    requests.exceptions.Timeout, requests.exceptions.SSLError) as e:
+                if retry < max_retries - 1:
+                    if retry > 0:  # Only log after the first failure
+                        print(f"\nError getting status, retrying in {retry_delay} seconds: {str(e)}")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    raise
 
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get workflow-specific inputs. Should be overridden by subclasses."""
@@ -537,12 +580,16 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type", "rewards-address", "network-id"]
+        required_fields = ["network-name", "environment-type", "rewards-address"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
                 
-        if "network-id" in self.config:
+        if "network-id" not in self.config:
+            if self.network_name not in NETWORK_IDS:
+                raise ValueError(f"Network name '{self.network_name}' not supported")
+            self.config["network-id"] = NETWORK_IDS[self.network_name]
+        else:
             network_id = self.config["network-id"]
             if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
                 raise ValueError("network-id must be an integer between 1 and 255")
@@ -560,9 +607,6 @@ class LaunchNetworkWorkflow(WorkflowRun):
         
         if has_versions and has_build_config:
             raise ValueError("Cannot specify both binary versions and build configuration")
-            
-        if not has_versions and not has_build_config:
-            raise ValueError("Must specify either binary versions or build configuration")
             
         if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
             raise ValueError("Both branch and repo-owner must be specified for build configuration")

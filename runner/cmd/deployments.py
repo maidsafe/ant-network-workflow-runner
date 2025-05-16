@@ -9,10 +9,41 @@ from rich import print as rprint
 from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
+from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
+
+def dev(network_name: str) -> None:
+    """Launch a development network with preset configuration.
+    
+    Args:
+        network_name: Name of the development environment (e.g. DEV-01)
+    """
+    if not network_name.startswith("DEV-"):
+        print("Error: Network name must start with 'DEV-'")
+        sys.exit(1)
+    
+    config = {
+        "description": f"Quick development network for experimentation",
+        "environment-type": "development",
+        "evm-data-payments-address": "0x7f0842a78f7d4085d975ba91d630d680f91b1295",
+        "evm-rpc-url": "https://sepolia-rollup.arbitrum.io/rpc",
+        "evm-network-type": "custom",
+        "evm-payment-token-address": "0x4bc1ace0e66170375462cb4e6af42ad4d5ec689c",
+        "initial-gas": "100000000000000000",  # 0.1 ETH
+        "initial-tokens": "1000000000000000000",  # 1 token
+        "interval": 5000,
+        "max-archived-log-files": 1,
+        "max-log-files": 1,
+        "network-id": 10,
+        "network-name": network_name,
+        "region": "lon1",
+        "rewards-address": "0x03B770D9cD32077cC0bF330c13C114a87643B124"
+    }
+    
+    launch_network(config, "main", force=False, wait=False)
 
 def ls(show_details: bool = False) -> None:
     """List all recorded deployments."""
@@ -353,3 +384,105 @@ def upload_report(deployment_id: int) -> None:
     except Exception as e:
         print(f"Error uploading report: {e}")
         sys.exit(1)
+
+def download_report(deployment_id: int) -> None:
+    """Generate a report for downloads on a deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to generate download report for
+    """
+    try:
+        repo = NetworkDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Deployment with ID {deployment_id} not found")
+
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+        
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+        
+        print("\nStandard Downloader:")
+        standard_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nRandom Downloader:")
+        random_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nPerformance Downloader:")
+        perf_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\n\n")
+        print("=========")
+        print("Downloads")
+        print("=========")
+        print(f"{deployment.name}")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        print("  Standard Downloader:")
+        print(f"    - Successful downloads: {standard_successful}")
+        print(f"    - Errors: {standard_errors}")
+        print(f"    - Average download time: {standard_avg_time}s")
+        print("  Random Downloader:")
+        print(f"    - Successful downloads: {random_successful}")
+        print(f"    - Errors: {random_errors}")
+        print(f"    - Average download time: {random_avg_time}s")
+        print("  Performance Downloader:")
+        print(f"    - Successful downloads: {perf_successful}")
+        print(f"    - Errors: {perf_errors}")
+        print(f"    - Average download time: {perf_avg_time}s")
+            
+    except Exception as e:
+        print(f"Error generating download report: {e}")
+        sys.exit(1)
+
+def start_clients(network_name: str) -> None:
+    """Start clients for a network.
+    
+    Args:
+        network_name: Name of the network to start clients in
+    """
+    config = {
+        "network-name": network_name
+    }
+    
+    print("\nStarting uploaders...")
+    start_uploaders(config, "main", force=True, wait=False)
+    
+    print("\nStarting downloaders...")
+    start_downloaders(config, "main", force=True, wait=False)

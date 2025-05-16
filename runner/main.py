@@ -87,6 +87,17 @@ def main():
         help="ID of the deployment to smoke test"
     )
 
+    client_deployments_upload_report_parser = client_deployments_subparsers.add_parser(
+        "upload-report",
+        help="Upload a report for a client deployment"
+    )
+    client_deployments_upload_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to generate report for"
+    )
+
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
@@ -188,6 +199,15 @@ def main():
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
     
+    deployments_dev_parser = deployments_subparsers.add_parser(
+        "dev",
+        help="Launch a quick dev network with the latest binaries and Sepolia as the EVM provider")
+    deployments_dev_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the development environment (e.g. DEV-01)"
+    )
+    
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -237,6 +257,27 @@ def main():
         type=int,
         required=True,
         help="The ID of the deployment"
+    )
+
+    deployments_download_report_parser = deployments_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on a deployment used for a test"
+    )
+    deployments_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the deployment"
+    )
+
+    deployments_start_clients_parser = deployments_subparsers.add_parser(
+        "start-clients",
+        help="Start clients for a network"
+    )
+    deployments_start_clients_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the network"
     )
 
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
@@ -600,6 +641,8 @@ def main():
             client_deployments.post(args.id)
         elif args.client_deployments_command == "smoke-test":
             client_deployments.smoke_test(args.id)
+        elif args.client_deployments_command == "upload-report":
+            client_deployments.upload_report(args.id)
         else:
             client_deployments_parser.print_help()
             sys.exit(1)
@@ -624,7 +667,9 @@ def main():
             comparisons_parser.print_help()
             sys.exit(1)
     elif args.command == "deployments":
-        if args.deployments_command == "ls":
+        if args.deployments_command == "dev":
+            deployments.dev(args.name)
+        elif args.deployments_command == "ls":
             deployments.ls(show_details=args.details)
         elif args.deployments_command == "post":
             deployments.post(args.id)
@@ -634,6 +679,10 @@ def main():
             deployments.smoke_test(args.id)
         elif args.deployments_command == "upload-report":
             deployments.upload_report(args.id)
+        elif args.deployments_command == "download-report":
+            deployments.download_report(args.id)
+        elif args.deployments_command == "start-clients":
+            deployments.start_clients(args.name)
         else:
             deployments_parser.print_help()
             sys.exit(1)

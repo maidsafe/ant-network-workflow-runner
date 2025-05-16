@@ -1,7 +1,3 @@
-# Required
-# A value between 2 and 255 should be supplied for the network ID.
-# It is used to avoid cross-network interference.
-network-id: 2
 # Our monitoring infrastructure requires environment names to be restricted. The names should be in
 # the form `DEV-XX`, `STG-XX` or `PROD-XX`. For development environments, `DEV-01` through `DEV-08`
 # are available. Most environments will be in the development category. Staging will be reserved for
@@ -20,6 +16,11 @@ rewards-address: 0x03B770D9cD32077cC0bF330c13C114a87643B124
 # For Digital Ocean, we currently support "lon1" and "ams3".
 # It will default to "lon1".
 region: lon1
+
+# There is a table in the application that supplies network IDs based on the name of the
+# environment. If you need to override it, supply it here.
+# It should be a value between 3 and 255.
+network-id: 3
 
 # The downloaders will be running by default.
 # Use any of these three options to disable specific services.

@@ -95,32 +95,42 @@ class ComparisonRepository(BaseRepository[Comparison]):
 
     def list_comparisons(self) -> list[ComparisonSummary]:
         try:
-            stmt = (
+            comparisons_stmt = (
                 select(
                     Comparison.id,
-                    NetworkDeployment.name.label('ref_name'),
+                    Comparison.ref_id,
+                    Comparison.deployment_type,
                     Comparison.ref_label,
                     Comparison.thread_link,
                     Comparison.description,
                     Comparison.passed,
                     Comparison.created_at,
                 )
-                .join(NetworkDeployment, Comparison.ref_id == NetworkDeployment.id)
                 .order_by(Comparison.created_at.asc())
             )
             
-            results = self.db.execute(stmt).all()
-            
+            comparisons_results = self.db.execute(comparisons_stmt).all()
             summaries = []
-            for row in results:
+            
+            for row in comparisons_results:
+                deployment_type = row.deployment_type
+                if deployment_type == DeploymentType.NETWORK:
+                    deployment_model = NetworkDeployment
+                else:
+                    deployment_model = ClientDeployment
+                    
+                ref_deployment = self.db.query(deployment_model).filter(deployment_model.id == row.ref_id).first()
+                if not ref_deployment:
+                    continue
+                    
                 test_envs = (
-                    self.db.query(NetworkDeployment.name, ComparisonDeployment.label)
-                    .join(ComparisonDeployment, NetworkDeployment.id == ComparisonDeployment.deployment_id)
+                    self.db.query(deployment_model.name, ComparisonDeployment.label)
+                    .join(ComparisonDeployment, deployment_model.id == ComparisonDeployment.deployment_id)
                     .filter(ComparisonDeployment.comparison_id == row.id)
                     .all()
                 )
 
-                title = f"{row.ref_name}"
+                title = f"{ref_deployment.name}"
                 for _, label in test_envs:
                     title += f" vs {label}"
                 
@@ -130,6 +140,7 @@ class ComparisonRepository(BaseRepository[Comparison]):
                     thread_link=row.thread_link,
                     description=row.description,
                     created_at=row.created_at,
+                    deployment_type=deployment_type.value,
                 ))
                 
             return summaries
