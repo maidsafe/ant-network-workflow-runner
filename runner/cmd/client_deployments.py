@@ -151,11 +151,11 @@ def smoke_test(deployment_id: int) -> None:
         results[question] = answer
         
         if answer == "No":
-            should_continue = questionary.confirm("Abandon the test?").ask()
+            should_continue = questionary.confirm("Continue the test?").ask()
             if not should_continue:
                 for remaining_question in questions[questions.index(question) + 1:]:
                     results[remaining_question] = "N/A"
-            break
+                break
 
     repo.record_smoke_test_result(deployment_id, results)
     print("\nRecorded results")
