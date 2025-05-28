@@ -115,6 +115,9 @@ max-archived-log-files: 1
 max-log-files: 1
 # Environment variables to set for `antnode` services.
 node-env: LOG_LEVEL=debug,RUST_LOG=info
+# Upload interval in seconds. Use a longer interval if you have a small network you don't want to
+# fill up quickly.
+upload-interval: 10
 
 #
 # EVM options

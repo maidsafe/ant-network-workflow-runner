@@ -49,6 +49,9 @@ client-vm-count: 2
 client-vm-size: s-4vcpu-8gb
 # The number of uploader services on each client VM.
 uploaders-count: 1
+# Upload interval in seconds. Use a longer interval if you have a small network you don't want to
+# fill up quickly.
+upload-interval: 10
 
 # Miscellaneous options
 # Environment variables to set for the `ant` binary on the client VMs.

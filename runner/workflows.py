@@ -664,6 +664,7 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "region": "--region",
             "repo-owner": "--repo-owner",
             "rewards-address": "--rewards-address",
+            "upload-interval": "--upload-interval",
         }
         
         for config_key, arg_name in deploy_arg_mappings.items():
@@ -777,6 +778,7 @@ class ClientDeployWorkflow(WorkflowRun):
             "region": "--region",
             "repo-owner": "--repo-owner",
             "uploaders-count": "--uploaders-count",
+            "upload-interval": "--upload-interval",
             "upload-size": "--upload-size"
         }
         
