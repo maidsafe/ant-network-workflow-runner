@@ -45,6 +45,10 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     client_deployments_parser = subparsers.add_parser("client-deployments", help="Manage client deployments")
+    comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
+    deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
+    workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
+    
     client_deployments_subparsers = client_deployments_parser.add_subparsers(dest="client_deployments_command", help="Available client deployment commands")
 
     client_deployments_ls_parser = client_deployments_subparsers.add_parser("ls", help="List all client deployments")
@@ -98,7 +102,7 @@ def main():
         help="ID of the deployment to generate report for"
     )
 
-    comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
+    # comparisons subcommands
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
     add_thread_parser = comparisons_subparsers.add_parser("add-thread", help="Add thread link to a comparison")
@@ -115,6 +119,27 @@ def main():
         help="URL of the thread where the comparison was posted"
     )
 
+    comparisons_download_report_parser = comparisons_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on each environment in a comparison"
+    )
+    comparisons_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the comparison"
+    )
+
+    comparisons_linear_parser = comparisons_subparsers.add_parser("linear", help="Create an issue in Linear for a comparison")
+    comparisons_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison to create a Linear issue for"
+    )
+
+    comparisons_subparsers.add_parser("ls", help="List all comparisons")
+    
     comparisons_new_parser = comparisons_subparsers.add_parser("new", help="Create a new comparison")
     comparisons_new_parser.add_argument(
         "--deployment-type",
@@ -122,8 +147,14 @@ def main():
         default="network",
         help="Type of deployment to compare (network or client)"
     )
-
-    comparisons_subparsers.add_parser("ls", help="List all comparisons")
+    
+    comparisons_post_parser = comparisons_subparsers.add_parser("post", help="Post a comparison report to Slack")
+    comparisons_post_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison to post"
+    )
     
     comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
     comparisons_print_parser.add_argument(
@@ -165,22 +196,6 @@ def main():
         help="Mark the comparison as passed"
     )
     
-    comparisons_post_parser = comparisons_subparsers.add_parser("post", help="Post a comparison report to Slack")
-    comparisons_post_parser.add_argument(
-        "--id",
-        type=int,
-        required=True,
-        help="ID of the comparison to post"
-    )
-    
-    comparisons_linear_parser = comparisons_subparsers.add_parser("linear", help="Create an issue in Linear for a comparison")
-    comparisons_linear_parser.add_argument(
-        "--id",
-        type=int,
-        required=True,
-        help="ID of the comparison to create a Linear issue for"
-    )
-    
     comparisons_upload_report_parser = comparisons_subparsers.add_parser(
         "upload-report",
         help="Generate a report for uploads on each environment in a comparison"
@@ -192,19 +207,7 @@ def main():
         help="The ID of the comparison"
     )
 
-    comparisons_download_report_parser = comparisons_subparsers.add_parser(
-        "download-report",
-        help="Generate a report for downloads on each environment in a comparison"
-    )
-    comparisons_download_report_parser.add_argument(
-        "--id",
-        type=int,
-        required=True,
-        help="The ID of the comparison"
-    )
-
-    
-    deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
+    # deployments subcommands
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
     
     deployments_dev_parser = deployments_subparsers.add_parser(
@@ -216,6 +219,17 @@ def main():
         help="Name of the development environment (e.g. DEV-01)"
     )
     
+    deployments_download_report_parser = deployments_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on a deployment used for a test"
+    )
+    deployments_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the deployment"
+    )
+
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -256,6 +270,16 @@ def main():
         help="ID of the deployment to test"
     )
 
+    deployments_start_clients_parser = deployments_subparsers.add_parser(
+        "start-clients",
+        help="Start clients for a network"
+    )
+    deployments_start_clients_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the network"
+    )
+
     deployments_upload_report_parser = deployments_subparsers.add_parser(
         "upload-report",
         help="Generate a report for uploads on a deployment used for a test"
@@ -267,28 +291,7 @@ def main():
         help="The ID of the deployment"
     )
 
-    deployments_download_report_parser = deployments_subparsers.add_parser(
-        "download-report",
-        help="Generate a report for downloads on a deployment used for a test"
-    )
-    deployments_download_report_parser.add_argument(
-        "--id",
-        type=int,
-        required=True,
-        help="The ID of the deployment"
-    )
-
-    deployments_start_clients_parser = deployments_subparsers.add_parser(
-        "start-clients",
-        help="Start clients for a network"
-    )
-    deployments_start_clients_parser.add_argument(
-        "--name",
-        required=True,
-        help="Name of the network"
-    )
-
-    workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
+    # workflows subcommands and arguments
     workflows_parser.add_argument(
         "--wait",
         action="store_true",
@@ -431,6 +434,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    start_downloaders_parser = workflows_subparsers.add_parser("start-downloaders", help="Start downloaders on testnet nodes")
+    start_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    start_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     start_nodes_parser = workflows_subparsers.add_parser("start-nodes", help="Start testnet nodes")
     start_nodes_parser.add_argument(
         "--path",
@@ -467,13 +482,13 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    start_downloaders_parser = workflows_subparsers.add_parser("start-downloaders", help="Start downloaders on testnet nodes")
-    start_downloaders_parser.add_argument(
+    stop_downloaders_parser = workflows_subparsers.add_parser("stop-downloaders", help="Stop downloaders on testnet nodes")
+    stop_downloaders_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
     )
-    start_downloaders_parser.add_argument(
+    stop_downloaders_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -510,66 +525,6 @@ def main():
         help="Path to the inputs file"
     )
     stop_uploaders_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    update_peer_parser = workflows_subparsers.add_parser("update-peer", help="Update peer multiaddr on testnet nodes")
-    update_peer_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    update_peer_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    upgrade_antctl_parser = workflows_subparsers.add_parser("upgrade-antctl", help="Upgrade antctl version")
-    upgrade_antctl_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    upgrade_antctl_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    upgrade_network_parser = workflows_subparsers.add_parser("upgrade-network", help="Upgrade network nodes")
-    upgrade_network_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    upgrade_network_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    upgrade_clients_parser = workflows_subparsers.add_parser("upgrade-clients", help="Upgrade the clients to the specified version of autonomi")
-    upgrade_clients_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    upgrade_clients_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt before dispatching workflow"
-    )
-
-    upscale_network_parser = workflows_subparsers.add_parser("upscale-network", help="Upscale an existing network")
-    upscale_network_parser.add_argument(
-        "--path",
-        required=True,
-        help="Path to the inputs file"
-    )
-    upscale_network_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -620,13 +575,61 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    stop_downloaders_parser = workflows_subparsers.add_parser("stop-downloaders", help="Stop downloaders on testnet nodes")
-    stop_downloaders_parser.add_argument(
+    update_peer_parser = workflows_subparsers.add_parser("update-peer", help="Update peer multiaddr on testnet nodes")
+    update_peer_parser.add_argument(
         "--path",
         required=True,
         help="Path to the inputs file"
     )
-    stop_downloaders_parser.add_argument(
+    update_peer_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    upgrade_antctl_parser = workflows_subparsers.add_parser("upgrade-antctl", help="Upgrade antctl version")
+    upgrade_antctl_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_antctl_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    upgrade_clients_parser = workflows_subparsers.add_parser("upgrade-clients", help="Upgrade the clients to the specified version of autonomi")
+    upgrade_clients_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_clients_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    upgrade_network_parser = workflows_subparsers.add_parser("upgrade-network", help="Upgrade network nodes")
+    upgrade_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upgrade_network_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    upscale_network_parser = workflows_subparsers.add_parser("upscale-network", help="Upscale an existing network")
+    upscale_network_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    upscale_network_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -643,10 +646,10 @@ def main():
     if args.command == "client-deployments":
         if args.client_deployments_command == "ls":
             client_deployments.ls(show_details=args.details)
-        elif args.client_deployments_command == "print":
-            client_deployments.print_deployment(args.id)
         elif args.client_deployments_command == "post":
             client_deployments.post(args.id)
+        elif args.client_deployments_command == "print":
+            client_deployments.print_deployment(args.id)
         elif args.client_deployments_command == "smoke-test":
             client_deployments.smoke_test(args.id)
         elif args.client_deployments_command == "upload-report":
@@ -657,6 +660,10 @@ def main():
     elif args.command == "comparisons":
         if args.comparisons_command == "add-thread":
             comparisons.add_thread(args.id, args.link)
+        elif args.comparisons_command == "download-report":
+            comparisons.download_report(args.id)
+        elif args.comparisons_command == "linear":
+            comparisons.linear(args.id)
         elif args.comparisons_command == "ls":
             comparisons.ls()
         elif args.comparisons_command == "new":
@@ -669,16 +676,14 @@ def main():
             comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
         elif args.comparisons_command == "upload-report":
             comparisons.upload_report(args.id)
-        elif args.comparisons_command == "download-report":
-            comparisons.download_report(args.id)
-        elif args.comparisons_command == "linear":
-            comparisons.linear(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)
     elif args.command == "deployments":
         if args.deployments_command == "dev":
             deployments.dev(args.name)
+        elif args.deployments_command == "download-report":
+            deployments.download_report(args.id)
         elif args.deployments_command == "ls":
             deployments.ls(show_details=args.details)
         elif args.deployments_command == "post":
@@ -687,12 +692,10 @@ def main():
             deployments.print_deployment(args.id)
         elif args.deployments_command == "smoke-test":
             deployments.smoke_test(args.id)
-        elif args.deployments_command == "upload-report":
-            deployments.upload_report(args.id)
-        elif args.deployments_command == "download-report":
-            deployments.download_report(args.id)
         elif args.deployments_command == "start-clients":
             deployments.start_clients(args.name)
+        elif args.deployments_command == "upload-report":
+            deployments.upload_report(args.id)
         else:
             deployments_parser.print_help()
             sys.exit(1)
@@ -729,6 +732,9 @@ def main():
         elif args.workflows_command == "reset-to-n-nodes":
             config = load_yaml_config(args.path)
             workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "start-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.start_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "start-nodes":
             config = load_yaml_config(args.path)
             workflows.start_nodes(config, args.branch, args.force, args.wait)
@@ -738,9 +744,9 @@ def main():
         elif args.workflows_command == "start-uploaders":
             config = load_yaml_config(args.path)
             workflows.start_uploaders(config, args.branch, args.force, args.wait)
-        elif args.workflows_command == "start-downloaders":
+        elif args.workflows_command == "stop-downloaders":
             config = load_yaml_config(args.path)
-            workflows.start_downloaders(config, args.branch, args.force, args.wait)
+            workflows.stop_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "stop-nodes":
             config = load_yaml_config(args.path)
             workflows.stop_nodes(config, args.branch, args.force, args.wait)
@@ -774,9 +780,6 @@ def main():
         elif args.workflows_command == "upscale-network":
             config = load_yaml_config(args.path)
             workflows.upscale_network(config, args.branch, args.force, args.wait)
-        elif args.workflows_command == "stop-downloaders":
-            config = load_yaml_config(args.path)
-            workflows.stop_downloaders(config, args.branch, args.force, args.wait)
         else:
             workflows_parser.print_help()
             sys.exit(1)
