@@ -173,6 +173,14 @@ def main():
         help="ID of the comparison to post"
     )
     
+    comparisons_linear_parser = comparisons_subparsers.add_parser("linear", help="Create an issue in Linear for a comparison")
+    comparisons_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the comparison to create a Linear issue for"
+    )
+    
     comparisons_upload_report_parser = comparisons_subparsers.add_parser(
         "upload-report",
         help="Generate a report for uploads on each environment in a comparison"
@@ -663,6 +671,8 @@ def main():
             comparisons.upload_report(args.id)
         elif args.comparisons_command == "download-report":
             comparisons.download_report(args.id)
+        elif args.comparisons_command == "linear":
+            comparisons.linear(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)

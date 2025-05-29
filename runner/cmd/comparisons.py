@@ -1,9 +1,10 @@
+import logging
 import os
 import requests
 import sys
 
 from datetime import datetime, UTC
-from typing import List
+from typing import List, Dict, Optional
 
 import questionary
 from rich import print as rprint
@@ -15,6 +16,8 @@ from runner.reporting import build_comparison_report, build_comparison_smoke_tes
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
+
+LINEAR_TEAMS = ["Infrastructure", "Releases", "Tech"]
 
 def add_thread(comparison_id: int, thread_link: str) -> None:
     """Add or update the thread link for a comparison.
@@ -432,4 +435,294 @@ def download_report(comparison_id: int) -> None:
             
     except Exception as e:
         print(f"Error generating download report: {e}")
+        sys.exit(1)
+
+def linear(comparison_id: int) -> None:
+    """Create an issue in Linear for a comparison.
+    
+    Args:
+        comparison_id: ID of the comparison to create an issue for
+    """
+    try:
+        repo = ComparisonRepository()
+        comparison = repo.get_by_id(comparison_id)
+        if not comparison:
+            raise ValueError(f"Comparison with ID {comparison_id} not found")
+
+        report = build_comparison_report(comparison)
+        smoke_test_report = build_comparison_smoke_test_report(comparison)
+        
+        if comparison.deployment_type == DeploymentType.NETWORK:
+            full_report = f"{report}\n\n{smoke_test_report}"
+        elif comparison.deployment_type == DeploymentType.CLIENT:
+            full_report = f"{report}\n\n{smoke_test_report}"
+        else:
+            full_report = report
+        
+        team = questionary.select(
+            "Select team:",
+            choices=LINEAR_TEAMS
+        ).ask()
+        
+        api_key_env_var = f"ANT_RUNNER_LINEAR_{team.upper()}_API_KEY"
+        linear_api_key = os.getenv(api_key_env_var)
+        if not linear_api_key:
+            print(f"Error: {api_key_env_var} environment variable is not set")
+            sys.exit(1)
+        
+        teams_query = """
+        {
+          teams {
+            nodes {
+              id
+              name
+            }
+          }
+        }
+        """
+        
+        response = requests.post(
+            "https://api.linear.app/graphql",
+            json={"query": teams_query},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": linear_api_key
+            }
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        if "errors" in result:
+            print(f"Error fetching Linear teams: {result['errors']}")
+            sys.exit(1)
+        
+        teams = result.get("data", {}).get("teams", {}).get("nodes", [])
+        if not teams:
+            print("No teams found")
+            sys.exit(1)
+            
+        team_id = next((t["id"] for t in teams if t["name"] == team), None)
+        if not team_id:
+            print(f"Team ID not found for {team}")
+            sys.exit(1)
+
+        logging.debug(f"Obtained team ID for {team}: {team_id}")
+        
+        labels_query = """
+        query GetLabels($teamId: String!) {
+          team(id: $teamId) {
+            labels {
+              nodes {
+                id
+                name
+              }
+            }
+          }
+        }
+        """
+        
+        response = requests.post(
+            "https://api.linear.app/graphql",
+            json={"query": labels_query, "variables": {"teamId": team_id}},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": linear_api_key
+            }
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        if "errors" in result:
+            print(f"Error fetching Linear labels: {result['errors']}")
+            sys.exit(1)
+        
+        labels = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
+        if not labels:
+            print(f"No labels found for team {team}")
+            sys.exit(1)
+            
+        qa_label_id = next((label["id"] for label in labels if label["name"].lower() == "qa"), None)
+        if not qa_label_id:
+            print("QA label not found. Please create a 'QA' label in Linear first.")
+            sys.exit(1)
+            
+        logging.debug(f"Obtained label ID for QA: {qa_label_id}")
+            
+        projects_query = """
+        query GetProjects($teamId: String!) {
+          team(id: $teamId) {
+            projects {
+              nodes {
+                id
+                name
+              }
+            }
+          }
+        }
+        """
+        
+        response = requests.post(
+            "https://api.linear.app/graphql",
+            json={"query": projects_query, "variables": {"teamId": team_id}},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": linear_api_key
+            }
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        if "errors" in result:
+            print(f"Error fetching Linear projects: {result['errors']}")
+            sys.exit(1)
+        
+        projects = result.get("data", {}).get("team", {}).get("projects", {}).get("nodes", [])
+        if not projects:
+            print(f"No projects found for team {team}")
+            sys.exit(1)
+        
+        project_choices = sorted([p["name"] for p in projects])
+        project_name = questionary.select(
+            "Select project:",
+            choices=project_choices
+        ).ask()
+        
+        project_id = next((p["id"] for p in projects if p["name"] == project_name), None)
+        if not project_id:
+            print(f"Project ID not found for {project_name}")
+            sys.exit(1)
+        
+        states_query = """
+        query GetWorkflowStates($teamId: String!) {
+          team(id: $teamId) {
+            states {
+              nodes {
+                id
+                name
+              }
+            }
+          }
+        }
+        """
+        
+        response = requests.post(
+            "https://api.linear.app/graphql",
+            json={"query": states_query, "variables": {"teamId": team_id}},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": linear_api_key
+            }
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        if "errors" in result:
+            print(f"Error fetching Linear workflow states: {result['errors']}")
+            sys.exit(1)
+        
+        states = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
+        if not states:
+            print(f"No workflow states found for team {team}")
+            sys.exit(1)
+            
+        in_progress_state_id = next((state["id"] for state in states if state["name"].lower() == "in progress"), None)
+        if not in_progress_state_id:
+            print("'In Progress' state not found for this team. The issue will be created with the default state.")
+            logging.debug(f"Available states: {[state['name'] for state in states]}")
+            sys.exit(1)
+            
+        logging.debug(f"Obtained state ID for 'In Progress': {in_progress_state_id}")
+        
+        if comparison.deployment_type == DeploymentType.NETWORK:
+            title = "Environment Comparison: "
+            for i, (deployment, label) in enumerate(comparison.test_environments):
+                if label.isdigit():
+                    label = f"#{label}"
+                title += f"`{label}` [{deployment.name}]"
+                if i < len(comparison.test_environments) - 1:
+                    title += " vs "
+            title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
+        else:
+            title = "Client Comparison: "
+            for i, (_, label) in enumerate(comparison.test_environments):
+                if label.isdigit():
+                    label = f"#{label}"
+                title += f"`{label}` [{deployment.name}]"
+                if i < len(comparison.test_environments) - 1:
+                    title += " vs "
+            title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
+        
+        graphql_query = """
+        mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $projectId: String!, $labelIds: [String!], $stateId: String) {
+          issueCreate(input: {
+            title: $title,
+            description: $description,
+            teamId: $teamId,
+            projectId: $projectId,
+            labelIds: $labelIds,
+            stateId: $stateId
+          }) {
+            success
+            issue {
+              id
+              identifier
+              url
+            }
+          }
+        }
+        """
+        
+        variables = {
+            "title": title,
+            "description": full_report,
+            "teamId": team_id,
+            "projectId": project_id,
+            "labelIds": [qa_label_id],
+            "stateId": in_progress_state_id
+        }
+            
+        logging.debug(f"Project ID: {project_id}")
+        logging.debug(f"Team ID: {team_id}")
+        logging.debug(f"Request variables: {variables}")
+        
+        try:
+            response = requests.post(
+                "https://api.linear.app/graphql",
+                json={"query": graphql_query, "variables": variables},
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": linear_api_key
+                }
+            )
+            
+            logging.debug(f"Response status code: {response.status_code}")
+            logging.debug(f"Response content: {response.text}")
+            
+            response.raise_for_status()
+            
+            result = response.json()
+            if "errors" in result:
+                print(f"GraphQL errors: {result['errors']}")
+                sys.exit(1)
+                
+            if result.get("data", {}).get("issueCreate", {}).get("success"):
+                issue = result["data"]["issueCreate"]["issue"]
+                print(f"Created issue {issue['identifier']}: {issue['url']}")
+            else:
+                print(f"Failed to create issue. Response data: {result}")
+                sys.exit(1)
+        except requests.exceptions.RequestException as e:
+            print(f"Error making request to Linear API: {e}")
+            print(f"Request details:")
+            print(f"  - URL: https://api.linear.app/graphql")
+            print(f"  - Query: {graphql_query}")
+            print(f"  - Variables: {variables}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"  - Response status: {e.response.status_code}")
+                print(f"  - Response text: {e.response.text}")
+            sys.exit(1)
+    except Exception as e:
+        import traceback
+        print(f"Error: {e}")
+        print(traceback.format_exc())
         sys.exit(1)
