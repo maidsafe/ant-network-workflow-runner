@@ -6,7 +6,10 @@ from .models import (
     ClientSmokeTestResult,
     Comparison,
     ComparisonDeployment,
+    ComparisonResult,
     ComparisonSummary,
+    ComparisonUploadResult,
+    ComparisonDownloadResult,
     DeploymentType,
     RecentDeployment,
     SmokeTestResult,
@@ -130,9 +133,11 @@ class ComparisonRepository(BaseRepository[Comparison]):
                     .all()
                 )
 
-                title = f"{ref_deployment.name}"
-                for _, label in test_envs:
-                    title += f" vs {label}"
+                title = ""
+                for deployment, label in test_envs:
+                    title += f"{label} [{deployment}] vs "
+                title = title[:-4]
+                title += f" vs {row.ref_label} [{ref_deployment.name}]"
                 
                 summaries.append(ComparisonSummary(
                     id=row.id,
@@ -144,6 +149,57 @@ class ComparisonRepository(BaseRepository[Comparison]):
                 ))
                 
             return summaries
+        finally:
+            self.db.close()
+
+class ComparisonResultRepository(BaseRepository[ComparisonResult]):
+    def __init__(self):
+        super().__init__(ComparisonResult)
+
+    def get_results(self, comparison_id: int) -> Optional[ComparisonResult]:
+        return self.db.query(ComparisonResult).filter(ComparisonResult.comparison_id == comparison_id).first()
+
+class ComparisonUploadResultRepository(BaseRepository[ComparisonUploadResult]):
+    def __init__(self):
+        super().__init__(ComparisonUploadResult)
+
+    def get_results_for_comparison(self, comparison_id: int) -> list[ComparisonUploadResult]:
+        """Get all upload results for a specific comparison.
+        
+        Args:
+            comparison_id: ID of the comparison
+            
+        Returns:
+            List of ComparisonUploadResult instances
+        """
+        try:
+            return (
+                self.db.query(ComparisonUploadResult)
+                .filter(ComparisonUploadResult.comparison_id == comparison_id)
+                .all()
+            )
+        finally:
+            self.db.close()
+
+class ComparisonDownloadResultRepository(BaseRepository[ComparisonDownloadResult]):
+    def __init__(self):
+        super().__init__(ComparisonDownloadResult)
+
+    def get_results_for_comparison(self, comparison_id: int) -> list[ComparisonDownloadResult]:
+        """Get all download results for a specific comparison.
+        
+        Args:
+            comparison_id: ID of the comparison
+            
+        Returns:
+            List of ComparisonDownloadResult instances
+        """
+        try:
+            return (
+                self.db.query(ComparisonDownloadResult)
+                .filter(ComparisonDownloadResult.comparison_id == comparison_id)
+                .all()
+            )
         finally:
             self.db.close()
 

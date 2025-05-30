@@ -102,7 +102,6 @@ def main():
         help="ID of the deployment to generate report for"
     )
 
-    # comparisons subcommands
     comparisons_subparsers = comparisons_parser.add_subparsers(dest="comparisons_command", help="Available comparison commands")
     
     add_thread_parser = comparisons_subparsers.add_parser("add-thread", help="Add thread link to a comparison")
@@ -119,18 +118,7 @@ def main():
         help="URL of the thread where the comparison was posted"
     )
 
-    comparisons_download_report_parser = comparisons_subparsers.add_parser(
-        "download-report",
-        help="Generate a report for downloads on each environment in a comparison"
-    )
-    comparisons_download_report_parser.add_argument(
-        "--id",
-        type=int,
-        required=True,
-        help="The ID of the comparison"
-    )
-
-    comparisons_linear_parser = comparisons_subparsers.add_parser("linear", help="Create an issue in Linear for a comparison")
+    comparisons_linear_parser = comparisons_subparsers.add_parser("linear", help="Create an issue in Linear for the comparison")
     comparisons_linear_parser.add_argument(
         "--id",
         type=int,
@@ -156,12 +144,23 @@ def main():
         help="ID of the comparison to post"
     )
     
-    comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a specific comparison")
+    comparisons_print_parser = comparisons_subparsers.add_parser("print", help="Print details of a comparison")
     comparisons_print_parser.add_argument(
         "--id",
         type=int,
         required=True,
         help="ID of the comparison to print"
+    )
+
+    comparisons_print_results_parser = comparisons_subparsers.add_parser(
+        "print-results",
+        help="Print the results for a comparison"
+    )
+    comparisons_print_results_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the comparison"
     )
     
     record_results_parser = comparisons_subparsers.add_parser("record-results", help="Record comparison results")
@@ -172,33 +171,38 @@ def main():
         help="ID of the comparison"
     )
     record_results_parser.add_argument(
-        "--start",
+        "--generic-nodes-report-path",
         type=str,
-        required=True,
-        help="Start timestamp of the comparison"
+        required=False,
+        help="Path to the generic nodes HTML report file"
     )
     record_results_parser.add_argument(
-        "--end",
+        "--full-cone-nat-nodes-report-path",
         type=str,
-        required=True,
-        help="End timestamp of the comparison"
+        required=False,
+        help="Path to the full cone NAT nodes HTML report file"
     )
     record_results_parser.add_argument(
-        "--path",
+        "--symmetric-nat-nodes-report-path",
         type=str,
-        required=True,
-        help="Path to the HTML report file"
+        required=False,
+        help="Path to the symmetric NAT nodes HTML report file"
     )
-    record_results_parser.add_argument(
-        "--pass",
-        dest="passed",
-        action="store_true",
-        help="Mark the comparison as passed"
+
+    comparisons_download_report_parser = comparisons_subparsers.add_parser(
+        "record-download-results",
+        help="Record the download results for each environment in a comparison"
+    )
+    comparisons_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="The ID of the comparison"
     )
     
     comparisons_upload_report_parser = comparisons_subparsers.add_parser(
-        "upload-report",
-        help="Generate a report for uploads on each environment in a comparison"
+        "record-upload-results",
+        help="Record the upload results for each environment in a comparison"
     )
     comparisons_upload_report_parser.add_argument(
         "--id",
@@ -207,9 +211,7 @@ def main():
         help="The ID of the comparison"
     )
 
-    # deployments subcommands
     deployments_subparsers = deployments_parser.add_subparsers(dest="deployments_command", help="Available deployment commands")
-    
     deployments_dev_parser = deployments_subparsers.add_parser(
         "dev",
         help="Launch a quick dev network with the latest binaries and Sepolia as the EVM provider")
@@ -291,7 +293,6 @@ def main():
         help="The ID of the deployment"
     )
 
-    # workflows subcommands and arguments
     workflows_parser.add_argument(
         "--wait",
         action="store_true",
@@ -660,8 +661,6 @@ def main():
     elif args.command == "comparisons":
         if args.comparisons_command == "add-thread":
             comparisons.add_thread(args.id, args.link)
-        elif args.comparisons_command == "download-report":
-            comparisons.download_report(args.id)
         elif args.comparisons_command == "linear":
             comparisons.linear(args.id)
         elif args.comparisons_command == "ls":
@@ -672,10 +671,14 @@ def main():
             comparisons.post(args.id)
         elif args.comparisons_command == "print":
             comparisons.print_comparison(args.id)
+        elif args.comparisons_command == "print-results":
+            comparisons.print_results(args.id)
         elif args.comparisons_command == "record-results":
-            comparisons.record_results(args.id, args.start, args.end, args.path, args.passed)
-        elif args.comparisons_command == "upload-report":
-            comparisons.upload_report(args.id)
+            comparisons.record_results(args.id, args.generic_nodes_report_path, args.full_cone_nat_nodes_report_path, args.symmetric_nat_nodes_report_path)
+        elif args.comparisons_command == "record-download-results":
+            comparisons.record_download_results(args.id)
+        elif args.comparisons_command == "record-upload-results":
+            comparisons.record_upload_results(args.id)
         else:
             comparisons_parser.print_help()
             sys.exit(1)
