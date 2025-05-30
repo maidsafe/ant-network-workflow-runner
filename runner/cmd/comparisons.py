@@ -759,20 +759,7 @@ def linear(comparison_id: int) -> None:
         }
         """
         
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": teams_query},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear teams: {result['errors']}")
-            sys.exit(1)
+        result = _make_linear_api_request(teams_query, {}, linear_api_key)
         
         teams = result.get("data", {}).get("teams", {}).get("nodes", [])
         if not teams:
@@ -799,20 +786,7 @@ def linear(comparison_id: int) -> None:
         }
         """
         
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": labels_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear labels: {result['errors']}")
-            sys.exit(1)
+        result = _make_linear_api_request(labels_query, {"teamId": team_id}, linear_api_key)
         
         labels = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
         if not labels:
@@ -839,20 +813,7 @@ def linear(comparison_id: int) -> None:
         }
         """
         
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": projects_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear projects: {result['errors']}")
-            sys.exit(1)
+        result = _make_linear_api_request(projects_query, {"teamId": team_id}, linear_api_key)
         
         projects = result.get("data", {}).get("team", {}).get("projects", {}).get("nodes", [])
         if not projects:
@@ -883,20 +844,7 @@ def linear(comparison_id: int) -> None:
         }
         """
         
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": states_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear workflow states: {result['errors']}")
-            sys.exit(1)
+        result = _make_linear_api_request(states_query, {"teamId": team_id}, linear_api_key)
         
         states = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
         if not states:
@@ -963,44 +911,91 @@ def linear(comparison_id: int) -> None:
         logging.debug(f"Team ID: {team_id}")
         logging.debug(f"Request variables: {variables}")
         
-        try:
-            response = requests.post(
-                "https://api.linear.app/graphql",
-                json={"query": graphql_query, "variables": variables},
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": linear_api_key
-                }
-            )
+        result = _make_linear_api_request(graphql_query, variables, linear_api_key)
+        
+        if result.get("data", {}).get("issueCreate", {}).get("success"):
+            issue = result["data"]["issueCreate"]["issue"]
+            print(f"Created issue {issue['identifier']}: {issue['url']}")
+        else:
+            print(f"Failed to create issue. Response data: {result}")
+            sys.exit(1)
             
-            logging.debug(f"Response status code: {response.status_code}")
-            logging.debug(f"Response content: {response.text}")
-            
-            response.raise_for_status()
-            
-            result = response.json()
-            if "errors" in result:
-                print(f"GraphQL errors: {result['errors']}")
-                sys.exit(1)
-                
-            if result.get("data", {}).get("issueCreate", {}).get("success"):
-                issue = result["data"]["issueCreate"]["issue"]
-                print(f"Created issue {issue['identifier']}: {issue['url']}")
-            else:
-                print(f"Failed to create issue. Response data: {result}")
-                sys.exit(1)
-        except requests.exceptions.RequestException as e:
-            print(f"Error making request to Linear API: {e}")
-            print(f"Request details:")
-            print(f"  - URL: https://api.linear.app/graphql")
-            print(f"  - Query: {graphql_query}")
-            print(f"  - Variables: {variables}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"  - Response status: {e.response.status_code}")
-                print(f"  - Response text: {e.response.text}")
+        project_update_query = """
+        mutation CreateProjectUpdate($projectId: String!, $body: String!) {
+          projectUpdateCreate(input: {
+            projectId: $projectId,
+            body: $body
+          }) {
+            success
+            projectUpdate {
+              id
+              url
+            }
+          }
+        }
+        """
+        
+        update_variables = {
+            "projectId": project_id,
+            "body": full_report
+        }
+        
+        update_result = _make_linear_api_request(project_update_query, update_variables, linear_api_key)
+        
+        if update_result.get("data", {}).get("projectUpdateCreate", {}).get("success"):
+            project_update = update_result["data"]["projectUpdateCreate"]["projectUpdate"]
+            print(f"Created project update: {project_update['url']}")
+        else:
+            print(f"Failed to create project update. Response data: {update_result}")
             sys.exit(1)
     except Exception as e:
         import traceback
         print(f"Error: {e}")
         print(traceback.format_exc())
         sys.exit(1)
+        
+def _make_linear_api_request(query: str, variables: Dict, api_key: str) -> Dict:
+    """Make a request to the Linear API with error handling.
+    
+    Args:
+        query: The GraphQL query to execute
+        variables: The variables for the GraphQL query
+        api_key: The Linear API key to use for authentication
+        
+    Returns:
+        The JSON response from the API
+        
+    Raises:
+        Exception: If the request fails or returns GraphQL errors
+    """
+    try:
+        response = requests.post(
+            "https://api.linear.app/graphql",
+            json={"query": query, "variables": variables},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": api_key
+            }
+        )
+        
+        logging.debug(f"Response status code: {response.status_code}")
+        logging.debug(f"Response content: {response.text}")
+        
+        response.raise_for_status()
+        
+        result = response.json()
+        if "errors" in result:
+            error_message = result.get("errors", [])[0].get("message", "Unknown GraphQL error")
+            raise Exception(f"GraphQL error: {error_message}")
+            
+        return result
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request to Linear API: {e}")
+        print(f"Request details:")
+        print(f"  - URL: https://api.linear.app/graphql")
+        print(f"  - Query: {query}")
+        print(f"  - Variables: {variables}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"  - Response status: {e.response.status_code}")
+            print(f"  - Response text: {e.response.text}")
+        raise
