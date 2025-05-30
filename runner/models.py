@@ -155,6 +155,65 @@ class Comparison(Base):
     def test_environments(self):
         return [(cd.deployment, cd.label) for cd in self.test_deployments]
 
+class ComparisonResult(Base):
+    __tablename__ = "comparison_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    comparison_id = Column(Integer, ForeignKey("comparisons.id"), nullable=False)
+    generic_nodes_report = Column(String)
+    full_cone_nat_nodes_report = Column(String)
+    symmetric_nat_nodes_report = Column(String)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    description = Column(String, nullable=False)
+
+class ComparisonUploadResult(Base):
+    __tablename__ = "comparison_upload_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    comparison_id = Column(Integer, ForeignKey("comparisons.id"), nullable=False)
+    deployment_id = Column(Integer, ForeignKey("base_deployments.id"), nullable=False)
+    env_name = Column(String, nullable=False)
+    label = Column(String)
+    total_uploaders = Column(Integer, nullable=False)
+    successful_uploads = Column(Integer, nullable=False)
+    records_uploaded = Column(Integer, nullable=False)
+    avg_upload_time = Column(String, nullable=False)
+    chunk_proof_error_count = Column(String, nullable=False)
+    not_enough_quotes_error_count = Column(String, nullable=False)
+    other_error_count = Column(String, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    
+    comparison = relationship("Comparison", backref="upload_results")
+    deployment = relationship("BaseDeployment")
+
+class ComparisonDownloadResult(Base):
+    __tablename__ = "comparison_download_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    comparison_id = Column(Integer, ForeignKey("comparisons.id"), nullable=False)
+    deployment_id = Column(Integer, ForeignKey("base_deployments.id"), nullable=False)
+    env_name = Column(String, nullable=False)
+    label = Column(String)
+    standard_successful = Column(Integer, nullable=False)
+    standard_errors = Column(Integer, nullable=False)
+    standard_avg_time = Column(String, nullable=False)
+    random_successful = Column(Integer, nullable=False)
+    random_errors = Column(Integer, nullable=False)
+    random_avg_time = Column(String, nullable=False)
+    perf_successful = Column(Integer, nullable=False)
+    perf_errors = Column(Integer, nullable=False)
+    perf_avg_time = Column(String, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    
+    comparison = relationship("Comparison", backref="download_results")
+    deployment = relationship("BaseDeployment")
+
 class SmokeTestResult(Base):
     __tablename__ = "smoke_test_results"
 
