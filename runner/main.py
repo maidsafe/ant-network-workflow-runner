@@ -232,6 +232,16 @@ def main():
         help="The ID of the deployment"
     )
 
+    deployments_linear_parser = deployments_subparsers.add_parser(
+        "linear", 
+        help="Create an issue in Linear for the deployment"
+    )
+    deployments_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to create a Linear issue for"
+    )
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -687,6 +697,8 @@ def main():
             deployments.dev(args.name)
         elif args.deployments_command == "download-report":
             deployments.download_report(args.id)
+        elif args.deployments_command == "linear":
+            deployments.linear(args.id)
         elif args.deployments_command == "ls":
             deployments.ls(show_details=args.details)
         elif args.deployments_command == "post":
