@@ -703,19 +703,26 @@ class LaunchNetworkWorkflow(WorkflowRun):
 
 class ClientDeployWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
-                 personal_access_token: str, branch_name: str, network_name: str,
+                 personal_access_token: str, branch_name: str, deployment_name: str,
                  config: Dict[str, Any]):
         super().__init__(owner, repo, id, personal_access_token, branch_name, name="Client Deploy")
-        self.network_name = network_name
+        self.deployment_name = deployment_name
+        # The network name field is mandatory to process all workflows in a uniform manner, even
+        # though it doesn't really apply to the client deploy workflow.
+        self.network_name = deployment_name
         self.config = config
         self._validate_config()
 
     def _validate_config(self) -> None:
         """Validate the configuration inputs."""
-        required_fields = ["network-name", "environment-type"]
+        required_fields = ["deployment-name", "environment-type", "network-id"]
         for field in required_fields:
             if field not in self.config:
                 raise KeyError(field)
+                
+        network_id = self.config["network-id"]
+        if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+            raise ValueError("network-id must be an integer between 1 and 255")
                 
         has_version = "ant-version" in self.config
         
@@ -733,17 +740,13 @@ class ClientDeployWorkflow(WorkflowRun):
     def get_workflow_inputs(self) -> Dict[str, Any]:
         """Get inputs specific to the client deploy workflow."""
         inputs = {
-            "name": self.network_name,
+            "name": self.deployment_name,
             "environment-type": self.config["environment-type"],
+            "network-id": str(self.config["network-id"])
         }
 
         if "ant-version" in self.config:
             inputs["ant-version"] = self.config["ant-version"]
-        if "network-id" in self.config:
-            network_id = self.config["network-id"]
-            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
-                raise ValueError("network-id must be an integer between 1 and 255")
-            inputs["network-id"] = str(network_id)
         if "provider" in self.config:
             inputs["provider"] = self.config["provider"]
         if "wallet-secret-keys" in self.config:
