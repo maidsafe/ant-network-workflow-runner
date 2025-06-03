@@ -304,6 +304,16 @@ def main():
         help="Name of the network"
     )
 
+    deployments_stop_clients_parser = deployments_subparsers.add_parser(
+        "stop-clients",
+        help="Stop clients for a network"
+    )
+    deployments_stop_clients_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the network"
+    )
+
     deployments_upload_report_parser = deployments_subparsers.add_parser(
         "upload-report",
         help="Generate a report for uploads on a deployment used for a test"
@@ -723,6 +733,8 @@ def main():
             deployments.smoke_test(args.id)
         elif args.deployments_command == "start-clients":
             deployments.start_clients(args.name)
+        elif args.deployments_command == "stop-clients":
+            deployments.stop_clients(args.name)
         elif args.deployments_command == "upload-report":
             deployments.upload_report(args.id)
         else:

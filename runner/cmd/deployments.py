@@ -9,7 +9,7 @@ from rich import print as rprint
 from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
-from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders
+from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders, stop_uploaders, stop_downloaders
 from runner.linear import LINEAR_TEAMS, get_api_key, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
 
 REPO_OWNER = "maidsafe"
@@ -487,6 +487,22 @@ def start_clients(network_name: str) -> None:
     
     print("\nStarting downloaders...")
     start_downloaders(config, "main", force=True, wait=False)
+
+def stop_clients(network_name: str) -> None:
+    """Stop clients for a network.
+    
+    Args:
+        network_name: Name of the network to stop clients in
+    """
+    config = {
+        "network-name": network_name
+    }
+    
+    print("\nStopping uploaders...")
+    stop_uploaders(config, "main", force=True, wait=False)
+    
+    print("\nStopping downloaders...")
+    stop_downloaders(config, "main", force=True, wait=False)
 
 def linear(deployment_id: int) -> None:
     """Create an issue in Linear for a deployment.
