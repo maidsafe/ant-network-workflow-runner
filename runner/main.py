@@ -91,6 +91,17 @@ def main():
         help="ID of the deployment to smoke test"
     )
 
+    client_deployments_linear_parser = client_deployments_subparsers.add_parser(
+        "linear", 
+        help="Create an issue in Linear for the client deployment"
+    )
+    client_deployments_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to create a Linear issue for"
+    )
+
     client_deployments_upload_report_parser = client_deployments_subparsers.add_parser(
         "upload-report",
         help="Upload a report for a client deployment"
@@ -242,6 +253,7 @@ def main():
         required=True,
         help="ID of the deployment to create a Linear issue for"
     )
+
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -657,6 +669,8 @@ def main():
     if args.command == "client-deployments":
         if args.client_deployments_command == "ls":
             client_deployments.ls(show_details=args.details)
+        elif args.client_deployments_command == "linear":
+            client_deployments.linear(args.id)
         elif args.client_deployments_command == "post":
             client_deployments.post(args.id)
         elif args.client_deployments_command == "print":
