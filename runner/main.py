@@ -80,6 +80,17 @@ def main():
         help="ID of the client deployment to print"
     )
 
+    client_deployments_download_report_parser = client_deployments_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on a client deployment"
+    )
+    client_deployments_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to generate download report for"
+    )
+
     client_deployments_smoke_test_parser = client_deployments_subparsers.add_parser(
         "smoke-test", 
         help="Smoke test a deployment"
@@ -689,6 +700,8 @@ def main():
             client_deployments.smoke_test(args.id)
         elif args.client_deployments_command == "upload-report":
             client_deployments.upload_report(args.id)
+        elif args.client_deployments_command == "download-report":
+            client_deployments.download_report(args.id)
         else:
             client_deployments_parser.print_help()
             sys.exit(1)

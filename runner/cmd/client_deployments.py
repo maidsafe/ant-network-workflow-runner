@@ -228,6 +228,92 @@ def upload_report(deployment_id: int) -> None:
         print(f"Error uploading report: {e}")
         sys.exit(1)
 
+def download_report(deployment_id: int) -> None:
+    """Generate a report for downloads on a client deployment.
+    
+    Args:
+        deployment_id: ID of the client deployment to generate download report for
+    """
+    try:
+        repo = ClientDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Client deployment with ID {deployment_id} not found")
+
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+        
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+        
+        print("\nStandard Downloader:")
+        standard_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nRandom Downloader:")
+        random_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nPerformance Downloader:")
+        perf_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\n\n")
+        print("=========")
+        print("Downloads")
+        print("=========")
+        print(f"{deployment.name}")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        print("  Standard Downloader:")
+        print(f"    - Successful downloads: {standard_successful}")
+        print(f"    - Errors: {standard_errors}")
+        print(f"    - Average download time: {standard_avg_time}s")
+        print("  Random Downloader:")
+        print(f"    - Successful downloads: {random_successful}")
+        print(f"    - Errors: {random_errors}")
+        print(f"    - Average download time: {random_avg_time}s")
+        print("  Performance Downloader:")
+        print(f"    - Successful downloads: {perf_successful}")
+        print(f"    - Errors: {perf_errors}")
+        print(f"    - Average download time: {perf_avg_time}s")
+            
+    except Exception as e:
+        print(f"Error generating download report: {e}")
+        sys.exit(1)
+
 def _build_deployment_and_smoke_test_report(deployment: ClientDeployment) -> str:
     """Build a detailed report about a specific deployment.
     
