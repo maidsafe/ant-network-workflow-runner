@@ -735,23 +735,18 @@ def linear(comparison_id: int) -> None:
         else:
             full_report = report
         
-        team = questionary.select(
-            "Select team:",
-            choices=LINEAR_TEAMS
-        ).ask()
-        
         try:
+            team = "QA"
             api_key = get_api_key(team)
             team_id = get_team_id(team, api_key)
             qa_label_id = get_qa_label_id(team_id, api_key)
             projects = get_projects(team_id, api_key)
             
-            project_choices = sorted([p["name"] for p in projects])
-            project_name = questionary.select(
-                "Select project:",
-                choices=project_choices
-            ).ask()
-            
+            if comparison.deployment_type == DeploymentType.NETWORK:
+                project_name = "Environment Comparisons"
+            else:
+                project_name = "Client Comparisons"
+                
             project_id = get_project_id(projects, project_name)
             in_progress_state_id = get_in_progress_state_id(team_id, api_key)
             

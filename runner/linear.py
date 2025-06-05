@@ -4,7 +4,7 @@ import requests
 import sys
 from typing import Dict, List, Optional, Tuple
 
-LINEAR_TEAMS = ["Infrastructure", "Releases", "Tech"]
+LINEAR_TEAMS = ["Infrastructure", "QA", "Releases", "Tech"]
 
 def get_api_key(team: str) -> str:
     """Get the Linear API key for a team.
