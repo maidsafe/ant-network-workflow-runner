@@ -9,10 +9,33 @@ from typing import List, Dict, Optional
 import questionary
 from rich import print as rprint
 
-from runner.db import ClientDeploymentRepository, ComparisonRepository, NetworkDeploymentRepository, ComparisonResultRepository, ComparisonUploadResultRepository, ComparisonDownloadResultRepository
-from runner.linear import LINEAR_TEAMS, get_api_key, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
-from runner.models import DeploymentType, ComparisonResult, ComparisonUploadResult, ComparisonDownloadResult
-from runner.reporting import build_comparison_report, build_comparison_smoke_test_report
+from runner.db import (
+    ClientDeploymentRepository,
+    ComparisonDownloadResultRepository,
+    ComparisonRepository,
+    ComparisonResultRepository,
+    ComparisonUploadResultRepository,
+    NetworkDeploymentRepository,
+)
+from runner.linear import (
+    Team,
+    create_issue,
+    create_project_update,
+    get_in_progress_state_id,
+    get_project_id,
+    get_projects,
+    get_qa_label_id,
+)
+from runner.models import (
+    ComparisonDownloadResult,
+    ComparisonResult,
+    ComparisonUploadResult,
+    DeploymentType,
+)
+from runner.reporting import (
+    build_comparison_report,
+    build_comparison_smoke_test_report,
+)
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -736,19 +759,15 @@ def linear(comparison_id: int) -> None:
             full_report = report
         
         try:
-            team = "QA"
-            api_key = get_api_key(team)
-            team_id = get_team_id(team, api_key)
-            qa_label_id = get_qa_label_id(team_id, api_key)
-            projects = get_projects(team_id, api_key)
+            qa_label_id = get_qa_label_id(Team.QA)
             
             if comparison.deployment_type == DeploymentType.NETWORK:
                 project_name = "Environment Comparisons"
             else:
                 project_name = "Client Comparisons"
                 
-            project_id = get_project_id(projects, project_name)
-            in_progress_state_id = get_in_progress_state_id(team_id, api_key)
+            project_id = get_project_id(project_name, Team.QA)
+            in_progress_state_id = get_in_progress_state_id(Team.QA)
             
             if comparison.deployment_type == DeploymentType.NETWORK:
                 title = "Environment Comparison: "
@@ -772,27 +791,22 @@ def linear(comparison_id: int) -> None:
             issue_identifier, issue_url = create_issue(
                 title=title,
                 description=full_report,
-                team_id=team_id,
+                team=Team.QA,
                 project_id=project_id,
                 label_ids=[qa_label_id],
                 state_id=in_progress_state_id,
-                api_key=api_key
             )
-            
             print(f"Created issue {issue_identifier}: {issue_url}")
             
             update_url = create_project_update(
                 project_id=project_id,
                 body=full_report,
-                api_key=api_key
+                team=Team.QA
             )
-            
             print(f"Created project update: {update_url}")
-            
         except ValueError as e:
             print(f"Error: {e}")
             sys.exit(1)
-            
     except Exception as e:
         import traceback
         print(f"Error: {e}")

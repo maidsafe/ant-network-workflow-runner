@@ -10,14 +10,13 @@ from runner.github import (
     read_pr_numbers,
 )
 from runner.linear import (
+    Team,
     create_issue,
     create_project,
     create_project_update,
-    get_api_key,
     get_in_progress_state_id,
     get_projects,
     get_qa_label_id,
-    get_team_id,
 )
 
 def get_binary_versions(autonomi_repo_path: str) -> tuple[str, dict[str, str]]:
@@ -102,9 +101,7 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
         binary_versions_markdown += "\n\n These will proceed from RC to full versions."
         prs_by_author = get_merged_prs_by_author(pr_numbers)
         
-        api_key = get_api_key("Releases")
-        team_id = get_team_id("Releases", api_key)
-        projects = get_projects(team_id, api_key)
+        projects = get_projects(Team.Releases)
         
         existing_project = next((p for p in projects if p["name"] == package_version), None)
         if existing_project:
@@ -120,82 +117,75 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
 - [ ] Mainnet client comparison to evaluate uploads/downloads for improvements and regressions"""
 
         content = f"{checklist}\n\n{binary_versions_markdown}\n\n## Merged Pull Requests\n\n{prs_by_author}"
-        project_id = create_project(f"Release {package_version}", "Full feature release from `main`", content, team_id, api_key)
+        project_id = create_project(
+            f"Release {package_version}", "Full feature release from `main`", content, Team.Releases)
         
-        qa_label_id = get_qa_label_id(team_id, api_key)
-        in_progress_state_id = get_in_progress_state_id(team_id, api_key)
+        qa_label_id = get_qa_label_id(Team.QA)
+        in_progress_state_id = get_in_progress_state_id(Team.QA)
 
         create_issue(
             f"Produce the release candidate", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Produce release changelog", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the environment comparison test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the generic node upscaling test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the symmetric NAT node upscaling test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the basic backwards compatibility test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the comprehensive backwards compatibility test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
         create_issue(
             f"Setup the mainnet client comparison test", 
             None, 
-            team_id, 
+            Team.Releases, 
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
-            api_key
         )
 
         binary_versions_update = ""
@@ -208,7 +198,7 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
 We will begin setting up and coordinating the five standard staging tests when the RC is ready.
         """
 
-        update_url = create_project_update(project_id, update, api_key)
+        update_url = create_project_update(project_id, update, Team.Releases)
         print(f"Project update: {update_url}")
     except Exception as e:
         print(f"Error creating release: {e}")
@@ -240,67 +230,6 @@ def breaking(path: str):
             print("\n✅ NO BREAKING CHANGES FOUND")
     except Exception as e:
         print(f"Error checking for breaking changes: {e}")
-        sys.exit(1)
-        create_issue(
-            f"Setup the environment comparison test", 
-            None, 
-            team_id, 
-            project_id, 
-            [qa_label_id], 
-            in_progress_state_id, 
-            api_key
-        )
-        create_issue(
-            f"Setup the generic node upscaling test", 
-            None, 
-            team_id, 
-            project_id, 
-            [qa_label_id], 
-            in_progress_state_id, 
-            api_key
-        )
-        create_issue(
-            f"Setup the symmetric NAT node upscaling test", 
-            None, 
-            team_id, 
-            project_id, 
-            [qa_label_id], 
-            in_progress_state_id, 
-            api_key
-        )
-        create_issue(
-            f"Setup the basic backwards compatibility test", 
-            None, 
-            team_id, 
-            project_id, 
-            [qa_label_id], 
-            in_progress_state_id, 
-            api_key
-        )
-        create_issue(
-            f"Setup the comprehensive backwards compatibility test", 
-            None, 
-            team_id, 
-            project_id, 
-            [qa_label_id], 
-            in_progress_state_id, 
-            api_key
-        )
-
-        binary_versions_update = ""
-        for binary, version in binary_versions.items():
-            binary_versions_update += f"* `{binary}`: v{version}\n"
-        update = f"""The new release candidate will be produced with the following binaries:
-
-{binary_versions_update}
-
-We will begin setting up and coordinating the five standard staging tests when the RC is ready.
-        """
-
-        update_url = create_project_update(project_id, update, api_key)
-        print(f"Project update: {update_url}")
-    except Exception as e:
-        print(f"Error creating release: {e}")
         sys.exit(1)
 
 def breaking(path: str):

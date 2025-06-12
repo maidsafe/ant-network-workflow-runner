@@ -10,7 +10,7 @@ from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
 from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders, stop_uploaders, stop_downloaders
-from runner.linear import LINEAR_TEAMS, get_api_key, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
+from runner.linear import Team, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -524,16 +524,18 @@ def linear(deployment_id: int) -> None:
             print("Test type selection cancelled")
             return
         
-        team = questionary.select(
+        team_selection = questionary.select(
             "Select team:",
-            choices=LINEAR_TEAMS
+            choices=[team.value for team in Team]
         ).ask()
-        
+        if team_selection is None:
+            print("Team selection cancelled")
+            return
+            
+        team = Team(team_selection)
         try:
-            api_key = get_api_key(team)
-            team_id = get_team_id(team, api_key)
-            qa_label_id = get_qa_label_id(team_id, api_key)
-            projects = get_projects(team_id, api_key)
+            qa_label_id = get_qa_label_id(team)
+            projects = get_projects(team)
             
             project_choices = sorted([p["name"] for p in projects])
             project_name = questionary.select(
@@ -541,8 +543,12 @@ def linear(deployment_id: int) -> None:
                 choices=project_choices
             ).ask()
             
+            if project_name is None:
+                print("Project selection cancelled")
+                return
+            
             project_id = get_project_id(projects, project_name)
-            in_progress_state_id = get_in_progress_state_id(team_id, api_key)
+            in_progress_state_id = get_in_progress_state_id(team)
             
             label = None
             if deployment.related_pr:
@@ -557,18 +563,17 @@ def linear(deployment_id: int) -> None:
             issue_identifier, issue_url = create_issue(
                 title=title,
                 description=report,
-                team_id=team_id,
+                team=team,
                 project_id=project_id,
                 label_ids=[qa_label_id],
-                state_id=in_progress_state_id,
-                api_key=api_key
+                state_id=in_progress_state_id
             )
             print(f"Created issue {issue_identifier}: {issue_url}")
             
             update_url = create_project_update(
                 project_id=project_id,
                 body=report,
-                api_key=api_key
+                team=team
             )
             print(f"Created project update: {update_url}")
         except ValueError as e:
