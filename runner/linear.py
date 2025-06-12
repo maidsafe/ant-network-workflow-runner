@@ -259,7 +259,7 @@ def create_issue(title: str, description: str, team_id: str, project_id: str,
         ValueError: If the issue creation fails
     """
     graphql_query = """
-    mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $projectId: String!, $labelIds: [String!], $stateId: String) {
+    mutation CreateIssue($title: String!, $description: String, $teamId: String!, $projectId: String!, $labelIds: [String!], $stateId: String) {
       issueCreate(input: {
         title: $title,
         description: $description,
@@ -295,9 +295,42 @@ def create_issue(title: str, description: str, team_id: str, project_id: str,
     
     if result.get("data", {}).get("issueCreate", {}).get("success"):
         issue = result["data"]["issueCreate"]["issue"]
-        return issue['identifier'], issue['url']
+        print(f"Created issue with ID {issue['identifier']}")
+        return issue["identifier"], issue["url"]
     else:
         raise ValueError(f"Failed to create issue. Response data: {result}")
+
+def create_project(name: str, description: str, content: str, team_id: str, api_key: str):
+    create_project_query = """
+    mutation CreateProject($name: String!, $teamIds: [String!]!, $description: String, $content: String) {
+      projectCreate(input: {
+        name: $name,
+        description: $description,
+        content: $content,
+        teamIds: $teamIds
+      }) {
+        success
+        project {
+          id
+        }
+      }
+    }
+    """
+    
+    result = make_linear_api_request(create_project_query, {
+        "name": name,
+        "description": description,
+        "content": content,
+        "teamIds": [team_id]
+    }, api_key)
+    
+    if result.get("data", {}).get("projectCreate", {}).get("success"):
+        project_id = result["data"]["projectCreate"]["project"]["id"]
+        print(f"Created project {name} with ID {project_id}")
+        return project_id
+    else:
+        print(f"Failed to create new project")
+        sys.exit(1)
 
 def create_project_update(project_id: str, body: str, api_key: str) -> str:
     """Create a Linear project update.
@@ -337,6 +370,7 @@ def create_project_update(project_id: str, body: str, api_key: str) -> str:
     
     if update_result.get("data", {}).get("projectUpdateCreate", {}).get("success"):
         project_update = update_result["data"]["projectUpdateCreate"]["projectUpdate"]
+        print(f"Created project update with URL {project_update['url']}")
         return project_update['url']
     else:
         raise ValueError(f"Failed to create project update. Response data: {update_result}")

@@ -5,7 +5,7 @@ from typing import Dict
 
 import yaml
 
-from runner.cmd import client_deployments, comparisons, deployments, workflows
+from runner.cmd import client_deployments, comparisons, deployments, workflows, releases
 
 def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
@@ -47,6 +47,7 @@ def main():
     client_deployments_parser = subparsers.add_parser("client-deployments", help="Manage client deployments")
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
+    releases_parser = subparsers.add_parser("releases", help="Manage releases")
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
     
     client_deployments_subparsers = client_deployments_parser.add_subparsers(dest="client_deployments_command", help="Available client deployment commands")
@@ -679,6 +680,32 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Available release commands")
+    
+    releases_new_parser = releases_subparsers.add_parser("new", help="Create a new release project in Linear")
+    releases_new_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+    releases_new_parser.add_argument(
+        "--version",
+        required=True,
+        help="Version number for the release"
+    )
+    releases_new_parser.add_argument(
+        "--autonomi-repo-path",
+        required=False,
+        help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
+    )
+
+    releases_breaking_parser = releases_subparsers.add_parser("breaking", help="Check if any PRs in the list have breaking changes")
+    releases_breaking_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -752,6 +779,14 @@ def main():
             deployments.upload_report(args.id)
         else:
             deployments_parser.print_help()
+            sys.exit(1)
+    elif args.command == "releases":
+        if args.releases_command == "new":
+            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
+        elif args.releases_command == "breaking":
+            releases.breaking(args.path)
+        else:
+            releases_parser.print_help()
             sys.exit(1)
     elif args.command == "workflows":
         if args.workflows_command == "bootstrap-network":
