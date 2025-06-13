@@ -3,18 +3,18 @@
 # the form `DEV-XX`, `STG-XX` or `PROD-XX`. For development environments, `DEV-01` through `DEV-08`
 # are available. Most environments will be in the development category. Staging will be reserved for
 # release candidates.
-network-name: DEV-01
+deployment-name: DEV-01
 # The environment type determines the number and sizes of VMs for the environment.
 # Possible values: development, staging, production.
 environment-type: development
 
+# For a client deployment, you must provide the ID of the network you want to connect to.
+# 1 is for the production network and 2 is for the alpha network.
+# Any other values between 3 and 255 are for ad-hoc testing networks.
+network-id: 2
+
 # Optional
 # Remove any you don't want to use.
-
-# A value between 2 and 255 should be supplied for the network ID.
-# It is used to avoid cross-network interference.
-# If you are testing against the production network, you don't need to supply this.
-network-id: 2
 
 # The region to deploy to.
 # For Digital Ocean, we currently support "lon1" and "ams3".

@@ -384,7 +384,7 @@ class ClientDeploymentRepository(BaseRepository[ClientDeployment]):
         
         deployment = ClientDeployment(
             workflow_run_id=workflow_run_id,
-            name=config["network-name"],
+            name=config["deployment-name"],
             triggered_at=workflow_run.triggered_at,
             run_id=workflow_run.run_id,
             network_id=config.get("network-id"),

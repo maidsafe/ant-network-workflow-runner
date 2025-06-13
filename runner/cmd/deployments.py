@@ -9,7 +9,8 @@ from rich import print as rprint
 from runner.db import NetworkDeploymentRepository
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
-from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders
+from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders, stop_uploaders, stop_downloaders
+from runner.linear import Team, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -357,6 +358,14 @@ def upload_report(deployment_id: int) -> None:
             "Number of not enough quotes errors:",
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
+        payment_error_count = questionary.text(
+            "Number of payment errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        put_record_quorum_error_count = questionary.text(
+            "Number of put record quorum errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
         other_error_count = questionary.text(
             "Number of other errors:",
             validate=lambda text: text.replace('.', '').isdigit()
@@ -380,6 +389,8 @@ def upload_report(deployment_id: int) -> None:
         print(f"- Average upload time: {avg_upload_time}s")
         print(f"- Chunk proof errors: {chunk_proof_error_count}")
         print(f"- Not enough quotes errors: {not_enough_quotes_error_count}")
+        print(f"- Payment errors: {payment_error_count}")
+        print(f"- Put record quorum errors: {put_record_quorum_error_count}")
         print(f"- Other errors: {other_error_count}")
     except Exception as e:
         print(f"Error uploading report: {e}")
@@ -486,3 +497,104 @@ def start_clients(network_name: str) -> None:
     
     print("\nStarting downloaders...")
     start_downloaders(config, "main", force=True, wait=False)
+
+def stop_clients(network_name: str) -> None:
+    """Stop clients for a network.
+    
+    Args:
+        network_name: Name of the network to stop clients in
+    """
+    config = {
+        "network-name": network_name
+    }
+    
+    print("\nStopping uploaders...")
+    stop_uploaders(config, "main", force=True, wait=False)
+    
+    print("\nStopping downloaders...")
+    stop_downloaders(config, "main", force=True, wait=False)
+
+def linear(deployment_id: int) -> None:
+    """Create an issue in Linear for a deployment.
+    
+    Args:
+        deployment_id: ID of the deployment to create an issue for
+    """
+    try:
+        repo = NetworkDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Deployment with ID {deployment_id} not found")
+
+        test_type = questionary.select(
+            "What type of test was this deployment created for?",
+            choices=["Backwards Compatibility", "Environment Test", "Maintenance", "Upscaling Run"]
+        ).ask()
+        if test_type is None:
+            print("Test type selection cancelled")
+            return
+        
+        team_selection = questionary.select(
+            "Select team:",
+            choices=[team.value for team in Team]
+        ).ask()
+        if team_selection is None:
+            print("Team selection cancelled")
+            return
+            
+        team = Team(team_selection)
+        try:
+            qa_label_id = get_qa_label_id(team)
+            projects = get_projects(team)
+            
+            project_choices = sorted([p["name"] for p in projects])
+            project_name = questionary.select(
+                "Select project:",
+                choices=project_choices
+            ).ask()
+            
+            if project_name is None:
+                print("Project selection cancelled")
+                return
+            
+            project_id = next(p["id"] for p in projects if p["name"] == project_name)
+            in_progress_state_id = get_in_progress_state_id(team)
+            
+            label = None
+            if deployment.related_pr:
+                label = f"#{deployment.related_pr}"
+            elif deployment.branch:
+                label = f"{deployment.repo_owner}/{deployment.branch}"
+            else:
+                label = questionary.text(
+                    "No related PR or branch found. Please enter a label for this deployment:"
+                ).ask()
+                if not label:
+                    raise ValueError("Label is required for creating the issue")
+            title = f"{test_type}: `{label}` [{deployment.name}]"
+                
+            report = _build_deployment_and_smoke_test_report(deployment)
+            issue_identifier, issue_url = create_issue(
+                title=title,
+                description=report,
+                team=team,
+                project_id=project_id,
+                label_ids=[qa_label_id],
+                state_id=in_progress_state_id
+            )
+            print(f"Created issue {issue_identifier}: {issue_url}")
+            
+            update_url = create_project_update(
+                project_id=project_id,
+                body=report,
+                team=team
+            )
+            print(f"Created project update: {update_url}")
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    except Exception as e:
+        import traceback
+        print(f"Error: {e}")
+        print(traceback.format_exc())
+        sys.exit(1)

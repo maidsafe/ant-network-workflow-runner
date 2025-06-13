@@ -9,15 +9,37 @@ from typing import List, Dict, Optional
 import questionary
 from rich import print as rprint
 
-from runner.db import ClientDeploymentRepository, ComparisonRepository, NetworkDeploymentRepository, ComparisonResultRepository, ComparisonUploadResultRepository, ComparisonDownloadResultRepository
-from runner.models import DeploymentType, ComparisonResult, ComparisonUploadResult, ComparisonDownloadResult
-from runner.reporting import build_comparison_report, build_comparison_smoke_test_report
+from runner.db import (
+    ClientDeploymentRepository,
+    ComparisonDownloadResultRepository,
+    ComparisonRepository,
+    ComparisonResultRepository,
+    ComparisonUploadResultRepository,
+    NetworkDeploymentRepository,
+)
+from runner.linear import (
+    Team,
+    create_issue,
+    create_project_update,
+    get_in_progress_state_id,
+    get_project_id,
+    get_projects,
+    get_qa_label_id,
+)
+from runner.models import (
+    ComparisonDownloadResult,
+    ComparisonResult,
+    ComparisonUploadResult,
+    DeploymentType,
+)
+from runner.reporting import (
+    build_comparison_report,
+    build_comparison_smoke_test_report,
+)
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
 AUTONOMI_REPO_NAME = "autonomi"
-
-LINEAR_TEAMS = ["Infrastructure", "Releases", "Tech"]
 
 def add_thread(comparison_id: int, thread_link: str) -> None:
     """Add or update the thread link for a comparison.
@@ -347,6 +369,14 @@ def record_upload_results(comparison_id: int) -> None:
                 "Not enough quotes errors:",
                 validate=lambda text: text.replace('.', '').isdigit()
             ).ask()
+            payment_error_count = questionary.text(
+                "Payment errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            put_record_quorum_error_count = questionary.text(
+                "Put record quorum errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
             other_error_count = questionary.text(
                 "Other errors:",
                 validate=lambda text: text.replace('.', '').isdigit()
@@ -363,6 +393,8 @@ def record_upload_results(comparison_id: int) -> None:
                 avg_upload_time=avg_upload_time,
                 chunk_proof_error_count=chunk_proof_error_count,
                 not_enough_quotes_error_count=not_enough_quotes_error_count,
+                payment_error_count=payment_error_count,
+                put_record_quorum_error_count=put_record_quorum_error_count,
                 other_error_count=other_error_count,
                 started_at=start_datetime,
                 ended_at=end_datetime,
@@ -382,6 +414,8 @@ def record_upload_results(comparison_id: int) -> None:
                 "avg_upload_time": avg_upload_time,
                 "chunk_proof_error_count": chunk_proof_error_count,
                 "not_enough_quotes_error_count": not_enough_quotes_error_count,
+                "payment_error_count": payment_error_count,
+                "put_record_quorum_error_count": put_record_quorum_error_count,
                 "other_error_count": other_error_count
             })
         
@@ -400,6 +434,8 @@ def record_upload_results(comparison_id: int) -> None:
             print(f"  - Average upload time: {report['avg_upload_time']}s")
             print(f"  - Chunk proof errors: {report['chunk_proof_error_count']}")
             print(f"  - Not enough quotes errors: {report['not_enough_quotes_error_count']}")
+            print(f"  - Payment errors: {report['payment_error_count']}")
+            print(f"  - Put record quorum errors: {report['put_record_quorum_error_count']}")
             print(f"  - Other errors: {report['other_error_count']}")
         print(f"Upload results saved")
     except Exception as e:
@@ -463,6 +499,8 @@ def print_results(comparison_id: int) -> None:
                         "avg_upload_time": result.avg_upload_time,
                         "chunk_proof_error_count": result.chunk_proof_error_count,
                         "not_enough_quotes_error_count": result.not_enough_quotes_error_count,
+                        "payment_error_count": result.payment_error_count,
+                        "put_record_quorum_error_count": result.put_record_quorum_error_count,
                         "other_error_count": result.other_error_count,
                         "started_at": result.started_at,
                         "ended_at": result.ended_at
@@ -501,6 +539,8 @@ def print_results(comparison_id: int) -> None:
                     print(f"  - Average upload time: {result['avg_upload_time']}s")
                     print(f"  - Chunk proof errors: {result['chunk_proof_error_count']}")
                     print(f"  - Not enough quotes errors: {result['not_enough_quotes_error_count']}")
+                    print(f"  - Payment errors: {result['payment_error_count']}")
+                    print(f"  - Put record quorum errors: {result['put_record_quorum_error_count']}")
                     print(f"  - Other errors: {result['other_error_count']}")
         
         download_result_repo = ComparisonDownloadResultRepository()
@@ -649,7 +689,6 @@ def record_download_results(comparison_id: int) -> None:
                 validate=lambda text: text.replace('.', '').isdigit()
             ).ask()
             
-            # Create and save the download result to the database
             download_result = ComparisonDownloadResult(
                 comparison_id=comparison_id,
                 deployment_id=deployment.id,
@@ -737,267 +776,75 @@ def linear(comparison_id: int) -> None:
         else:
             full_report = report
         
-        team = questionary.select(
-            "Select team:",
-            choices=LINEAR_TEAMS
-        ).ask()
-        
-        api_key_env_var = f"ANT_RUNNER_LINEAR_{team.upper()}_API_KEY"
-        linear_api_key = os.getenv(api_key_env_var)
-        if not linear_api_key:
-            print(f"Error: {api_key_env_var} environment variable is not set")
-            sys.exit(1)
-        
-        teams_query = """
-        {
-          teams {
-            nodes {
-              id
-              name
-            }
-          }
-        }
-        """
-        
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": teams_query},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear teams: {result['errors']}")
-            sys.exit(1)
-        
-        teams = result.get("data", {}).get("teams", {}).get("nodes", [])
-        if not teams:
-            print("No teams found")
-            sys.exit(1)
-            
-        team_id = next((t["id"] for t in teams if t["name"] == team), None)
-        if not team_id:
-            print(f"Team ID not found for {team}")
-            sys.exit(1)
-
-        logging.debug(f"Obtained team ID for {team}: {team_id}")
-        
-        labels_query = """
-        query GetLabels($teamId: String!) {
-          team(id: $teamId) {
-            labels {
-              nodes {
-                id
-                name
-              }
-            }
-          }
-        }
-        """
-        
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": labels_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear labels: {result['errors']}")
-            sys.exit(1)
-        
-        labels = result.get("data", {}).get("team", {}).get("labels", {}).get("nodes", [])
-        if not labels:
-            print(f"No labels found for team {team}")
-            sys.exit(1)
-            
-        qa_label_id = next((label["id"] for label in labels if label["name"].lower() == "qa"), None)
-        if not qa_label_id:
-            print("QA label not found. Please create a 'QA' label in Linear first.")
-            sys.exit(1)
-            
-        logging.debug(f"Obtained label ID for QA: {qa_label_id}")
-            
-        projects_query = """
-        query GetProjects($teamId: String!) {
-          team(id: $teamId) {
-            projects {
-              nodes {
-                id
-                name
-              }
-            }
-          }
-        }
-        """
-        
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": projects_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear projects: {result['errors']}")
-            sys.exit(1)
-        
-        projects = result.get("data", {}).get("team", {}).get("projects", {}).get("nodes", [])
-        if not projects:
-            print(f"No projects found for team {team}")
-            sys.exit(1)
-        
-        project_choices = sorted([p["name"] for p in projects])
-        project_name = questionary.select(
-            "Select project:",
-            choices=project_choices
-        ).ask()
-        
-        project_id = next((p["id"] for p in projects if p["name"] == project_name), None)
-        if not project_id:
-            print(f"Project ID not found for {project_name}")
-            sys.exit(1)
-        
-        states_query = """
-        query GetWorkflowStates($teamId: String!) {
-          team(id: $teamId) {
-            states {
-              nodes {
-                id
-                name
-              }
-            }
-          }
-        }
-        """
-        
-        response = requests.post(
-            "https://api.linear.app/graphql",
-            json={"query": states_query, "variables": {"teamId": team_id}},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": linear_api_key
-            }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "errors" in result:
-            print(f"Error fetching Linear workflow states: {result['errors']}")
-            sys.exit(1)
-        
-        states = result.get("data", {}).get("team", {}).get("states", {}).get("nodes", [])
-        if not states:
-            print(f"No workflow states found for team {team}")
-            sys.exit(1)
-            
-        in_progress_state_id = next((state["id"] for state in states if state["name"].lower() == "in progress"), None)
-        if not in_progress_state_id:
-            print("'In Progress' state not found for this team. The issue will be created with the default state.")
-            logging.debug(f"Available states: {[state['name'] for state in states]}")
-            sys.exit(1)
-            
-        logging.debug(f"Obtained state ID for 'In Progress': {in_progress_state_id}")
-        
-        if comparison.deployment_type == DeploymentType.NETWORK:
-            title = "Environment Comparison: "
-            for i, (deployment, label) in enumerate(comparison.test_environments):
-                if label.isdigit():
-                    label = f"#{label}"
-                title += f"`{label}` [{deployment.name}]"
-                if i < len(comparison.test_environments) - 1:
-                    title += " vs "
-            title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
-        else:
-            title = "Client Comparison: "
-            for i, (_, label) in enumerate(comparison.test_environments):
-                if label.isdigit():
-                    label = f"#{label}"
-                title += f"`{label}` [{deployment.name}]"
-                if i < len(comparison.test_environments) - 1:
-                    title += " vs "
-            title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
-        
-        graphql_query = """
-        mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $projectId: String!, $labelIds: [String!], $stateId: String) {
-          issueCreate(input: {
-            title: $title,
-            description: $description,
-            teamId: $teamId,
-            projectId: $projectId,
-            labelIds: $labelIds,
-            stateId: $stateId
-          }) {
-            success
-            issue {
-              id
-              identifier
-              url
-            }
-          }
-        }
-        """
-        
-        variables = {
-            "title": title,
-            "description": full_report,
-            "teamId": team_id,
-            "projectId": project_id,
-            "labelIds": [qa_label_id],
-            "stateId": in_progress_state_id
-        }
-            
-        logging.debug(f"Project ID: {project_id}")
-        logging.debug(f"Team ID: {team_id}")
-        logging.debug(f"Request variables: {variables}")
-        
         try:
-            response = requests.post(
-                "https://api.linear.app/graphql",
-                json={"query": graphql_query, "variables": variables},
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": linear_api_key
-                }
-            )
+            team_choice = questionary.select(
+                "Select team based on the comparison being staging for a release (Releases) or not (QA)",
+                choices=["QA", "Releases"]
+            ).ask()
             
-            logging.debug(f"Response status code: {response.status_code}")
-            logging.debug(f"Response content: {response.text}")
-            
-            response.raise_for_status()
-            
-            result = response.json()
-            if "errors" in result:
-                print(f"GraphQL errors: {result['errors']}")
-                sys.exit(1)
+            qa_label_id = get_qa_label_id(Team.QA)
+            if team_choice == "QA":
+                selected_team = Team.QA
                 
-            if result.get("data", {}).get("issueCreate", {}).get("success"):
-                issue = result["data"]["issueCreate"]["issue"]
-                print(f"Created issue {issue['identifier']}: {issue['url']}")
+                if comparison.deployment_type == DeploymentType.NETWORK:
+                    project_name = "Environment Comparisons"
+                else:
+                    project_name = "Client Comparisons"
+                    
+                project_id = get_project_id(project_name, Team.QA)
             else:
-                print(f"Failed to create issue. Response data: {result}")
-                sys.exit(1)
-        except requests.exceptions.RequestException as e:
-            print(f"Error making request to Linear API: {e}")
-            print(f"Request details:")
-            print(f"  - URL: https://api.linear.app/graphql")
-            print(f"  - Query: {graphql_query}")
-            print(f"  - Variables: {variables}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"  - Response status: {e.response.status_code}")
-                print(f"  - Response text: {e.response.text}")
+                selected_team = Team.RELEASES
+                
+                projects = get_projects(Team.RELEASES)
+                project_choices = [f"{project['name']}" for project in projects]
+                
+                selected_project_name = questionary.select(
+                    "Select a project from the Releases team:",
+                    choices=project_choices
+                ).ask()
+                
+                project_id = get_project_id(selected_project_name, Team.RELEASES)
+            
+            label_ids = [qa_label_id]
+            in_progress_state_id = get_in_progress_state_id(selected_team)
+            
+            if comparison.deployment_type == DeploymentType.NETWORK:
+                title = "Environment Comparison: "
+                for i, (deployment, label) in enumerate(comparison.test_environments):
+                    if label.isdigit():
+                        label = f"#{label}"
+                    title += f"`{label}` [{deployment.name}]"
+                    if i < len(comparison.test_environments) - 1:
+                        title += " vs "
+                title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
+            else:
+                title = "Client Comparison: "
+                for i, (dep, label) in enumerate(comparison.test_environments):
+                    if label.isdigit():
+                        label = f"#{label}"
+                    title += f"`{label}` [{dep.name}]"
+                    if i < len(comparison.test_environments) - 1:
+                        title += " vs "
+                title += f" vs `{comparison.ref_label}` [{comparison.ref_deployment.name}]"
+            
+            issue_identifier, issue_url = create_issue(
+                title=title,
+                description=full_report,
+                team=selected_team,
+                project_id=project_id,
+                label_ids=label_ids,
+                state_id=in_progress_state_id,
+            )
+            print(f"Created issue {issue_identifier}: {issue_url}")
+            
+            update_url = create_project_update(
+                project_id=project_id,
+                body=full_report,
+                team=selected_team
+            )
+            print(f"Created project update: {update_url}")
+        except ValueError as e:
+            print(f"Error: {e}")
             sys.exit(1)
     except Exception as e:
         import traceback

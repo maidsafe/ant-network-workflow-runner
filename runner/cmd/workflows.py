@@ -723,7 +723,7 @@ def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: boo
         id=CLIENT_DEPLOY_WORKFLOW_ID,
         personal_access_token=_get_github_token(),
         branch_name=branch_name,
-        network_name=config["network-name"],
+        deployment_name=config["deployment-name"],
         config=config
     )
     

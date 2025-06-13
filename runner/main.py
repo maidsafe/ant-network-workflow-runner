@@ -5,7 +5,7 @@ from typing import Dict
 
 import yaml
 
-from runner.cmd import client_deployments, comparisons, deployments, workflows
+from runner.cmd import client_deployments, comparisons, deployments, workflows, releases
 
 def load_yaml_config(file_path: str) -> Dict:
     """Load and parse the YAML configuration file."""
@@ -47,6 +47,7 @@ def main():
     client_deployments_parser = subparsers.add_parser("client-deployments", help="Manage client deployments")
     comparisons_parser = subparsers.add_parser("comparisons", help="Manage deployment comparisons")
     deployments_parser = subparsers.add_parser("deployments", help="Manage deployments")
+    releases_parser = subparsers.add_parser("releases", help="Manage releases")
     workflows_parser = subparsers.add_parser("workflows", help="Manage network workflows")
     
     client_deployments_subparsers = client_deployments_parser.add_subparsers(dest="client_deployments_command", help="Available client deployment commands")
@@ -80,6 +81,17 @@ def main():
         help="ID of the client deployment to print"
     )
 
+    client_deployments_download_report_parser = client_deployments_subparsers.add_parser(
+        "download-report",
+        help="Generate a report for downloads on a client deployment"
+    )
+    client_deployments_download_report_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to generate download report for"
+    )
+
     client_deployments_smoke_test_parser = client_deployments_subparsers.add_parser(
         "smoke-test", 
         help="Smoke test a deployment"
@@ -89,6 +101,17 @@ def main():
         type=int,
         required=True,
         help="ID of the deployment to smoke test"
+    )
+
+    client_deployments_linear_parser = client_deployments_subparsers.add_parser(
+        "linear", 
+        help="Create an issue in Linear for the client deployment"
+    )
+    client_deployments_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the client deployment to create a Linear issue for"
     )
 
     client_deployments_upload_report_parser = client_deployments_subparsers.add_parser(
@@ -232,6 +255,17 @@ def main():
         help="The ID of the deployment"
     )
 
+    deployments_linear_parser = deployments_subparsers.add_parser(
+        "linear", 
+        help="Create an issue in Linear for the deployment"
+    )
+    deployments_linear_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ID of the deployment to create a Linear issue for"
+    )
+
     deployments_ls_parser = deployments_subparsers.add_parser("ls", help="List all deployments")
     deployments_ls_parser.add_argument(
         "--details",
@@ -277,6 +311,16 @@ def main():
         help="Start clients for a network"
     )
     deployments_start_clients_parser.add_argument(
+        "--name",
+        required=True,
+        help="Name of the network"
+    )
+
+    deployments_stop_clients_parser = deployments_subparsers.add_parser(
+        "stop-clients",
+        help="Stop clients for a network"
+    )
+    deployments_stop_clients_parser.add_argument(
         "--name",
         required=True,
         help="Name of the network"
@@ -636,6 +680,32 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Available release commands")
+    
+    releases_new_parser = releases_subparsers.add_parser("new", help="Create a new release project in Linear")
+    releases_new_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+    releases_new_parser.add_argument(
+        "--version",
+        required=True,
+        help="Version number for the release"
+    )
+    releases_new_parser.add_argument(
+        "--autonomi-repo-path",
+        required=False,
+        help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
+    )
+
+    releases_breaking_parser = releases_subparsers.add_parser("breaking", help="Check if any PRs in the list have breaking changes")
+    releases_breaking_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+
     args = parser.parse_args()
     
     if args.debug:
@@ -647,6 +717,8 @@ def main():
     if args.command == "client-deployments":
         if args.client_deployments_command == "ls":
             client_deployments.ls(show_details=args.details)
+        elif args.client_deployments_command == "linear":
+            client_deployments.linear(args.id)
         elif args.client_deployments_command == "post":
             client_deployments.post(args.id)
         elif args.client_deployments_command == "print":
@@ -655,6 +727,8 @@ def main():
             client_deployments.smoke_test(args.id)
         elif args.client_deployments_command == "upload-report":
             client_deployments.upload_report(args.id)
+        elif args.client_deployments_command == "download-report":
+            client_deployments.download_report(args.id)
         else:
             client_deployments_parser.print_help()
             sys.exit(1)
@@ -687,6 +761,8 @@ def main():
             deployments.dev(args.name)
         elif args.deployments_command == "download-report":
             deployments.download_report(args.id)
+        elif args.deployments_command == "linear":
+            deployments.linear(args.id)
         elif args.deployments_command == "ls":
             deployments.ls(show_details=args.details)
         elif args.deployments_command == "post":
@@ -697,10 +773,20 @@ def main():
             deployments.smoke_test(args.id)
         elif args.deployments_command == "start-clients":
             deployments.start_clients(args.name)
+        elif args.deployments_command == "stop-clients":
+            deployments.stop_clients(args.name)
         elif args.deployments_command == "upload-report":
             deployments.upload_report(args.id)
         else:
             deployments_parser.print_help()
+            sys.exit(1)
+    elif args.command == "releases":
+        if args.releases_command == "new":
+            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
+        elif args.releases_command == "breaking":
+            releases.breaking(args.path)
+        else:
+            releases_parser.print_help()
             sys.exit(1)
     elif args.command == "workflows":
         if args.workflows_command == "bootstrap-network":

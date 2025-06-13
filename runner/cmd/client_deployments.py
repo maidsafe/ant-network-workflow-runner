@@ -7,7 +7,16 @@ import questionary
 from rich import print as rprint
 
 from runner.db import ClientDeploymentRepository
-from runner.models import ClientDeployment
+from runner.linear import (
+    Team,
+    create_issue,
+    create_project_update,
+    get_in_progress_state_id,
+    get_project_id,
+    get_projects,
+    get_qa_label_id,
+)
+from runner.models import ClientDeployment, DeploymentType
 from runner.reporting import build_client_deployment_report
 
 REPO_OWNER = "maidsafe"
@@ -227,6 +236,92 @@ def upload_report(deployment_id: int) -> None:
         print(f"Error uploading report: {e}")
         sys.exit(1)
 
+def download_report(deployment_id: int) -> None:
+    """Generate a report for downloads on a client deployment.
+    
+    Args:
+        deployment_id: ID of the client deployment to generate download report for
+    """
+    try:
+        repo = ClientDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Client deployment with ID {deployment_id} not found")
+
+        start_time = questionary.text("Start time:").ask()
+        end_time = questionary.text("End time:").ask()
+        
+        start_datetime = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        end_datetime = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+        duration_seconds = (end_datetime - start_datetime).total_seconds()
+        duration_hours = duration_seconds / 3600
+        
+        print("\nStandard Downloader:")
+        standard_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        standard_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nRandom Downloader:")
+        random_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        random_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\nPerformance Downloader:")
+        perf_successful = questionary.text(
+            "Successful downloads:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_errors = questionary.text(
+            "Errors:",
+            validate=lambda text: text.isdigit()
+        ).ask()
+        perf_avg_time = questionary.text(
+            "Average download time (seconds):",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        
+        print("\n\n")
+        print("=========")
+        print("Downloads")
+        print("=========")
+        print(f"{deployment.name}")
+        print(f"Time slice: {start_time} to {end_time}")
+        print(f"Duration: {duration_hours:.2f} hours")
+        print("  Standard Downloader:")
+        print(f"    - Successful downloads: {standard_successful}")
+        print(f"    - Errors: {standard_errors}")
+        print(f"    - Average download time: {standard_avg_time}s")
+        print("  Random Downloader:")
+        print(f"    - Successful downloads: {random_successful}")
+        print(f"    - Errors: {random_errors}")
+        print(f"    - Average download time: {random_avg_time}s")
+        print("  Performance Downloader:")
+        print(f"    - Successful downloads: {perf_successful}")
+        print(f"    - Errors: {perf_errors}")
+        print(f"    - Average download time: {perf_avg_time}s")
+            
+    except Exception as e:
+        print(f"Error generating download report: {e}")
+        sys.exit(1)
+
 def _build_deployment_and_smoke_test_report(deployment: ClientDeployment) -> str:
     """Build a detailed report about a specific deployment.
     
@@ -266,3 +361,71 @@ def _build_deployment_and_smoke_test_report(deployment: ClientDeployment) -> str
             }.get(answer, "?")
             lines.append(f"{status}  {question}")
     return "\n".join(lines)
+
+def linear(deployment_id: int) -> None:
+    """Create an issue in Linear for a client deployment.
+    
+    Args:
+        deployment_id: ID of the client deployment to create an issue for
+    """
+    try:
+        repo = ClientDeploymentRepository()
+        deployment = repo.get_by_id(deployment_id)
+        if not deployment:
+            raise ValueError(f"Client deployment with ID {deployment_id} not found")
+
+        team_choice = questionary.select(
+            "Select the team based on whether the deployment is staging for a release (Releases) or not (QA)",
+            choices=["QA", "Releases"]
+        ).ask()
+        if team_choice == "QA":
+            project_name = "Client Performance Tests"
+            project_id = get_project_id(project_name, Team.QA)
+        else:
+            projects = get_projects(Team.RELEASES)
+            project_choices = [f"{project['name']}" for project in projects]
+            selected_project_name = questionary.select(
+                "Select a project from the Releases team:",
+                choices=project_choices
+            ).ask()
+            project_id = next(p["id"] for p in projects if p["name"] == selected_project_name)
+
+        team = Team(team_choice)
+        try:
+            qa_label_id = get_qa_label_id(team)
+            in_progress_state_id = get_in_progress_state_id(team)
+            
+            label = None
+            if deployment.related_pr:
+                label = f"#{deployment.related_pr}"
+            elif deployment.branch:
+                label = f"{deployment.repo_owner}/{deployment.branch}"
+            else:
+                raise ValueError("No related PR or branch found for the deployment")
+            title = f"Client Performance Test: `{label}` [{deployment.name}]"
+                
+            report = _build_deployment_and_smoke_test_report(deployment)
+            issue_identifier, issue_url = create_issue(
+                title=title,
+                description=report,
+                team=team,
+                project_id=project_id,
+                label_ids=[qa_label_id],
+                state_id=in_progress_state_id
+            )
+            print(f"Created issue {issue_identifier}: {issue_url}")
+            
+            update_url = create_project_update(
+                project_id=project_id,
+                body=report,
+                team=team
+            )
+            print(f"Created project update: {update_url}")
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    except Exception as e:
+        import traceback
+        print(f"Error: {e}")
+        print(traceback.format_exc())
+        sys.exit(1)
