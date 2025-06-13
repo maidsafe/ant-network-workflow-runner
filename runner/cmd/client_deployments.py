@@ -7,9 +7,17 @@ import questionary
 from rich import print as rprint
 
 from runner.db import ClientDeploymentRepository
-from runner.models import ClientDeployment
+from runner.linear import (
+    Team,
+    create_issue,
+    create_project_update,
+    get_in_progress_state_id,
+    get_project_id,
+    get_projects,
+    get_qa_label_id,
+)
+from runner.models import ClientDeployment, DeploymentType
 from runner.reporting import build_client_deployment_report
-from runner.linear import LINEAR_TEAMS, get_api_key, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -366,33 +374,26 @@ def linear(deployment_id: int) -> None:
         if not deployment:
             raise ValueError(f"Client deployment with ID {deployment_id} not found")
 
-        test_type = questionary.select(
-            "What type of test was this client deployment created for?",
-            choices=["Upload Performance Test", "Download Performance Test", "Upload/Download Performance Test"]
+        team_choice = questionary.select(
+            "Select the team based on whether the deployment is staging for a release (Releases) or not (QA)",
+            choices=["QA", "Releases"]
         ).ask()
-        if test_type is None:
-            print("Test type selection cancelled")
-            return
-        
-        team = questionary.select(
-            "Select team:",
-            choices=LINEAR_TEAMS
-        ).ask()
-        
-        try:
-            api_key = get_api_key(team)
-            team_id = get_team_id(team, api_key)
-            qa_label_id = get_qa_label_id(team_id, api_key)
-            projects = get_projects(team_id, api_key)
-            
-            project_choices = sorted([p["name"] for p in projects])
-            project_name = questionary.select(
-                "Select project:",
+        if team_choice == "QA":
+            project_name = "Client Performance Tests"
+            project_id = get_project_id(project_name, Team.QA)
+        else:
+            projects = get_projects(Team.RELEASES)
+            project_choices = [f"{project['name']}" for project in projects]
+            selected_project_name = questionary.select(
+                "Select a project from the Releases team:",
                 choices=project_choices
             ).ask()
-            
-            project_id = get_project_id(projects, project_name)
-            in_progress_state_id = get_in_progress_state_id(team_id, api_key)
+            project_id = next(p["id"] for p in projects if p["name"] == selected_project_name)
+
+        team = Team(team_choice)
+        try:
+            qa_label_id = get_qa_label_id(team)
+            in_progress_state_id = get_in_progress_state_id(team)
             
             label = None
             if deployment.related_pr:
@@ -401,27 +402,24 @@ def linear(deployment_id: int) -> None:
                 label = f"{deployment.repo_owner}/{deployment.branch}"
             else:
                 raise ValueError("No related PR or branch found for the deployment")
-            title = f"{test_type}: `{label}` [{deployment.name}]"
+            title = f"Client Performance Test: `{label}` [{deployment.name}]"
                 
             report = _build_deployment_and_smoke_test_report(deployment)
             issue_identifier, issue_url = create_issue(
                 title=title,
                 description=report,
-                team_id=team_id,
+                team=team,
                 project_id=project_id,
                 label_ids=[qa_label_id],
-                state_id=in_progress_state_id,
-                api_key=api_key
+                state_id=in_progress_state_id
             )
-            
             print(f"Created issue {issue_identifier}: {issue_url}")
             
             update_url = create_project_update(
                 project_id=project_id,
                 body=report,
-                api_key=api_key
+                team=team
             )
-            
             print(f"Created project update: {update_url}")
         except ValueError as e:
             print(f"Error: {e}")

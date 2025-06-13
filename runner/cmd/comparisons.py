@@ -759,15 +759,36 @@ def linear(comparison_id: int) -> None:
             full_report = report
         
         try:
-            qa_label_id = get_qa_label_id(Team.QA)
+            team_choice = questionary.select(
+                "Select team based on the comparison being staging for a release (Releases) or not (QA)",
+                choices=["QA", "Releases"]
+            ).ask()
             
-            if comparison.deployment_type == DeploymentType.NETWORK:
-                project_name = "Environment Comparisons"
-            else:
-                project_name = "Client Comparisons"
+            qa_label_id = get_qa_label_id(Team.QA)
+            if team_choice == "QA":
+                selected_team = Team.QA
                 
-            project_id = get_project_id(project_name, Team.QA)
-            in_progress_state_id = get_in_progress_state_id(Team.QA)
+                if comparison.deployment_type == DeploymentType.NETWORK:
+                    project_name = "Environment Comparisons"
+                else:
+                    project_name = "Client Comparisons"
+                    
+                project_id = get_project_id(project_name, Team.QA)
+            else:
+                selected_team = Team.RELEASES
+                
+                projects = get_projects(Team.RELEASES)
+                project_choices = [f"{project['name']}" for project in projects]
+                
+                selected_project_name = questionary.select(
+                    "Select a project from the Releases team:",
+                    choices=project_choices
+                ).ask()
+                
+                project_id = get_project_id(selected_project_name, Team.RELEASES)
+            
+            label_ids = [qa_label_id]
+            in_progress_state_id = get_in_progress_state_id(selected_team)
             
             if comparison.deployment_type == DeploymentType.NETWORK:
                 title = "Environment Comparison: "
@@ -791,9 +812,9 @@ def linear(comparison_id: int) -> None:
             issue_identifier, issue_url = create_issue(
                 title=title,
                 description=full_report,
-                team=Team.QA,
+                team=selected_team,
                 project_id=project_id,
-                label_ids=[qa_label_id],
+                label_ids=label_ids,
                 state_id=in_progress_state_id,
             )
             print(f"Created issue {issue_identifier}: {issue_url}")
@@ -801,7 +822,7 @@ def linear(comparison_id: int) -> None:
             update_url = create_project_update(
                 project_id=project_id,
                 body=full_report,
-                team=Team.QA
+                team=selected_team
             )
             print(f"Created project update: {update_url}")
         except ValueError as e:

@@ -518,7 +518,7 @@ def linear(deployment_id: int) -> None:
 
         test_type = questionary.select(
             "What type of test was this deployment created for?",
-            choices=["Upscaling Run", "Environment Test"]
+            choices=["Backwards Compatibility", "Environment Test", "Maintenance", "Upscaling Run"]
         ).ask()
         if test_type is None:
             print("Test type selection cancelled")
@@ -547,7 +547,7 @@ def linear(deployment_id: int) -> None:
                 print("Project selection cancelled")
                 return
             
-            project_id = get_project_id(projects, project_name)
+            project_id = next(p["id"] for p in projects if p["name"] == project_name)
             in_progress_state_id = get_in_progress_state_id(team)
             
             label = None
@@ -556,7 +556,11 @@ def linear(deployment_id: int) -> None:
             elif deployment.branch:
                 label = f"{deployment.repo_owner}/{deployment.branch}"
             else:
-                raise ValueError("No related PR or branch found for the deployment")
+                label = questionary.text(
+                    "No related PR or branch found. Please enter a label for this deployment:"
+                ).ask()
+                if not label:
+                    raise ValueError("Label is required for creating the issue")
             title = f"{test_type}: `{label}` [{deployment.name}]"
                 
             report = _build_deployment_and_smoke_test_report(deployment)
