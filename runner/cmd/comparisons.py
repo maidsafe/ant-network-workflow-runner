@@ -369,6 +369,14 @@ def record_upload_results(comparison_id: int) -> None:
                 "Not enough quotes errors:",
                 validate=lambda text: text.replace('.', '').isdigit()
             ).ask()
+            payment_error_count = questionary.text(
+                "Payment errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
+            put_record_quorum_error_count = questionary.text(
+                "Put record quorum errors:",
+                validate=lambda text: text.replace('.', '').isdigit()
+            ).ask()
             other_error_count = questionary.text(
                 "Other errors:",
                 validate=lambda text: text.replace('.', '').isdigit()
@@ -385,6 +393,8 @@ def record_upload_results(comparison_id: int) -> None:
                 avg_upload_time=avg_upload_time,
                 chunk_proof_error_count=chunk_proof_error_count,
                 not_enough_quotes_error_count=not_enough_quotes_error_count,
+                payment_error_count=payment_error_count,
+                put_record_quorum_error_count=put_record_quorum_error_count,
                 other_error_count=other_error_count,
                 started_at=start_datetime,
                 ended_at=end_datetime,
@@ -404,6 +414,8 @@ def record_upload_results(comparison_id: int) -> None:
                 "avg_upload_time": avg_upload_time,
                 "chunk_proof_error_count": chunk_proof_error_count,
                 "not_enough_quotes_error_count": not_enough_quotes_error_count,
+                "payment_error_count": payment_error_count,
+                "put_record_quorum_error_count": put_record_quorum_error_count,
                 "other_error_count": other_error_count
             })
         
@@ -422,6 +434,8 @@ def record_upload_results(comparison_id: int) -> None:
             print(f"  - Average upload time: {report['avg_upload_time']}s")
             print(f"  - Chunk proof errors: {report['chunk_proof_error_count']}")
             print(f"  - Not enough quotes errors: {report['not_enough_quotes_error_count']}")
+            print(f"  - Payment errors: {report['payment_error_count']}")
+            print(f"  - Put record quorum errors: {report['put_record_quorum_error_count']}")
             print(f"  - Other errors: {report['other_error_count']}")
         print(f"Upload results saved")
     except Exception as e:
@@ -485,6 +499,8 @@ def print_results(comparison_id: int) -> None:
                         "avg_upload_time": result.avg_upload_time,
                         "chunk_proof_error_count": result.chunk_proof_error_count,
                         "not_enough_quotes_error_count": result.not_enough_quotes_error_count,
+                        "payment_error_count": result.payment_error_count,
+                        "put_record_quorum_error_count": result.put_record_quorum_error_count,
                         "other_error_count": result.other_error_count,
                         "started_at": result.started_at,
                         "ended_at": result.ended_at
@@ -523,6 +539,8 @@ def print_results(comparison_id: int) -> None:
                     print(f"  - Average upload time: {result['avg_upload_time']}s")
                     print(f"  - Chunk proof errors: {result['chunk_proof_error_count']}")
                     print(f"  - Not enough quotes errors: {result['not_enough_quotes_error_count']}")
+                    print(f"  - Payment errors: {result['payment_error_count']}")
+                    print(f"  - Put record quorum errors: {result['put_record_quorum_error_count']}")
                     print(f"  - Other errors: {result['other_error_count']}")
         
         download_result_repo = ComparisonDownloadResultRepository()

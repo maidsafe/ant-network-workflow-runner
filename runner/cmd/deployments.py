@@ -358,6 +358,14 @@ def upload_report(deployment_id: int) -> None:
             "Number of not enough quotes errors:",
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
+        payment_error_count = questionary.text(
+            "Number of payment errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
+        put_record_quorum_error_count = questionary.text(
+            "Number of put record quorum errors:",
+            validate=lambda text: text.replace('.', '').isdigit()
+        ).ask()
         other_error_count = questionary.text(
             "Number of other errors:",
             validate=lambda text: text.replace('.', '').isdigit()
@@ -381,6 +389,8 @@ def upload_report(deployment_id: int) -> None:
         print(f"- Average upload time: {avg_upload_time}s")
         print(f"- Chunk proof errors: {chunk_proof_error_count}")
         print(f"- Not enough quotes errors: {not_enough_quotes_error_count}")
+        print(f"- Payment errors: {payment_error_count}")
+        print(f"- Put record quorum errors: {put_record_quorum_error_count}")
         print(f"- Other errors: {other_error_count}")
     except Exception as e:
         print(f"Error uploading report: {e}")

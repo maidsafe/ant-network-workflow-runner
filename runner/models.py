@@ -180,9 +180,12 @@ class ComparisonUploadResult(Base):
     successful_uploads = Column(Integer, nullable=False)
     records_uploaded = Column(Integer, nullable=False)
     avg_upload_time = Column(String, nullable=False)
+    # The original error counts were unfortunately added as strings by the AI, but I didn't pick up on it.
     chunk_proof_error_count = Column(String, nullable=False)
     not_enough_quotes_error_count = Column(String, nullable=False)
     other_error_count = Column(String, nullable=False)
+    payment_error_count = Column(Integer, nullable=True)
+    put_record_quorum_error_count = Column(Integer, nullable=True)
     started_at = Column(DateTime, nullable=False)
     ended_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, nullable=False)
