@@ -114,7 +114,13 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
 - [ ] Upscale environment from 25 to 475 symmetric NAT nodes to ensure no regressions on open connections
 - [ ] Backwards compatibility: bootstrap {package_version} to network with previous version and observe metrics to ensure communication
 - [ ] Backwards compatibility: upgrade various older node versions to {package_version}
-- [ ] Mainnet client comparison to evaluate uploads/downloads for improvements and regressions"""
+- [ ] Mainnet client comparison to evaluate uploads/downloads for improvements and regressions
+- [ ] Fresh installation of `node-launchpad` on Linux
+- [ ] Fresh installation of `node-launchpad` on Windows
+- [ ] Fresh installation of `node-launchpad` on macOS
+- [ ] Upgrade `node-launchpad` on Linux
+- [ ] Upgrade `node-launchpad` on Windows
+- [ ] Upgrade `node-launchpad` on macOS"""
 
         content = f"{checklist}\n\n{binary_versions_markdown}\n\n## Merged Pull Requests\n\n{prs_by_author}"
         project_id = create_project(
@@ -122,6 +128,7 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
         
         qa_label_id = get_qa_label_id(Team.QA)
         in_progress_state_id = get_state_id("In Progress", Team.Releases)
+        todo_state_id = get_state_id("Todo", Team.Releases)
 
         create_issue(
             f"Produce the release candidate", 
@@ -186,6 +193,119 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
             project_id, 
             [qa_label_id], 
             in_progress_state_id, 
+        )
+        create_issue(
+            f"Fresh installation of `node-launchpad` on Linux", 
+            "Install the new version of `node-launchpad` and use it to launch the new node", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Fresh installation of `node-launchpad` on Windows", 
+            "Install the new version of `node-launchpad` and use it to launch the new node", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Fresh installation of `node-launchpad` on macOS", 
+            "Install the new version of `node-launchpad` and use it to launch the new node", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Upgrade `node-launchpad` on Linux", 
+            "Upgrade `node-launchpad` then use it to upgrade nodes on a previous version", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Upgrade `node-launchpad` on Windows", 
+            "Upgrade `node-launchpad` then use it to upgrade nodes on a previous version", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Upgrade `node-launchpad` on macOS", 
+            "Upgrade `node-launchpad` then use it to upgrade nodes on a previous version", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Prepare community announcement and other documentation", 
+            "The announcement and any other documentation should include instructions specific to this release", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Update minimum version for emissions", 
+            "If relevant for this release we should update the minimum eligible node version on the emissions service.",
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Produce the new stable release", 
+            """The process is as follows:
+
+- [ ] On the RC branch: promote the RC version numbers to stable by removing the `-rc` suffix
+- [ ] On the RC branch: finalise the changelog
+- [ ] Create a PR to merge the RC branch into `main` (conflicts may need to be resolved)
+- [ ] Create a PR to merge the RC branch into `stable`
+- [ ] Run the `release` workflow on `stable` with a 4MB chunk size
+- [ ] Update the description of the Github release""", 
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Publish Rust crates", 
+            """Right now this is done manually because the Github build agent doesn't have enough disk space.
+
+It is done by running `release-plz release` at the root of the repository.""",
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Publish Python bindings", 
+            "Right now this is done by David because he has the setup for publishing to PyPI.",
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Publish NodeJS bindings", 
+            "This can be done by running a workflow after the release.",
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
+        )
+        create_issue(
+            f"Upgrade nodes hosted by MaidSafe", 
+            "All the nodes in our own production environment should be upgraded to this release.",
+            Team.Releases, 
+            project_id, 
+            [qa_label_id], 
+            todo_state_id, 
         )
 
         binary_versions_update = ""
