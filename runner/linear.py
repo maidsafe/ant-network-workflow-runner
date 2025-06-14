@@ -162,17 +162,18 @@ def get_project_id(name: str, team: Team) -> str:
     
     return project_id
 
-def get_in_progress_state_id(team: Team) -> Optional[str]:
-    """Get the Linear 'In Progress' state ID for a team.
+def get_state_id(name: str, team: Team) -> str:
+    """Get the Linear state ID for a team by state name.
     
     Args:
+        name: The state name to search for
         team: The team
         
     Returns:
-        The 'In Progress' state ID, or None if not found
+        The state ID
         
     Raises:
-        ValueError: If no workflow states are found
+        ValueError: If no workflow states are found or if the requested state is not found
     """
     team_id = get_team_id(team)
     
@@ -195,13 +196,13 @@ def get_in_progress_state_id(team: Team) -> Optional[str]:
     if not states:
         raise ValueError(f"No workflow states found for team ID {team_id}")
         
-    in_progress_state_id = next((state["id"] for state in states if state["name"].lower() == "in progress"), None)
-    if not in_progress_state_id:
-        logging.debug(f"Available states: {[state['name'] for state in states]}")
-        return None
+    state_id = next((state["id"] for state in states if state["name"].lower() == name.lower()), None)
+    if not state_id:
+        available_states = [state['name'] for state in states]
+        raise ValueError(f"State '{name}' not found. Available states: {available_states}")
         
-    logging.debug(f"Obtained state ID for 'In Progress': {in_progress_state_id}")
-    return in_progress_state_id
+    logging.debug(f"Obtained state ID for '{name}': {state_id}")
+    return state_id
 
 def create_issue(title: str, description: str, team: Team, project_id: str, 
                 label_ids: List[str], state_id: Optional[str]) -> Tuple[str, str]:

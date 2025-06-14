@@ -14,9 +14,9 @@ from runner.linear import (
     create_issue,
     create_project,
     create_project_update,
-    get_in_progress_state_id,
     get_projects,
     get_qa_label_id,
+    get_state_id,
 )
 
 def get_binary_versions(autonomi_repo_path: str) -> tuple[str, dict[str, str]]:
@@ -121,7 +121,7 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
             f"Release {package_version}", "Full feature release from `main`", content, Team.Releases)
         
         qa_label_id = get_qa_label_id(Team.QA)
-        in_progress_state_id = get_in_progress_state_id(Team.QA)
+        in_progress_state_id = get_state_id("In Progress", Team.Releases)
 
         create_issue(
             f"Produce the release candidate", 
