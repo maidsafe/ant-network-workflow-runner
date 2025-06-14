@@ -11,10 +11,10 @@ from runner.linear import (
     Team,
     create_issue,
     create_project_update,
-    get_in_progress_state_id,
     get_project_id,
     get_projects,
     get_qa_label_id,
+    get_state_id,
 )
 from runner.models import ClientDeployment, DeploymentType
 from runner.reporting import build_client_deployment_report
@@ -393,7 +393,7 @@ def linear(deployment_id: int) -> None:
         team = Team(team_choice)
         try:
             qa_label_id = get_qa_label_id(team)
-            in_progress_state_id = get_in_progress_state_id(team)
+            in_progress_state_id = get_state_id("In Progress", team)
             
             label = None
             if deployment.related_pr:

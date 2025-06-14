@@ -21,10 +21,10 @@ from runner.linear import (
     Team,
     create_issue,
     create_project_update,
-    get_in_progress_state_id,
     get_project_id,
     get_projects,
     get_qa_label_id,
+    get_state_id,
 )
 from runner.models import (
     ComparisonDownloadResult,
@@ -806,7 +806,7 @@ def linear(comparison_id: int) -> None:
                 project_id = get_project_id(selected_project_name, Team.RELEASES)
             
             label_ids = [qa_label_id]
-            in_progress_state_id = get_in_progress_state_id(selected_team)
+            in_progress_state_id = get_state_id("In Progress", selected_team)
             
             if comparison.deployment_type == DeploymentType.NETWORK:
                 title = "Environment Comparison: "
