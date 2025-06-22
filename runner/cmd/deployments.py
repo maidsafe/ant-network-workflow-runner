@@ -6,11 +6,24 @@ from datetime import datetime
 import questionary
 from rich import print as rprint
 
+from runner.cmd.workflows import (
+    launch_network,
+    start_downloaders,
+    start_uploaders,
+    stop_downloaders,
+    stop_uploaders
+)
 from runner.db import NetworkDeploymentRepository
+from runner.linear import (
+    Team,
+    create_issue,
+    create_project_update,
+    get_projects,
+    get_qa_label_id,
+    get_state_id
+)
 from runner.models import NetworkDeployment
 from runner.reporting import build_deployment_report
-from runner.cmd.workflows import launch_network, start_uploaders, start_downloaders, stop_uploaders, stop_downloaders
-from runner.linear import Team, get_team_id, get_qa_label_id, get_projects, get_project_id, get_in_progress_state_id, create_issue, create_project_update
 
 REPO_OWNER = "maidsafe"
 REPO_NAME = "sn-testnet-workflows"
@@ -416,7 +429,7 @@ def download_report(deployment_id: int) -> None:
         duration_seconds = (end_datetime - start_datetime).total_seconds()
         duration_hours = duration_seconds / 3600
         
-        print("\nStandard Downloader:")
+        print("\nDelayed Verifier:")
         standard_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -430,7 +443,7 @@ def download_report(deployment_id: int) -> None:
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
         
-        print("\nRandom Downloader:")
+        print("\nRandom Verifier:")
         random_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -444,7 +457,7 @@ def download_report(deployment_id: int) -> None:
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
         
-        print("\nPerformance Downloader:")
+        print("\nPerformance Verifier:")
         perf_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -465,15 +478,15 @@ def download_report(deployment_id: int) -> None:
         print(f"{deployment.name}")
         print(f"Time slice: {start_time} to {end_time}")
         print(f"Duration: {duration_hours:.2f} hours")
-        print("  Standard Downloader:")
+        print("  Delayed Verifier:")
         print(f"    - Successful downloads: {standard_successful}")
         print(f"    - Errors: {standard_errors}")
         print(f"    - Average download time: {standard_avg_time}s")
-        print("  Random Downloader:")
+        print("  Random Verifier:")
         print(f"    - Successful downloads: {random_successful}")
         print(f"    - Errors: {random_errors}")
         print(f"    - Average download time: {random_avg_time}s")
-        print("  Performance Downloader:")
+        print("  Performance Verifier:")
         print(f"    - Successful downloads: {perf_successful}")
         print(f"    - Errors: {perf_errors}")
         print(f"    - Average download time: {perf_avg_time}s")
@@ -558,7 +571,7 @@ def linear(deployment_id: int) -> None:
                 return
             
             project_id = next(p["id"] for p in projects if p["name"] == project_name)
-            in_progress_state_id = get_in_progress_state_id(team)
+            in_progress_state_id = get_state_id("In Progress", team)
             
             label = None
             if deployment.related_pr:

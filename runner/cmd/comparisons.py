@@ -598,15 +598,15 @@ def print_results(comparison_id: int) -> None:
                 for result in time_results:
                     print()
                     print(f"{result['env_name']} [{result['deployment_name']}]:")
-                    print("  Standard Downloader:")
+                    print("  Delayed Verifier:")
                     print(f"    - Successful downloads: {result['standard_successful']}")
                     print(f"    - Errors: {result['standard_errors']}")
                     print(f"    - Average download time: {result['standard_avg_time']}s")
-                    print("  Random Downloader:")
+                    print("  Random Verifier:")
                     print(f"    - Successful downloads: {result['random_successful']}")
                     print(f"    - Errors: {result['random_errors']}")
                     print(f"    - Average download time: {result['random_avg_time']}s")
-                    print("  Performance Downloader:")
+                    print("  Performance Verifier:")
                     print(f"    - Successful downloads: {result['perf_successful']}")
                     print(f"    - Errors: {result['perf_errors']}")
                     print(f"    - Average download time: {result['perf_avg_time']}s")
@@ -647,7 +647,7 @@ def record_download_results(comparison_id: int) -> None:
             print(f"\n{env_name} [{deployment.name}]:")
             print("=" * 50)
             
-            print("\nStandard Downloader:")
+            print("\nDelayed Verifier:")
             standard_successful = questionary.text(
                 "Successful downloads:",
                 validate=lambda text: text.isdigit()
@@ -661,7 +661,7 @@ def record_download_results(comparison_id: int) -> None:
                 validate=lambda text: text.replace('.', '').isdigit()
             ).ask()
             
-            print("\nRandom Downloader:")
+            print("\nRandom Verifier:")
             random_successful = questionary.text(
                 "Successful downloads:",
                 validate=lambda text: text.isdigit()
@@ -675,7 +675,7 @@ def record_download_results(comparison_id: int) -> None:
                 validate=lambda text: text.replace('.', '').isdigit()
             ).ask()
             
-            print("\nPerformance Downloader:")
+            print("\nPerformance Verifier:")
             perf_successful = questionary.text(
                 "Successful downloads:",
                 validate=lambda text: text.isdigit()
@@ -735,15 +735,15 @@ def record_download_results(comparison_id: int) -> None:
         for report in env_reports:
             print()
             print(f"{report['env_name']} [{report['name']}]:")
-            print("  Standard Downloader:")
+            print("  Delayed Verifier:")
             print(f"    - Successful downloads: {report['standard_successful']}")
             print(f"    - Errors: {report['standard_errors']}")
             print(f"    - Average download time: {report['standard_avg_time']}s")
-            print("  Random Downloader:")
+            print("  Random Verifier:")
             print(f"    - Successful downloads: {report['random_successful']}")
             print(f"    - Errors: {report['random_errors']}")
             print(f"    - Average download time: {report['random_avg_time']}s")
-            print("  Performance Downloader:")
+            print("  Performance Verifier:")
             print(f"    - Successful downloads: {report['perf_successful']}")
             print(f"    - Errors: {report['perf_errors']}")
             print(f"    - Average download time: {report['perf_avg_time']}s")

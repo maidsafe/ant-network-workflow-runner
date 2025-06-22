@@ -256,7 +256,7 @@ def download_report(deployment_id: int) -> None:
         duration_seconds = (end_datetime - start_datetime).total_seconds()
         duration_hours = duration_seconds / 3600
         
-        print("\nStandard Downloader:")
+        print("\nDelayed Verifier:")
         standard_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -270,7 +270,7 @@ def download_report(deployment_id: int) -> None:
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
         
-        print("\nRandom Downloader:")
+        print("\nRandom Verifier:")
         random_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -284,7 +284,7 @@ def download_report(deployment_id: int) -> None:
             validate=lambda text: text.replace('.', '').isdigit()
         ).ask()
         
-        print("\nPerformance Downloader:")
+        print("\nPerformance Verifier:")
         perf_successful = questionary.text(
             "Successful downloads:",
             validate=lambda text: text.isdigit()
@@ -305,15 +305,15 @@ def download_report(deployment_id: int) -> None:
         print(f"{deployment.name}")
         print(f"Time slice: {start_time} to {end_time}")
         print(f"Duration: {duration_hours:.2f} hours")
-        print("  Standard Downloader:")
+        print("  Delayed Verifier:")
         print(f"    - Successful downloads: {standard_successful}")
         print(f"    - Errors: {standard_errors}")
         print(f"    - Average download time: {standard_avg_time}s")
-        print("  Random Downloader:")
+        print("  Random Verifier:")
         print(f"    - Successful downloads: {random_successful}")
         print(f"    - Errors: {random_errors}")
         print(f"    - Average download time: {random_avg_time}s")
-        print("  Performance Downloader:")
+        print("  Performance Verifier:")
         print(f"    - Successful downloads: {perf_successful}")
         print(f"    - Errors: {perf_errors}")
         print(f"    - Average download time: {perf_avg_time}s")
