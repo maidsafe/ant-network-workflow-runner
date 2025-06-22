@@ -680,8 +680,8 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Available release commands")
-    
+    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Manage releases")
+
     releases_new_parser = releases_subparsers.add_parser("new", help="Create a new release project in Linear")
     releases_new_parser.add_argument(
         "--path",
@@ -694,6 +694,23 @@ def main():
         help="Version number for the release"
     )
     releases_new_parser.add_argument(
+        "--autonomi-repo-path",
+        required=False,
+        help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
+    )
+    
+    releases_new_rc_parser = releases_subparsers.add_parser("new-rc", help="Create a new release candidate project in Linear")
+    releases_new_rc_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+    releases_new_rc_parser.add_argument(
+        "--version",
+        required=True,
+        help="Version number for the release"
+    )
+    releases_new_rc_parser.add_argument(
         "--autonomi-repo-path",
         required=False,
         help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
@@ -781,10 +798,12 @@ def main():
             deployments_parser.print_help()
             sys.exit(1)
     elif args.command == "releases":
-        if args.releases_command == "new":
-            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
-        elif args.releases_command == "breaking":
+        if args.releases_command == "breaking":
             releases.breaking(args.path)
+        elif args.releases_command == "new":
+            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
+        elif args.releases_command == "new-rc":
+            releases.new_rc(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
         else:
             releases_parser.print_help()
             sys.exit(1)

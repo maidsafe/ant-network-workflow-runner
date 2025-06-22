@@ -11,6 +11,10 @@ class Team(Enum):
     RELEASES = "Releases"
     TECH = "Tech"
 
+class ProjectLabel(Enum):
+    RELEASE = "Release"
+    RC = "RC"
+
 def get_team_id(team: Team) -> str:
     """Get the Linear team ID for a team name.
     
@@ -267,6 +271,21 @@ def create_issue(title: str, description: str, team: Team, project_id: str,
         raise ValueError(f"Failed to create issue. Response data: {result}")
 
 def create_project(name: str, description: str, content: str, team: Team):
+    """Create a Linear project.
+    
+    Args:
+        name: The project name
+        description: The project description
+        content: The project content
+        team: The team
+        project_labels: Optional list of project labels to apply
+        
+    Returns:
+        The project ID
+        
+    Raises:
+        ValueError: If the project creation fails
+    """
     team_id = get_team_id(team)
     
     create_project_query = """
@@ -285,12 +304,14 @@ def create_project(name: str, description: str, content: str, team: Team):
     }
     """
     
-    result = _make_linear_api_request(create_project_query, {
+    variables = {
         "name": name,
         "description": description,
         "content": content,
-        "teamIds": [team_id]
-    }, team)
+        "teamIds": [team_id],
+    }
+    
+    result = _make_linear_api_request(create_project_query, variables, team)
     
     if result.get("data", {}).get("projectCreate", {}).get("success"):
         project_id = result["data"]["projectCreate"]["project"]["id"]
