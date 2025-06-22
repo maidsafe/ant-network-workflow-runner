@@ -25,8 +25,10 @@ class NodeType(Enum):
 NETWORK_IDS = {
     "DEV-01": 3, "DEV-02": 4, "DEV-03": 5, "DEV-04": 6, "DEV-05": 7,
     "DEV-06": 8, "DEV-07": 9, "DEV-08": 10, "DEV-09": 11, "DEV-10": 12,
-    "STG-01": 13, "STG-02": 14, "STG-03": 15, "STG-04": 16, "STG-05": 17,
-    "STG-06": 18, "STG-07": 19, "STG-08": 20, "STG-09": 21, "STG-10": 22
+    "DEV-11": 13, "DEV-12": 14, "DEV-13": 15, "DEV-14": 16, "DEV-15": 17,
+    "STG-01": 18, "STG-02": 19, "STG-03": 20, "STG-04": 21, "STG-05": 23,
+    "STG-06": 24, "STG-07": 25, "STG-08": 26, "STG-09": 27, "STG-10": 28,
+    "STG-11": 29, "STG-12": 30, "STG-13": 31, "STG-14": 32, "STG-15": 33
 }
 
 def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> bool:
