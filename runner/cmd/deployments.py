@@ -16,10 +16,11 @@ from runner.cmd.workflows import (
 from runner.db import NetworkDeploymentRepository
 from runner.linear import (
     Team,
+    IssueLabel,
     create_issue,
     create_project_update,
     get_projects,
-    get_qa_label_id,
+    get_issue_label_id,
     get_state_id
 )
 from runner.models import NetworkDeployment
@@ -557,7 +558,6 @@ def linear(deployment_id: int) -> None:
             
         team = Team(team_selection)
         try:
-            qa_label_id = get_qa_label_id(team)
             projects = get_projects(team)
             
             project_choices = sorted([p["name"] for p in projects])
@@ -587,12 +587,14 @@ def linear(deployment_id: int) -> None:
             title = f"{test_type}: `{label}` [{deployment.name}]"
                 
             report = _build_deployment_and_smoke_test_report(deployment)
+            qa_label_id = get_issue_label_id(IssueLabel.QA, team)
+            environment_label_id = get_issue_label_id(IssueLabel.ENVIRONMENT, team)
             issue_identifier, issue_url = create_issue(
                 title=title,
                 description=report,
                 team=team,
                 project_id=project_id,
-                label_ids=[qa_label_id],
+                label_ids=[qa_label_id, environment_label_id],
                 state_id=in_progress_state_id
             )
             print(f"Created issue {issue_identifier}: {issue_url}")

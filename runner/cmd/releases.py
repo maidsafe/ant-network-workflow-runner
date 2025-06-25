@@ -12,11 +12,12 @@ from runner.github import (
 from runner.linear import (
     Team,
     ProjectLabel,
+    IssueLabel,
     create_issue,
     create_project,
     create_project_update,
     get_projects,
-    get_qa_label_id,
+    get_issue_label_id,
     get_state_id,
 )
 
@@ -126,7 +127,7 @@ def new_rc(path: str, package_version: str, autonomi_repo_path: Optional[str] = 
         project_id = create_project(
             f"Release Candidate {package_version}", "Full feature release from `main`", content, Team.RELEASES)
         
-        qa_label_id = get_qa_label_id(Team.QA)
+        qa_label_id = get_issue_label_id(IssueLabel.QA, Team.QA)
         in_progress_state_id = get_state_id("In Progress", Team.RELEASES)
         todo_state_id = get_state_id("Todo", Team.RELEASES)
 
@@ -290,7 +291,7 @@ def new(path: str, package_version: str, autonomi_repo_path: Optional[str] = Non
         project_id = create_project(
             f"Release {package_version}", "Full feature release from `main`", content, Team.RELEASES)
         
-        qa_label_id = get_qa_label_id(Team.QA)
+        qa_label_id = get_issue_label_id(IssueLabel.QA, Team.QA)
         in_progress_state_id = get_state_id("In Progress", Team.RELEASES)
         todo_state_id = get_state_id("Todo", Team.RELEASES)
 

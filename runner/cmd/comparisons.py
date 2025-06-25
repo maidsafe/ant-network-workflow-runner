@@ -19,11 +19,12 @@ from runner.db import (
 )
 from runner.linear import (
     Team,
+    IssueLabel,
     create_issue,
     create_project_update,
     get_project_id,
     get_projects,
-    get_qa_label_id,
+    get_issue_label_id,
     get_state_id,
 )
 from runner.models import (
@@ -782,7 +783,6 @@ def linear(comparison_id: int) -> None:
                 choices=["QA", "Releases"]
             ).ask()
             
-            qa_label_id = get_qa_label_id(Team.QA)
             if team_choice == "QA":
                 selected_team = Team.QA
                 
@@ -805,7 +805,9 @@ def linear(comparison_id: int) -> None:
                 
                 project_id = get_project_id(selected_project_name, Team.RELEASES)
             
-            label_ids = [qa_label_id]
+            qa_label_id = get_issue_label_id(IssueLabel.QA, Team.QA)
+            environment_label_id = get_issue_label_id(IssueLabel.ENVIRONMENT, Team.QA)
+            label_ids = [qa_label_id, environment_label_id]
             in_progress_state_id = get_state_id("In Progress", selected_team)
             
             if comparison.deployment_type == DeploymentType.NETWORK:

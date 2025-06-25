@@ -9,11 +9,12 @@ from rich import print as rprint
 from runner.db import ClientDeploymentRepository
 from runner.linear import (
     Team,
+    IssueLabel,
     create_issue,
     create_project_update,
     get_project_id,
     get_projects,
-    get_qa_label_id,
+    get_issue_label_id,
     get_state_id,
 )
 from runner.models import ClientDeployment, DeploymentType
@@ -392,7 +393,8 @@ def linear(deployment_id: int) -> None:
 
         team = Team(team_choice)
         try:
-            qa_label_id = get_qa_label_id(team)
+            qa_label_id = get_issue_label_id(IssueLabel.QA, team)
+            environment_label_id = get_issue_label_id(IssueLabel.ENVIRONMENT, team)
             in_progress_state_id = get_state_id("In Progress", team)
             
             label = None
@@ -410,7 +412,7 @@ def linear(deployment_id: int) -> None:
                 description=report,
                 team=team,
                 project_id=project_id,
-                label_ids=[qa_label_id],
+                label_ids=[qa_label_id, environment_label_id],
                 state_id=in_progress_state_id
             )
             print(f"Created issue {issue_identifier}: {issue_url}")
