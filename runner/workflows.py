@@ -1252,8 +1252,8 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         if bootstrap_args:
             inputs["bootstrap-args"] = " ".join(bootstrap_args)
 
-        if "environment-vars" in self.config:
-            inputs["environment-vars"] = self.config["environment-vars"]
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
 
         if "interval" in self.config:
             inputs["interval"] = str(self.config["interval"])
