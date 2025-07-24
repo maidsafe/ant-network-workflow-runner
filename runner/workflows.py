@@ -1427,6 +1427,32 @@ class StopDownloadersWorkflow(WorkflowRun):
         }
         
         if self.testnet_deploy_args:
-            inputs["testnet_deploy_args"] = self.testnet_deploy_args
+            inputs["testnet-deploy_args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class NginxUpgradeConfigWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 custom_inventory: Optional[List[str]] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Nginx -- Upgrade Config")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.custom_inventory = custom_inventory
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.custom_inventory is not None:
+            inputs["custom-inventory"] = ",".join(self.custom_inventory)
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs

@@ -467,6 +467,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    nginx_upgrade_config_parser = workflows_subparsers.add_parser("nginx-upgrade-config", help="Upgrade nginx configuration on network nodes")
+    nginx_upgrade_config_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    nginx_upgrade_config_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     reset_to_n_nodes_parser = workflows_subparsers.add_parser("reset-to-n-nodes", help="Reset network to run specified number of nodes")
     reset_to_n_nodes_parser.add_argument(
         "--path",
@@ -837,6 +849,9 @@ def main():
         elif args.workflows_command == "network-status":
             config = load_yaml_config(args.path)
             workflows.network_status(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "nginx-upgrade-config":
+            config = load_yaml_config(args.path)
+            workflows.nginx_upgrade_config(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "reset-to-n-nodes":
             config = load_yaml_config(args.path)
             workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)

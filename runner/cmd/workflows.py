@@ -21,6 +21,7 @@ DRAIN_FUNDS_WORKFLOW_ID = 125539749
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 144945387
 NETWORK_STATUS_WORKFLOW_ID = 109501466
+NGINX_UPGRADE_CONFIG_WORKFLOW_ID = 174411054
 RESET_TO_N_NODES_WORKFLOW_ID = 134957069
 START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 154514010
@@ -359,6 +360,28 @@ def network_status(config: Dict, branch_name: str, force: bool = False, wait: bo
         branch_name=branch_name,
         network_name=config["network-name"],
         ansible_forks=config.get("ansible-forks"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def nginx_upgrade_config(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Upgrade nginx configuration on network nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = NginxUpgradeConfigWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=NGINX_UPGRADE_CONFIG_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
