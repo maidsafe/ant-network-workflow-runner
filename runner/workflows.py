@@ -14,9 +14,10 @@ from runner.db import WorkflowRunRepository
 from runner.models import WorkflowRun as WorkflowRunModel
 
 class NodeType(Enum):
-    PEER_CACHE = "peer-cache"
-    GENESIS = "genesis"
     GENERIC = "generic"
+    GENESIS = "genesis"
+    FULL_CONE_PRIVATE = "full-cone-private"
+    PEER_CACHE = "peer-cache"
     SYMMETRIC_PRIVATE = "symmetric-private"
     
     def __str__(self) -> str:
