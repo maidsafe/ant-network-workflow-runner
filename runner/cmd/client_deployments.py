@@ -403,7 +403,11 @@ def linear(deployment_id: int) -> None:
             elif deployment.branch:
                 label = f"{deployment.repo_owner}/{deployment.branch}"
             else:
-                raise ValueError("No related PR or branch found for the deployment")
+                label = questionary.text(
+                    "No related PR or branch found. Please enter a label for this deployment:"
+                ).ask()
+                if not label:
+                    raise ValueError("Label is required for creating the issue")
             title = f"Client Performance Test: `{label}` [{deployment.name}]"
                 
             report = _build_deployment_and_smoke_test_report(deployment)
