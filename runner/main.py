@@ -368,6 +368,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    client_deploy_static_downloaders_parser = workflows_subparsers.add_parser("client-deploy-static-downloaders", help="Deploy static downloaders for testing")
+    client_deploy_static_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    client_deploy_static_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     deposit_funds_parser = workflows_subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
     deposit_funds_parser.add_argument(
         "--path",
@@ -826,6 +838,9 @@ def main():
         elif args.workflows_command == "client-deploy":
             config = load_yaml_config(args.path)
             workflows.client_deploy(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "client-deploy-static-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.client_deploy_static_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "deposit-funds":
             config = load_yaml_config(args.path)
             workflows.deposit_funds(config, args.branch, args.force, args.wait)

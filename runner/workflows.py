@@ -806,6 +806,95 @@ class ClientDeployWorkflow(WorkflowRun):
 
         return inputs
 
+class ClientDeployStaticDownloadersWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, deployment_name: str,
+                 config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Client Deploy Static Downloaders")
+        self.deployment_name = deployment_name
+        # The network name field is mandatory to process all workflows in a uniform manner, even
+        # though it doesn't really apply to the client deploy workflow.
+        self.network_name = deployment_name
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["name", "environment-type"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
+                
+        has_version = "ant-version" in self.config
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_version and has_build_config:
+            raise ValueError("Cannot specify both binary version and build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the client deploy static downloaders workflow."""
+        inputs = {
+            "name": self.deployment_name,
+            "environment-type": self.config["environment-type"],
+            "provider": self.config.get("provider", "digital-ocean")
+        }
+
+        if "ant-version" in self.config:
+            inputs["ant-version"] = self.config["ant-version"]
+        if "network-id" in self.config:
+            inputs["network-id"] = str(self.config["network-id"])
+
+        client_deploy_args = []
+        client_deploy_arg_mappings = {
+            "ansible-forks": "--ansible-forks",
+            "ansible-verbose": "--ansible-verbose",
+            "branch": "--branch",
+            "repo-owner": "--repo-owner",
+            "chunk-size": "--chunk-size",
+            "client-env": "--client-env",
+            "client-vm-count": "--client-vm-count",
+            "client-vm-size": "--client-vm-size",
+            "disable-telegraf": "--disable-telegraf",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-network-type": "--evm-network-type",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "network-contacts-url": "--network-contacts-url",
+            "peer": "--peer",
+            "region": "--region",
+            "skip-binary-build": "--skip-binary-build"
+        }
+        
+        for config_key, arg_name in client_deploy_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        client_deploy_args.append(arg_name)
+                else:
+                    client_deploy_args.append(f"{arg_name} {value}")
+                    
+        if client_deploy_args:
+            inputs["client-deploy-args"] = " ".join(client_deploy_args)
+
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = testnet_deploy_args
+
+        return inputs
+
 class KillDropletsWorkflow(WorkflowRun):
     def __init__(self, owner: str, repo: str, id: int,
                  personal_access_token: str, branch_name: str,

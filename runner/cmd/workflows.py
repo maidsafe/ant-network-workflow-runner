@@ -15,6 +15,7 @@ REPO_NAME = "sn-testnet-workflows"
 
 BOOTSTRAP_NETWORK_WORKFLOW_ID = 117603859
 CLIENT_DEPLOY_WORKFLOW_ID = 155060032
+CLIENT_DEPLOY_STATIC_DOWNLOADERS_WORKFLOW_ID = 180048754
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 DRAIN_FUNDS_WORKFLOW_ID = 125539749
@@ -754,6 +755,36 @@ def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: boo
         workflow_run_id = workflow.run(force=force, wait=wait)
         repo = ClientDeploymentRepository()
         repo.record_client_deployment(workflow_run_id, config)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
+
+def client_deploy_static_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Deploy static downloaders to an existing network."""
+    _print_workflow_banner()
+    
+    workflow = ClientDeployStaticDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=CLIENT_DEPLOY_STATIC_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        deployment_name=config["name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force, wait=wait)
+        db_config = config.copy()
+        db_config["deployment-name"] = config["name"]
+        repo = ClientDeploymentRepository()
+        repo.record_client_deployment(workflow_run_id, db_config)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")
