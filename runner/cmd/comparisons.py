@@ -1,10 +1,8 @@
-import logging
 import os
 import requests
 import sys
 
 from datetime import datetime, UTC
-from typing import List, Dict, Optional
 
 import questionary
 from rich import print as rprint
@@ -236,7 +234,7 @@ def record_results(comparison_id: int, generic_nodes_report_path: str = None, fu
         report_output_path = os.environ.get("ANT_COMP_REPORT_OUTPUT_PATH")
         if not report_output_path or not os.path.exists(report_output_path):
             raise ValueError("ANT_COMP_REPORT_OUTPUT_PATH environment variable is not set, empty, or refers to a path that does not exist")
-        full_cone_report_path = os.path.join(report_output_path, "NAT_FULL_CONE_NODE.html")
+        full_cone_report_path = os.path.join(report_output_path, "NAT_STATIC_FULL_CONE_NODE.html")
         if not os.path.exists(full_cone_report_path):
             raise ValueError(f"Full cone NAT nodes report file not found at {full_cone_report_path}")
     
@@ -477,9 +475,7 @@ def print_results(comparison_id: int) -> None:
         
         upload_result_repo = ComparisonUploadResultRepository()
         
-        # Query the database to get all the data we need in one go
-        # This avoids lazy loading issues after the session is closed
-        upload_results_with_deployment_data = []
+        upload_results = None
         try:
             db = upload_result_repo.db
             results = db.query(ComparisonUploadResult).filter(
@@ -487,9 +483,10 @@ def print_results(comparison_id: int) -> None:
             ).all()
             
             if results:
+                upload_results = {}
                 for result in results:
                     deployment_name = result.deployment.name if result.deployment else "Unknown"
-                    upload_results_with_deployment_data.append({
+                    upload_results[result.env_name] = {
                         "id": result.id,
                         "env_name": result.env_name,
                         "deployment_name": deployment_name,
@@ -505,48 +502,57 @@ def print_results(comparison_id: int) -> None:
                         "other_error_count": result.other_error_count,
                         "started_at": result.started_at,
                         "ended_at": result.ended_at
-                    })
+                    }
         finally:
             db.close()
         
         has_results = False
-        
-        if upload_results_with_deployment_data:
+        if upload_results:
             has_results = True
-            results_by_time = {}
-            for result in upload_results_with_deployment_data:
-                time_key = (result["started_at"], result["ended_at"])
-                if time_key not in results_by_time:
-                    results_by_time[time_key] = []
-                results_by_time[time_key].append(result)
-                
-            for (start_time, end_time), time_results in results_by_time.items():
-                duration_seconds = (end_time - start_time).total_seconds()
-                duration_hours = duration_seconds / 3600
-                
-                print()
-                print("=" * 7)
-                print("UPLOADS")
-                print("=" * 7)
-                print(f"Time slice: {start_time.strftime('%Y-%m-%d %H:%M:%S')} to {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"Duration: {duration_hours:.2f} hours")
-                
-                for result in time_results:
-                    print()
-                    print(f"{result['env_name']} [{result['deployment_name']}]:")
-                    print(f"  - Uploaders: {result['total_uploaders']}")
-                    print(f"  - Successful uploads: {result['successful_uploads']}")
-                    print(f"  - Records uploaded: {result['records_uploaded']}")
-                    print(f"  - Average upload time: {result['avg_upload_time']}s")
-                    print(f"  - Chunk proof errors: {result['chunk_proof_error_count']}")
-                    print(f"  - Not enough quotes errors: {result['not_enough_quotes_error_count']}")
-                    print(f"  - Payment errors: {result['payment_error_count']}")
-                    print(f"  - Put record quorum errors: {result['put_record_quorum_error_count']}")
-                    print(f"  - Other errors: {result['other_error_count']}")
+            
+            first_result = next(iter(upload_results.values()))
+            start_time = first_result["started_at"]
+            end_time = first_result["ended_at"]
+            duration_seconds = (end_time - start_time).total_seconds()
+            duration_hours = duration_seconds / 3600
+
+            ref_result = upload_results["REF"]
+            test_results = [result for env_name, result in upload_results.items() if env_name != "REF"]
+
+            test_env_parts = [f"{result['deployment_name']} [{result['env_name']}]" for result in test_results]
+            ref_env_part = f"{ref_result['deployment_name']} [{ref_result['env_name']}]"
+            header_text = f"UPLOADS: {' vs '.join(test_env_parts)} vs {ref_env_part}"
+            
+            print()
+            print("=" * len(header_text))
+            print(header_text)
+            print("=" * len(header_text))
+            print(f"Time slice: {start_time.strftime('%Y-%m-%d %H:%M:%S')} to {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Duration: {duration_hours:.2f} hours")
+            
+            metrics = [
+                ("Uploaders", "total_uploaders", ""),
+                ("Successful uploads", "successful_uploads", ""),
+                ("Records uploaded", "records_uploaded", ""),
+                ("Average upload time", "avg_upload_time", "s"),
+                ("Chunk proof errors", "chunk_proof_error_count", ""),
+                ("Not enough quotes errors", "not_enough_quotes_error_count", ""),
+                ("Payment errors", "payment_error_count", ""),
+                ("Put record quorum errors", "put_record_quorum_error_count", ""),
+                ("Other errors", "other_error_count", "")
+            ]
+            
+            print()
+            max_metric_width = max(len(metric_name) for metric_name, _, _ in metrics)
+            for metric_name, metric_key, unit in metrics:
+                ref_value = ref_result[metric_key]
+                test_values = [str(result[metric_key]) for result in test_results]
+                comparison = " vs ".join(test_values + [str(ref_value)])
+                padding = " " * (max_metric_width - len(metric_name))
+                print(f"{metric_name}:{padding} {comparison}{unit}")
         
         download_result_repo = ComparisonDownloadResultRepository()
-        
-        download_results_with_deployment_data = []
+        download_results = None
         try:
             db = download_result_repo.db
             results = db.query(ComparisonDownloadResult).filter(
@@ -554,9 +560,10 @@ def print_results(comparison_id: int) -> None:
             ).all()
             
             if results:
+                download_results = {}
                 for result in results:
                     deployment_name = result.deployment.name if result.deployment else "Unknown"
-                    download_results_with_deployment_data.append({
+                    download_results[result.env_name] = {
                         "id": result.id,
                         "env_name": result.env_name,
                         "deployment_name": deployment_name,
@@ -572,49 +579,57 @@ def print_results(comparison_id: int) -> None:
                         "perf_avg_time": result.perf_avg_time,
                         "started_at": result.started_at,
                         "ended_at": result.ended_at
-                    })
+                    }
         finally:
             db.close()
         
-        if download_results_with_deployment_data:
+        if download_results:
             has_results = True
-            results_by_time = {}
-            for result in download_results_with_deployment_data:
-                time_key = (result["started_at"], result["ended_at"])
-                if time_key not in results_by_time:
-                    results_by_time[time_key] = []
-                results_by_time[time_key].append(result)
+            
+            first_result = next(iter(download_results.values()))
+            start_time = first_result["started_at"]
+            end_time = first_result["ended_at"]
+            duration_seconds = (end_time - start_time).total_seconds()
+            duration_hours = duration_seconds / 3600
+            
+            ref_result = download_results["REF"]
+            test_results = [result for env_name, result in download_results.items() if env_name != "REF"]
+
+            test_env_parts = [f"{result['deployment_name']} [{result['env_name']}]" for result in test_results]
+            ref_env_part = f"{ref_result['deployment_name']} [{ref_result['env_name']}]"
+            header_text = f"DOWNLOADS: {' vs '.join(test_env_parts)} vs {ref_env_part}"
+            
+            print()
+            print("=" * len(header_text))
+            print(header_text)
+            print("=" * len(header_text))
+            print(f"Time slice: {start_time.strftime('%Y-%m-%d %H:%M:%S')} to {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Duration: {duration_hours:.2f} hours")
+            
+            verifier_types = [
+                ("Delayed Verifier", "standard"),
+                ("Random Verifier", "random"),
+                ("Performance Verifier", "perf")
+            ]
+            
+            print()
+            for verifier_name, prefix in verifier_types:
+                print(f"{verifier_name}:")
                 
-            for (start_time, end_time), time_results in results_by_time.items():
-                duration_seconds = (end_time - start_time).total_seconds()
-                duration_hours = duration_seconds / 3600
+                metrics = [
+                    ("Successful downloads", f"{prefix}_successful", ""),
+                    ("Errors", f"{prefix}_errors", ""),
+                    ("Average download time", f"{prefix}_avg_time", "s")
+                ]
                 
-                print()
-                print("=" * 9)
-                print("DOWNLOADS")
-                print("=" * 9)
-                print(f"Time slice: {start_time.strftime('%Y-%m-%d %H:%M:%S')} to {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"Duration: {duration_hours:.2f} hours")
-                
-                for result in time_results:
-                    print()
-                    print(f"{result['env_name']} [{result['deployment_name']}]:")
-                    print("  Delayed Verifier:")
-                    print(f"    - Successful downloads: {result['standard_successful']}")
-                    print(f"    - Errors: {result['standard_errors']}")
-                    print(f"    - Average download time: {result['standard_avg_time']}s")
-                    print("  Random Verifier:")
-                    print(f"    - Successful downloads: {result['random_successful']}")
-                    print(f"    - Errors: {result['random_errors']}")
-                    print(f"    - Average download time: {result['random_avg_time']}s")
-                    print("  Performance Verifier:")
-                    print(f"    - Successful downloads: {result['perf_successful']}")
-                    print(f"    - Errors: {result['perf_errors']}")
-                    print(f"    - Average download time: {result['perf_avg_time']}s")
+                for metric_name, metric_key, unit in metrics:
+                    ref_value = ref_result[metric_key]
+                    test_values = [str(result[metric_key]) for result in test_results]
+                    comparison = " vs ".join(test_values + [str(ref_value)])
+                    print(f"  - {metric_name}: {comparison}{unit}")
         
         if not has_results:
             print("\nNo upload or download results found for this comparison.")
-    
     except Exception as e:
         print(f"Error displaying results: {e}")
         sys.exit(1)
