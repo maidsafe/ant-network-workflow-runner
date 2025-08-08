@@ -368,6 +368,18 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
+    client_deploy_static_downloaders_parser = workflows_subparsers.add_parser("client-deploy-static-downloaders", help="Deploy static downloaders for testing")
+    client_deploy_static_downloaders_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    client_deploy_static_downloaders_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
     deposit_funds_parser = workflows_subparsers.add_parser("deposit-funds", help="Deposit funds to network nodes")
     deposit_funds_parser.add_argument(
         "--path",
@@ -462,6 +474,18 @@ def main():
         help="Path to the inputs file"
     )
     network_status_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt before dispatching workflow"
+    )
+
+    nginx_upgrade_config_parser = workflows_subparsers.add_parser("nginx-upgrade-config", help="Upgrade nginx configuration on network nodes")
+    nginx_upgrade_config_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to the inputs file"
+    )
+    nginx_upgrade_config_parser.add_argument(
         "--force",
         action="store_true",
         help="Skip confirmation prompt before dispatching workflow"
@@ -680,8 +704,8 @@ def main():
         help="Skip confirmation prompt before dispatching workflow"
     )
 
-    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Available release commands")
-    
+    releases_subparsers = releases_parser.add_subparsers(dest="releases_command", help="Manage releases")
+
     releases_new_parser = releases_subparsers.add_parser("new", help="Create a new release project in Linear")
     releases_new_parser.add_argument(
         "--path",
@@ -694,6 +718,23 @@ def main():
         help="Version number for the release"
     )
     releases_new_parser.add_argument(
+        "--autonomi-repo-path",
+        required=False,
+        help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
+    )
+    
+    releases_new_rc_parser = releases_subparsers.add_parser("new-rc", help="Create a new release candidate project in Linear")
+    releases_new_rc_parser.add_argument(
+        "--path",
+        required=True,
+        help="Path to a file containing PR numbers, one per line"
+    )
+    releases_new_rc_parser.add_argument(
+        "--version",
+        required=True,
+        help="Version number for the release"
+    )
+    releases_new_rc_parser.add_argument(
         "--autonomi-repo-path",
         required=False,
         help="Path to the autonomi repository. If not provided, will read from ANT_RUNNER_AUTONOMI_REPO_PATH environment variable"
@@ -781,10 +822,12 @@ def main():
             deployments_parser.print_help()
             sys.exit(1)
     elif args.command == "releases":
-        if args.releases_command == "new":
-            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
-        elif args.releases_command == "breaking":
+        if args.releases_command == "breaking":
             releases.breaking(args.path)
+        elif args.releases_command == "new":
+            releases.new(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
+        elif args.releases_command == "new-rc":
+            releases.new_rc(args.path, args.version, getattr(args, 'autonomi_repo_path', None))
         else:
             releases_parser.print_help()
             sys.exit(1)
@@ -795,6 +838,9 @@ def main():
         elif args.workflows_command == "client-deploy":
             config = load_yaml_config(args.path)
             workflows.client_deploy(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "client-deploy-static-downloaders":
+            config = load_yaml_config(args.path)
+            workflows.client_deploy_static_downloaders(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "deposit-funds":
             config = load_yaml_config(args.path)
             workflows.deposit_funds(config, args.branch, args.force, args.wait)
@@ -818,6 +864,9 @@ def main():
         elif args.workflows_command == "network-status":
             config = load_yaml_config(args.path)
             workflows.network_status(config, args.branch, args.force, args.wait)
+        elif args.workflows_command == "nginx-upgrade-config":
+            config = load_yaml_config(args.path)
+            workflows.nginx_upgrade_config(config, args.branch, args.force, args.wait)
         elif args.workflows_command == "reset-to-n-nodes":
             config = load_yaml_config(args.path)
             workflows.reset_to_n_nodes(config, args.branch, args.force, args.wait)

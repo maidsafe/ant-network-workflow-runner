@@ -11,6 +11,14 @@ class Team(Enum):
     RELEASES = "Releases"
     TECH = "Tech"
 
+class ProjectLabel(Enum):
+    RELEASE = "Release"
+    RC = "RC"
+
+class IssueLabel(Enum):
+    ENVIRONMENT = "Environment"
+    QA = "QA"
+
 def get_team_id(team: Team) -> str:
     """Get the Linear team ID for a team name.
     
@@ -47,17 +55,18 @@ def get_team_id(team: Team) -> str:
     logging.debug(f"Obtained team ID for {team.value}: {team_id}")
     return team_id
 
-def get_qa_label_id(team: Team) -> str:
-    """Get the Linear QA label ID for a team.
+def get_issue_label_id(issue_label: IssueLabel, team: Team) -> str:
+    """Get the Linear issue label ID for a team.
     
     Args:
+        issue_label: The issue label to get the ID for
         team: The team
         
     Returns:
-        The QA label ID
+        The issue label ID
         
     Raises:
-        ValueError: If the QA label is not found
+        ValueError: If the issue label is not found
     """
     team_id = get_team_id(team)
     
@@ -80,12 +89,12 @@ def get_qa_label_id(team: Team) -> str:
     if not labels:
         raise ValueError(f"No labels found for team ID {team_id}")
         
-    qa_label_id = next((label["id"] for label in labels if label["name"].lower() == "qa"), None)
-    if not qa_label_id:
-        raise ValueError("QA label not found. Please create a 'QA' label in Linear first.")
+    label_id = next((label["id"] for label in labels if label["name"].lower() == issue_label.value.lower()), None)
+    if not label_id:
+        raise ValueError(f"{issue_label.value} label not found. Please create a '{issue_label.value}' label in Linear first.")
         
-    logging.debug(f"Obtained label ID for QA: {qa_label_id}")
-    return qa_label_id
+    logging.debug(f"Obtained label ID for {issue_label.value}: {label_id}")
+    return label_id
 
 def get_projects(team: Team) -> List[Dict]:
     """Get the Linear projects for a team.
@@ -267,6 +276,21 @@ def create_issue(title: str, description: str, team: Team, project_id: str,
         raise ValueError(f"Failed to create issue. Response data: {result}")
 
 def create_project(name: str, description: str, content: str, team: Team):
+    """Create a Linear project.
+    
+    Args:
+        name: The project name
+        description: The project description
+        content: The project content
+        team: The team
+        project_labels: Optional list of project labels to apply
+        
+    Returns:
+        The project ID
+        
+    Raises:
+        ValueError: If the project creation fails
+    """
     team_id = get_team_id(team)
     
     create_project_query = """
@@ -285,12 +309,14 @@ def create_project(name: str, description: str, content: str, team: Team):
     }
     """
     
-    result = _make_linear_api_request(create_project_query, {
+    variables = {
         "name": name,
         "description": description,
         "content": content,
-        "teamIds": [team_id]
-    }, team)
+        "teamIds": [team_id],
+    }
+    
+    result = _make_linear_api_request(create_project_query, variables, team)
     
     if result.get("data", {}).get("projectCreate", {}).get("success"):
         project_id = result["data"]["projectCreate"]["project"]["id"]

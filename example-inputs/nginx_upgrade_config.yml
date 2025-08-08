@@ -1,0 +1,28 @@
+# Inputs for running the `Nginx -- Upgrade Config` workflow.
+# This workflow upgrades the nginx configuration on network nodes.
+
+# Required
+network-name: DEV-02
+
+# Optional
+# Remove any you don't want to use.
+
+# Forks can be set to 1 to force Ansible to run against one machine at a time. This allows a
+# controlled upgrade against several machines. Otherwise, forks will default to 50.
+ansible-forks: 1
+
+# Provide a comma-separated list of VM names to use as a custom inventory.
+# This will upgrade nginx on a particular subset of VMs.
+custom-inventory:
+  - DEV-02-node-1
+  - DEV-02-node-2
+
+# Use these inputs if you want some custom version of `testnet-deploy` to be
+# used in the run. It can either be a branch on a fork, or a specific version.
+# If you want to use a branch, both the `testnet-deploy-branch` and
+# `testnet-deploy-repo-owner` inputs are required.  The vast majority of the
+# time, you will just want to use the latest version of `testnet-deploy`, and so
+# these inputs can be removed.
+testnet-deploy-branch: experimental-feature
+testnet-deploy-repo-owner: maidsafe
+testnet-deploy-version: 0.1.0

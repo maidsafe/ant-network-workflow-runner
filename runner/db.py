@@ -299,7 +299,7 @@ class NetworkDeploymentRepository(BaseRepository[NetworkDeployment]):
             run_id=workflow_run_id,
             full_cone_private_node_count=config.get("full-cone-private-node-count", defaults["full_cone_private_node_count"]),
             full_cone_private_vm_count=config.get("full-cone-private-vm-count", defaults["full_cone_private_vm_count"]),
-            full_cone_nat_gateway_vm_size=config.get("full-cone-nat-gateway-vm-size", defaults["full_cone_nat_gateway_vm_size"]),
+            full_cone_nat_gateway_vm_size=config.get("full-cone-vm-size", defaults["full_cone_vm_size"]),
             symmetric_private_node_count=config.get("symmetric-private-node-count", defaults["symmetric_private_node_count"]),
             symmetric_private_vm_count=config.get("symmetric-private-vm-count", defaults["symmetric_private_vm_count"]),
             symmetric_nat_gateway_vm_size=config.get("symmetric-nat-gateway-vm-size", defaults["symmetric_nat_gateway_vm_size"]),

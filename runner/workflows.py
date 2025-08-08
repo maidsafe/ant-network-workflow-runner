@@ -14,9 +14,10 @@ from runner.db import WorkflowRunRepository
 from runner.models import WorkflowRun as WorkflowRunModel
 
 class NodeType(Enum):
-    PEER_CACHE = "peer-cache"
-    GENESIS = "genesis"
     GENERIC = "generic"
+    GENESIS = "genesis"
+    FULL_CONE_PRIVATE = "full-cone-private"
+    PEER_CACHE = "peer-cache"
     SYMMETRIC_PRIVATE = "symmetric-private"
     
     def __str__(self) -> str:
@@ -25,8 +26,10 @@ class NodeType(Enum):
 NETWORK_IDS = {
     "DEV-01": 3, "DEV-02": 4, "DEV-03": 5, "DEV-04": 6, "DEV-05": 7,
     "DEV-06": 8, "DEV-07": 9, "DEV-08": 10, "DEV-09": 11, "DEV-10": 12,
-    "STG-01": 13, "STG-02": 14, "STG-03": 15, "STG-04": 16, "STG-05": 17,
-    "STG-06": 18, "STG-07": 19, "STG-08": 20, "STG-09": 21, "STG-10": 22
+    "DEV-11": 13, "DEV-12": 14, "DEV-13": 15, "DEV-14": 16, "DEV-15": 17,
+    "STG-01": 18, "STG-02": 19, "STG-03": 20, "STG-04": 21, "STG-05": 23,
+    "STG-06": 24, "STG-07": 25, "STG-08": 26, "STG-09": 27, "STG-10": 28,
+    "STG-11": 29, "STG-12": 30, "STG-13": 31, "STG-14": 32, "STG-15": 33
 }
 
 def confirm_workflow_dispatch(workflow_name: str, inputs: Dict[str, Any]) -> bool:
@@ -650,12 +653,12 @@ class LaunchNetworkWorkflow(WorkflowRun):
             "evm-node-vm-size": "--evm-node-vm-size",
             "evm-payment-token-address": "--evm-payment-token-address",
             "evm-rpc-url": "--evm-rpc-url",
+            "full-cone-vm-size": "--full-cone-vm-size",
             "initial-gas": "--initial-gas",
             "initial-tokens": "--initial-tokens",
             "interval": "--interval",
             "max-archived-log-files": "--max-archived-log-files",
             "max-log-files": "--max-log-files",
-            "nat-gateway-vm-size": "--nat-gateway-vm-size",
             "network-dashboard-branch": "--network-dashboard-branch",
             "network-id": "--network-id",
             "node-vm-size": "--node-vm-size",
@@ -783,6 +786,95 @@ class ClientDeployWorkflow(WorkflowRun):
             "uploaders-count": "--uploaders-count",
             "upload-interval": "--upload-interval",
             "upload-size": "--upload-size"
+        }
+        
+        for config_key, arg_name in client_deploy_arg_mappings.items():
+            if config_key in self.config:
+                value = self.config[config_key]
+                if isinstance(value, bool):
+                    if value:
+                        client_deploy_args.append(arg_name)
+                else:
+                    client_deploy_args.append(f"{arg_name} {value}")
+                    
+        if client_deploy_args:
+            inputs["client-deploy-args"] = " ".join(client_deploy_args)
+
+        testnet_deploy_args = self._build_testnet_deploy_args(self.config)
+        if testnet_deploy_args:
+            inputs["testnet-deploy-args"] = testnet_deploy_args
+
+        return inputs
+
+class ClientDeployStaticDownloadersWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str, deployment_name: str,
+                 config: Dict[str, Any]):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Client Deploy Static Downloaders")
+        self.deployment_name = deployment_name
+        # The network name field is mandatory to process all workflows in a uniform manner, even
+        # though it doesn't really apply to the client deploy workflow.
+        self.network_name = deployment_name
+        self.config = config
+        self._validate_config()
+
+    def _validate_config(self) -> None:
+        """Validate the configuration inputs."""
+        required_fields = ["name", "environment-type"]
+        for field in required_fields:
+            if field not in self.config:
+                raise KeyError(field)
+                
+        if "network-id" in self.config:
+            network_id = self.config["network-id"]
+            if not isinstance(network_id, int) or network_id < 1 or network_id > 255:
+                raise ValueError("network-id must be an integer between 1 and 255")
+                
+        has_version = "ant-version" in self.config
+        
+        has_build_config = any([
+            "branch" in self.config,
+            "repo-owner" in self.config
+        ])
+        
+        if has_version and has_build_config:
+            raise ValueError("Cannot specify both binary version and build configuration")
+            
+        if has_build_config and ('branch' not in self.config or 'repo-owner' not in self.config):
+            raise ValueError("Both branch and repo-owner must be specified for build configuration")
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        """Get inputs specific to the client deploy static downloaders workflow."""
+        inputs = {
+            "name": self.deployment_name,
+            "environment-type": self.config["environment-type"],
+            "provider": self.config.get("provider", "digital-ocean")
+        }
+
+        if "ant-version" in self.config:
+            inputs["ant-version"] = self.config["ant-version"]
+        if "network-id" in self.config:
+            inputs["network-id"] = str(self.config["network-id"])
+
+        client_deploy_args = []
+        client_deploy_arg_mappings = {
+            "ansible-forks": "--ansible-forks",
+            "ansible-verbose": "--ansible-verbose",
+            "branch": "--branch",
+            "repo-owner": "--repo-owner",
+            "chunk-size": "--chunk-size",
+            "client-env": "--client-env",
+            "client-vm-count": "--client-vm-count",
+            "client-vm-size": "--client-vm-size",
+            "disable-telegraf": "--disable-telegraf",
+            "evm-data-payments-address": "--evm-data-payments-address",
+            "evm-network-type": "--evm-network-type",
+            "evm-payment-token-address": "--evm-payment-token-address",
+            "evm-rpc-url": "--evm-rpc-url",
+            "network-contacts-url": "--network-contacts-url",
+            "peer": "--peer",
+            "region": "--region",
+            "skip-binary-build": "--skip-binary-build"
         }
         
         for config_key, arg_name in client_deploy_arg_mappings.items():
@@ -1250,8 +1342,8 @@ class BootstrapNetworkWorkflow(WorkflowRun):
         if bootstrap_args:
             inputs["bootstrap-args"] = " ".join(bootstrap_args)
 
-        if "environment-vars" in self.config:
-            inputs["environment-vars"] = self.config["environment-vars"]
+        if "node-env" in self.config:
+            inputs["node-env"] = self.config["node-env"]
 
         if "interval" in self.config:
             inputs["interval"] = str(self.config["interval"])
@@ -1425,6 +1517,32 @@ class StopDownloadersWorkflow(WorkflowRun):
         }
         
         if self.testnet_deploy_args:
-            inputs["testnet_deploy_args"] = self.testnet_deploy_args
+            inputs["testnet-deploy_args"] = self.testnet_deploy_args
+            
+        return inputs
+
+class NginxUpgradeConfigWorkflow(WorkflowRun):
+    def __init__(self, owner: str, repo: str, id: int,
+                 personal_access_token: str, branch_name: str,
+                 network_name: str, ansible_forks: Optional[int] = None,
+                 custom_inventory: Optional[List[str]] = None,
+                 testnet_deploy_args: Optional[str] = None):
+        super().__init__(owner, repo, id, personal_access_token, branch_name, name="Nginx -- Upgrade Config")
+        self.network_name = network_name
+        self.ansible_forks = ansible_forks
+        self.custom_inventory = custom_inventory
+        self.testnet_deploy_args = testnet_deploy_args
+
+    def get_workflow_inputs(self) -> Dict[str, Any]:
+        inputs = {
+            "network-name": self.network_name,
+        }
+        
+        if self.ansible_forks is not None:
+            inputs["ansible-forks"] = str(self.ansible_forks)
+        if self.custom_inventory is not None:
+            inputs["custom-inventory"] = ",".join(self.custom_inventory)
+        if self.testnet_deploy_args is not None and self.testnet_deploy_args.strip():
+            inputs["testnet-deploy-args"] = self.testnet_deploy_args
             
         return inputs

@@ -97,7 +97,7 @@ symmetric-private-vm-count: 1
 client-vm-size: s-4vcpu-8gb
 peer-cache-node-vm-size: s-4vcpu-8gb
 node-vm-size: s-4vcpu-8gb
-full-cone-nat-gateway-vm-size: s-4vcpu-8gb
+full-cone-vm-size: s-4vcpu-8gb
 symmetric-nat-gateway-vm-size: s-4vcpu-8gb
 
 #

@@ -15,12 +15,14 @@ REPO_NAME = "sn-testnet-workflows"
 
 BOOTSTRAP_NETWORK_WORKFLOW_ID = 117603859
 CLIENT_DEPLOY_WORKFLOW_ID = 155060032
+CLIENT_DEPLOY_STATIC_DOWNLOADERS_WORKFLOW_ID = 180048754
 DEPOSIT_FUNDS_WORKFLOW_ID = 125539747
 DESTROY_NETWORK_WORKFLOW_ID = 63357826
 DRAIN_FUNDS_WORKFLOW_ID = 125539749
 KILL_DROPLETS_WORKFLOW_ID = 128878189
 LAUNCH_NETWORK_WORKFLOW_ID = 144945387
 NETWORK_STATUS_WORKFLOW_ID = 109501466
+NGINX_UPGRADE_CONFIG_WORKFLOW_ID = 174411054
 RESET_TO_N_NODES_WORKFLOW_ID = 134957069
 START_NODES_WORKFLOW_ID = 109583089
 START_TELEGRAF_WORKFLOW_ID = 154514010
@@ -56,7 +58,7 @@ ENVIRONMENT_DEFAULTS = {
         "client_vm_count": 1,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-4vcpu-8gb",
-        "full_cone_nat_gateway_vm_size": "s-4vcpu-8gb",
+        "full_cone_vm_size": "s-4vcpu-8gb",
         "symmetric_nat_gateway_vm_size": "s-4vcpu-8gb",
         "client_vm_size": "s-2vcpu-4gb",
         "region": "lon1"
@@ -77,7 +79,7 @@ ENVIRONMENT_DEFAULTS = {
         "client_vm_count": 2,
         "peer_cache_node_vm_size": "s-2vcpu-4gb",
         "generic_node_vm_size": "s-2vcpu-4gb",
-        "full_cone_nat_gateway_vm_size": "s-2vcpu-4gb",
+        "full_cone_vm_size": "s-2vcpu-4gb",
         "symmetric_nat_gateway_vm_size": "s-2vcpu-4gb",
         "client_vm_size": "s-2vcpu-4gb",
         "region": "lon1"
@@ -98,7 +100,7 @@ ENVIRONMENT_DEFAULTS = {
         "client_vm_count": 2,
         "peer_cache_node_vm_size": "s-8vcpu-16gb",
         "generic_node_vm_size": "s-8vcpu-16gb",
-        "full_cone_nat_gateway_vm_size": "s-8vcpu-16gb",
+        "full_cone_vm_size": "s-8vcpu-16gb",
         "symmetric_nat_gateway_vm_size": "s-8vcpu-16gb",
         "client_vm_size": "s-8vcpu-16gb",
         "region": "lon1"
@@ -359,6 +361,28 @@ def network_status(config: Dict, branch_name: str, force: bool = False, wait: bo
         branch_name=branch_name,
         network_name=config["network-name"],
         ansible_forks=config.get("ansible-forks"),
+        testnet_deploy_args=testnet_deploy_args
+    )
+    _execute_workflow(workflow, force, wait)
+
+def nginx_upgrade_config(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Upgrade nginx configuration on network nodes."""
+    if "network-name" not in config:
+        raise KeyError("network-name")
+    
+    _print_workflow_banner()
+    
+    testnet_deploy_args = _build_testnet_deploy_args(config)
+        
+    workflow = NginxUpgradeConfigWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=NGINX_UPGRADE_CONFIG_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        network_name=config["network-name"],
+        ansible_forks=config.get("ansible-forks"),
+        custom_inventory=config.get("custom-inventory"),
         testnet_deploy_args=testnet_deploy_args
     )
     _execute_workflow(workflow, force, wait)
@@ -731,6 +755,36 @@ def client_deploy(config: Dict, branch_name: str, force: bool = False, wait: boo
         workflow_run_id = workflow.run(force=force, wait=wait)
         repo = ClientDeploymentRepository()
         repo.record_client_deployment(workflow_run_id, config)
+        print("Workflow was dispatched with the following inputs:")
+        for key, value in workflow.get_workflow_inputs().items():
+            print(f"  {key}: {value}")
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to trigger workflow: {e}")
+        sys.exit(1)
+
+def client_deploy_static_downloaders(config: Dict, branch_name: str, force: bool = False, wait: bool = False) -> None:
+    """Deploy static downloaders to an existing network."""
+    _print_workflow_banner()
+    
+    workflow = ClientDeployStaticDownloadersWorkflow(
+        owner=REPO_OWNER,
+        repo=REPO_NAME,
+        id=CLIENT_DEPLOY_STATIC_DOWNLOADERS_WORKFLOW_ID,
+        personal_access_token=_get_github_token(),
+        branch_name=branch_name,
+        deployment_name=config["name"],
+        config=config
+    )
+    
+    try:
+        workflow_run_id = workflow.run(force=force, wait=wait)
+        db_config = config.copy()
+        db_config["deployment-name"] = config["name"]
+        repo = ClientDeploymentRepository()
+        repo.record_client_deployment(workflow_run_id, db_config)
         print("Workflow was dispatched with the following inputs:")
         for key, value in workflow.get_workflow_inputs().items():
             print(f"  {key}: {value}")

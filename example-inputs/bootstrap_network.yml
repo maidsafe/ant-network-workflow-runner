@@ -76,7 +76,7 @@ max-archived-log-files: 1
 # Maximum number of log files `safenode` will keep.
 max-log-files: 1
 # Environment variables to set for `safenode` services.
-environment-vars: LOG_LEVEL=debug,RUST_LOG=info
+node-env: LOG_LEVEL=debug,RUST_LOG=info
 
 #
 # EVM options
