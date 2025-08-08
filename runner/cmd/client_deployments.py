@@ -91,9 +91,9 @@ def post(deployment_id: int) -> None:
     Args:
         deployment_id: ID of the deployment to post
     """
-    webhook_url = os.getenv("ANT_RUNNER_COMPARISON_WEBHOOK_URL")
+    webhook_url = os.getenv("ANT_RUNNER_ENVIRONMENTS_WEBHOOK_URL")
     if not webhook_url:
-        print("Error: ANT_RUNNER_COMPARISON_WEBHOOK_URL environment variable is not set")
+        print("Error: ANT_RUNNER_ENVIRONMENTS_WEBHOOK_URL environment variable is not set")
         sys.exit(1)
         
     try:
